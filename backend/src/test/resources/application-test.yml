@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:autocare-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: none
+  flyway:
+    enabled: true
+    clean-disabled: false
+
+autocare:
+  security:
+    jwt:
+      access-secret: teste-segredo-de-acesso-teste-segredo-de-acesso-1234567890
+      refresh-secret: teste-segredo-de-refresh-teste-segredo-de-refresh-1234567890
+      access-ttl: PT15M
+      refresh-ttl: P30D
+  seed:
+    demo: false
+  scheduler:
+    enabled: false
+  rate-limit:
+    # A suite regista centenas de contas seguidas do mesmo endereço.
+    enabled: false
+  storage:
+    local-path: ./target/test-files
+    url-ttl-seconds: 3600
+    max-file-bytes: 5242880

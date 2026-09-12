@@ -1,0 +1,139 @@
+# IMBONDEIRO OS + Traccar para o Easypanel.
+#
+# No Easypanel: Projeto → + Serviço → «Compose» → colar este ficheiro.
+# Depois, no separador «Environment», preencher as variáveis do .env.example.
+# Os domínios apontam-se no Easypanel (ele tem o Traefik e o HTTPS):
+#   frota.suaempresa.ao   → serviço «web»,     porta 80
+#   traccar.suaempresa.ao → serviço «traccar», porta 8082
+#
+# Os rastreadores GPS NÃO passam pelo Traefik: falam TCP/UDP diretamente com
+# o Traccar nas portas 5001–5150 (uma por protocolo/fabricante), por isso
+# essas portas são publicadas no IP público da VPS. Abra-as na firewall.
+#
+# Dentro do compose os serviços falam pelo nome:
+#   Configurações → Servidor Traccar: http://traccar:8082
+#   Configurações → Motor de rotas:   http://osrm:5000   (se o ligar)
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME:-imbondeiro}
+      POSTGRES_USER: ${DATABASE_USER:?defina DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?defina DATABASE_PASSWORD}
+      LANG: pt_PT.utf8
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME:-imbondeiro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    # A imagem constrói-se a partir do repositório no GitHub (precisa de ser
+    # público, ou de um token no URL). Em alternativa — e é o caminho
+    # recomendado no Easypanel — crie «api» e «web» como serviços App ligados
+    # ao GitHub; ver docs/EASYPANEL.md.
+    build:
+      context: https://github.com/ElvesAgostinho/gestaofrotaGPS.git#main:backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_NAME: IMBONDEIRO OS
+      DATABASE_URL: jdbc:postgresql://db:5432/${DATABASE_NAME:-imbondeiro}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?gere um segredo}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?gere um segredo}
+      CORS_ORIGINS: ${APP_WEB_URL:?indique o endereço da aplicação}
+      APP_WEB_URL: ${APP_WEB_URL}
+      STORAGE_PATH: /var/lib/autocare/files
+      STORAGE_PUBLIC_BASE_URL: ${APP_WEB_URL}
+      MAIL_HOST: ${MAIL_HOST:-}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-IMBONDEIRO OS}
+    volumes:
+      - files:/var/lib/autocare/files
+
+  web:
+    build:
+      context: https://github.com/ElvesAgostinho/gestaofrotaGPS.git#main:web
+    environment:
+      # Nome interno do serviço da API. No Easypanel costuma ser projeto_api.
+      API_UPSTREAM: ${API_UPSTREAM:-api:8080}
+    restart: unless-stopped
+    depends_on:
+      - api
+    # Sem «ports»: o Easypanel liga o domínio a este serviço na porta 80.
+
+  traccar:
+    image: traccar/traccar:6.6-alpine
+    restart: unless-stopped
+    volumes:
+      - traccar-data:/opt/traccar/data
+      - traccar-logs:/opt/traccar/logs
+      - ./traccar.xml:/opt/traccar/conf/traccar.xml:ro
+    ports:
+      # As portas dos rastreadores, no IP público. Cada protocolo tem a sua:
+      # 5001 GPS103, 5013 H02, 5023 GT06, 5027 Teltonika, 5055 OsmAnd …
+      # Publicar o intervalo todo evita voltar aqui a cada aparelho novo.
+      - "5001-5150:5001-5150/tcp"
+      - "5001-5150:5001-5150/udp"
+    # A interface web do Traccar (8082) fica interna: o Easypanel liga-lhe
+    # o domínio traccar.suaempresa.ao com HTTPS.
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_NAME: ${DATABASE_NAME:-imbondeiro}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      BACKUP_HOUR: ${BACKUP_HOUR:-02}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      # Opcional: um remoto do rclone («s3:bucket/pasta», «b2:...», «drive:...»)
+      # configurado em ./rclone.conf. Sem isto as cópias ficam só no servidor.
+      BACKUP_REMOTE: ${BACKUP_REMOTE:-}
+    volumes:
+      - ../backup.sh:/backup.sh:ro
+      - files:/files:ro
+      - traccar-data:/traccar:ro
+      - backups:/backups
+      - ./rclone.conf:/root/.config/rclone/rclone.conf:ro
+    entrypoint: ["sh", "/backup.sh"]
+
+  # ---- Motor de rotas (opcional) ------------------------------------------
+  osrm-preparar:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    profiles: ["rotas"]
+    volumes:
+      - osrm-data:/data
+      - ../osrm-preparar.sh:/preparar.sh:ro
+    entrypoint: ["sh", "/preparar.sh"]
+
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    profiles: ["rotas"]
+    restart: unless-stopped
+    volumes:
+      - osrm-data:/data
+    command: ["osrm-routed", "--algorithm", "mld", "/data/angola-latest.osrm"]
+
+volumes:
+  db-data:
+  files:
+  backups:
+  traccar-data:
+  traccar-logs:
+  osrm-data:

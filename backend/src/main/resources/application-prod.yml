@@ -1,0 +1,88 @@
+# Perfil de produção. Ativar com SPRING_PROFILES_ACTIVE=prod
+#
+# Aqui não há valores por omissão para segredos: se faltarem, a aplicação recusa
+# arrancar (ver ProductionSafetyCheck). É deliberado — arrancar com o segredo de
+# exemplo é pior do que não arrancar.
+
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USER}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      # Uma ligação por pedido em curso. Mais do que isto não acelera nada e
+      # esgota as ligações do PostgreSQL, que costuma vir com 100 no total.
+      maximum-pool-size: ${DB_POOL_MAX:10}
+      minimum-idle: ${DB_POOL_MIN:2}
+      connection-timeout: 10000
+
+  jpa:
+    hibernate:
+      # O esquema é propriedade do Flyway. Deixar o Hibernate mexer-lhe em
+      # produção é a forma mais rápida de perder dados.
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          batch_size: 50
+
+  flyway:
+    enabled: true
+    # Nunca, em circunstância alguma, limpar a base de dados de produção.
+    clean-disabled: true
+
+  servlet:
+    multipart:
+      max-file-size: ${MAX_UPLOAD_SIZE:15MB}
+      max-request-size: ${MAX_UPLOAD_SIZE:15MB}
+
+autocare:
+  seed:
+    # Nada de dados de demonstração numa base de dados real.
+    demo: false
+  storage:
+    local-path: ${STORAGE_PATH:/var/lib/autocare/files}
+
+server:
+  # Cabeçalho maior do que os 8 KB por omissão do Tomcat.
+  #
+  # Os cookies de `localhost` são partilhados por todas as portas: qualquer
+  # outro projeto que tenha corrido na máquina deixa cookies que o browser
+  # envia também para este. Passados os 8 KB, o Tomcat recusa o pedido com 400
+  # e uma página HTML — antes de o Spring o ver —, e a aplicação recebia
+  # "<!doctype" onde esperava JSON.
+  #
+  # 32 KB acomoda uma sessão de browser com anos de cookies. Não é ilimitado de
+  # propósito: um cabeçalho sem limite é uma porta para esgotar memória.
+  # No Spring Boot 3 a propriedade chama-se max-http-request-header-size;
+  # a antiga (max-http-header-size) e aceite mas ignorada em silencio.
+  max-http-request-header-size: 32KB
+  tomcat:
+    # Quando o upload passa do limite, o Tomcat responde 400 mas corta a ligacao
+    # se ainda faltar receber mais do que isto — e o browser fica sem corpo de
+    # resposta, a mostrar "resposta inesperada" em vez do motivo real.
+    # Engolir ate 30 MB da tempo de entregar a mensagem; acima disso a ligacao
+    # cai de proposito, para nao servir de porta a envios gigantes.
+    max-swallow-size: 30MB
+  # Atrás de um proxy (Nginx, Traefik, balanceador da nuvem): sem isto os
+  # endereços de cliente e os URLs gerados ficam errados.
+  forward-headers-strategy: framework
+  error:
+    include-message: never
+    include-stacktrace: never
+  shutdown: graceful
+
+logging:
+  level:
+    root: INFO
+    ao.autocare: ${LOG_LEVEL:INFO}
+    # As consultas SQL não vão para os registos de produção: são ruidosas e
+    # podem conter dados de clientes.
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId:-}] %logger{36} - %msg%n"
+
+# A sonda de saúde para o balanceador é GET /api/v1/health, servida pelo próprio
+# HealthController e aberta sem autenticação. O Actuator não está incluído: mais
+# uma dependência para expor o que já existe não se justifica.

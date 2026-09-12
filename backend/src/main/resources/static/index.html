@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AutoCare — Consola</title>
+<style>
+  :root{
+    --brand:#1d4ed8; --brand-dark:#1e3a8a; --ink:#0f172a; --muted:#64748b;
+    --bg:#f1f5f9; --surface:#ffffff; --border:#e2e8f0;
+    --ok:#16a34a; --warn:#d97706; --danger:#dc2626; --accent:#facc15;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+  a{color:var(--brand);text-decoration:none}
+  button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:9px 16px;background:var(--brand);color:#fff;font-weight:600}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--border)}
+  button.sm{padding:6px 12px;font-size:13px}
+  input,select{font:inherit;padding:9px 11px;border:1px solid var(--border);border-radius:8px;width:100%;background:#fff}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.03em}
+  .hidden{display:none!important}
+
+  /* Login */
+  #login{min-height:100vh;display:grid;place-items:center;padding:24px}
+  #login .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:32px;width:360px;box-shadow:0 10px 40px rgba(2,6,23,.08)}
+  .logo{font-weight:800;font-size:26px;color:var(--brand)}
+  .logo small{display:block;font-weight:500;font-size:13px;color:var(--muted);margin-top:2px}
+  .err{color:var(--danger);font-size:13px;margin-top:10px;min-height:18px}
+
+  /* App shell */
+  #app{display:grid;grid-template-columns:230px 1fr;grid-template-rows:56px 1fr;min-height:100vh}
+  header{grid-column:1/3;display:flex;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;padding:0 18px}
+  header .logo{color:#fff;font-size:18px}
+  header .org{font-size:13px;color:#cbd5e1}
+  nav{background:var(--surface);border-right:1px solid var(--border);padding:14px 10px}
+  nav a{display:block;padding:9px 12px;border-radius:8px;color:var(--ink);font-weight:600;margin-bottom:2px}
+  nav a.active{background:#eff6ff;color:var(--brand)}
+  main{padding:24px 28px;overflow:auto}
+  h1{font-size:20px;margin:0 0 16px}
+  h2{font-size:15px;margin:24px 0 10px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:8px}
+  .tile{background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px}
+  .tile .n{font-size:26px;font-weight:800}
+  .tile .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px}
+  th{background:#f8fafc;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.04em}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#f8fafc}
+  tr:last-child td{border-bottom:0}
+
+  .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.03em}
+  .b-CRITICAL{background:#fee2e2;color:#b91c1c}
+  .b-HIGH{background:#ffedd5;color:#c2410c}
+  .b-MEDIUM{background:#fef9c3;color:#a16207}
+  .b-LOW{background:#dcfce7;color:#15803d}
+  .b-soon{background:#dbeafe;color:#1d4ed8}
+
+  /* Maintenance-plan sheet */
+  .sheet{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+  .sheet .band{background:var(--accent);color:#111;padding:14px 20px;font-weight:800;letter-spacing:.04em;display:flex;justify-content:space-between;align-items:center}
+  .sheet .band .sub{background:#111;color:#fff;padding:3px 10px;border-radius:6px;font-size:12px}
+  .sheet .body{padding:20px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+  .kv{width:100%;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .kv div{display:flex;border-bottom:1px solid var(--border)}
+  .kv div:last-child{border-bottom:0}
+  .kv .k{background:#f8fafc;font-weight:700;width:150px;padding:8px 12px;color:var(--muted);font-size:12px;text-transform:uppercase}
+  .kv .v{padding:8px 12px;flex:1}
+  .obj{background:#f8fafc;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px}
+  .stars{color:var(--accent);letter-spacing:2px;font-size:16px}
+  .stars .off{color:#e2e8f0}
+  .crit-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--border)}
+  .crit-general{margin-top:10px;text-align:center;font-weight:800;padding:10px;border-radius:8px}
+
+  .soon{color:var(--muted);font-style:italic;font-size:13px;padding:14px;background:#f8fafc;border:1px dashed var(--border);border-radius:10px}
+  .row-form{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+  .row-form > div{flex:1}
+  .flag{color:var(--danger);font-size:12px;margin-top:6px}
+  .muted{color:var(--muted)}
+  .backlink{font-size:13px;font-weight:600;margin-bottom:12px;display:inline-block}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<section id="login">
+  <div class="card">
+    <div class="logo">AutoCare<small>Gestão de manutenção de frotas e ativos</small></div>
+    <label>Email</label>
+    <input id="li-email" value="demo@autocare.ao" />
+    <label>Palavra-passe</label>
+    <input id="li-pass" type="password" value="demo1234" />
+    <div class="err" id="li-err"></div>
+    <button style="width:100%;margin-top:8px" onclick="doLogin()">Entrar</button>
+    <p class="muted" style="font-size:12px;margin-top:14px">Conta de demonstração pré-preenchida.</p>
+  </div>
+</section>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <header>
+    <span class="logo">AutoCare</span>
+    <span class="org" id="hdr-org"></span>
+    <button class="ghost sm" onclick="logout()">Terminar sessão</button>
+  </header>
+  <nav>
+    <a data-view="painel" class="active" onclick="go('painel')">Painel</a>
+    <a data-view="ativos" onclick="go('ativos')">Ativos</a>
+    <a data-view="locais" onclick="go('locais')">Locais</a>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<script>
+const API = '/api/v1';
+let token = sessionStorage.getItem('ac_token') || null;
+
+async function api(path, opts={}){
+  const r = await fetch(API+path, {
+    ...opts,
+    headers:{'Content-Type':'application/json', ...(token?{'Authorization':'Bearer '+token}:{}), ...(opts.headers||{})}
+  });
+  if(r.status===401){ logout(); throw new Error('sessão terminada'); }
+  const body = r.status===204 ? null : await r.json().catch(()=>null);
+  if(!r.ok) throw new Error((body && body.message) || 'Erro '+r.status);
+  return body;
+}
+const money = n => n==null ? '—' : new Intl.NumberFormat('pt-AO',{style:'currency',currency:'AOA',maximumFractionDigits:0}).format(n);
+const num = n => n==null ? '—' : new Intl.NumberFormat('pt-AO').format(n);
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const stars = n => `<span class="stars">${'★'.repeat(n)}<span class="off">${'★'.repeat(5-n)}</span></span>`;
+const critColor = {CRITICAL:'#fee2e2;color:#b91c1c',HIGH:'#ffedd5;color:#c2410c',MEDIUM:'#fef9c3;color:#a16207',LOW:'#dcfce7;color:#15803d'};
+const critLabel = {CRITICAL:'CRÍTICA',HIGH:'ALTA',MEDIUM:'MÉDIA',LOW:'BAIXA'};
+
+async function doLogin(){
+  const err = document.getElementById('li-err'); err.textContent='';
+  try{
+    const r = await fetch(API+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({identifier:document.getElementById('li-email').value, password:document.getElementById('li-pass').value})});
+    const b = await r.json();
+    if(!r.ok) throw new Error(b.message||'Falha no início de sessão');
+    token = b.accessToken; sessionStorage.setItem('ac_token', token);
+    boot();
+  }catch(e){ err.textContent = e.message; }
+}
+function logout(){ token=null; sessionStorage.removeItem('ac_token');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login').classList.remove('hidden'); }
+
+async function boot(){
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  try{
+    const org = await api('/organization');
+    document.getElementById('hdr-org').textContent = org.name + ' · ' + (org.myRole||'');
+  }catch(e){}
+  go('painel');
+}
+function go(view){
+  document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active', a.dataset.view===view));
+  ({painel:renderPainel, ativos:renderAtivos, locais:renderLocais}[view])();
+}
+
+async function renderPainel(){
+  const m = document.getElementById('main');
+  m.innerHTML = '<h1>Painel</h1><p class="muted">A carregar…</p>';
+  const [org, assets] = await Promise.all([api('/organization'), api('/assets?size=200')]);
+  const list = assets.content;
+  const crit = list.filter(a=>a.criticality==='CRITICAL').length;
+  const down = list.filter(a=>a.status==='DOWN'||a.status==='MAINTENANCE').length;
+  m.innerHTML = `
+    <h1>Painel</h1>
+    <div class="tiles">
+      <div class="tile"><div class="n">${org.assetCount}</div><div class="l">Ativos</div></div>
+      <div class="tile"><div class="n" style="color:var(--danger)">${crit}</div><div class="l">Criticidade crítica</div></div>
+      <div class="tile"><div class="n">${org.locationCount}</div><div class="l">Locais</div></div>
+      <div class="tile"><div class="n">${org.assetTypeCount}</div><div class="l">Tipos de ativo</div></div>
+      <div class="tile"><div class="n" style="color:var(--warn)">${down}</div><div class="l">Em paragem / manutenção</div></div>
+    </div>
+    <h2>Ativos</h2>
+    ${assetTable(list)}
+    <h2>Indicadores de desempenho</h2>
+    <div class="soon">Disponibilidade ≥ 90% · MTBF ≥ 500 h · MTTR ≤ 4 h · Cumprimento do plano ≥ 95% — calculados a partir das ordens de manutenção (Fase 6).</div>`;
+  bindAssetRows();
+}
+
+function assetTable(list){
+  return `<table><thead><tr><th>Etiqueta</th><th>Nome</th><th>Tipo</th><th>Local</th><th>Criticidade</th><th>Medidor</th><th>Estado</th></tr></thead><tbody>
+  ${list.map(a=>`<tr data-id="${a.id}">
+    <td><b>${esc(a.tag)}</b></td><td>${esc(a.name)}</td><td>${esc(a.assetTypeName)}</td>
+    <td>${esc(a.locationName)||'—'}</td>
+    <td><span class="badge b-${a.criticality}">${critLabel[a.criticality]||a.criticality}</span></td>
+    <td>${a.meters.map(mt=>num(mt.currentValue)+' '+mt.unit).join(' · ')||'—'}</td>
+    <td>${esc(a.status)}</td></tr>`).join('')}
+  </tbody></table>`;
+}
+function bindAssetRows(){
+  document.querySelectorAll('tbody tr[data-id]').forEach(tr=>tr.onclick=()=>openAsset(tr.dataset.id));
+}
+
+async function renderAtivos(){
+  const m = document.getElementById('main');
+  m.innerHTML = '<h1>Ativos</h1><p class="muted">A carregar…</p>';
+  const assets = await api('/assets?size=200');
+  m.innerHTML = `<h1>Ativos <span class="muted" style="font-weight:400">(${assets.content.length})</span></h1>${assetTable(assets.content)}`;
+  bindAssetRows();
+}
+
+async function openAsset(id){
+  const m = document.getElementById('main');
+  m.innerHTML = '<p class="muted">A carregar…</p>';
+  const a = await api('/assets/'+id);
+  const c = a.criticality;
+  m.innerHTML = `
+    <a class="backlink" onclick="go('ativos')">← Voltar aos ativos</a>
+    <div class="sheet">
+      <div class="band">PLANO DE MANUTENÇÃO PREVENTIVA <span class="sub">${esc(a.assetTypeName)}</span></div>
+      <div class="body">
+        <div class="grid2">
+          <div>
+            <h2 style="margin-top:0">Identificação do equipamento</h2>
+            <div class="kv">
+              <div><div class="k">Equipamento</div><div class="v">${esc(a.name)}</div></div>
+              <div><div class="k">Modelo</div><div class="v">${esc(a.model)||'—'}</div></div>
+              <div><div class="k">N.º de série</div><div class="v">${esc(a.serialNumber)||'—'}</div></div>
+              <div><div class="k">Ano</div><div class="v">${a.modelYear||'—'}</div></div>
+              <div><div class="k">Localização</div><div class="v">${esc(a.locationName)||'—'}</div></div>
+              <div><div class="k">Responsável</div><div class="v">${esc(a.responsibleLabel)||'—'}</div></div>
+              <div><div class="k">Valor de aquisição</div><div class="v">${money(a.acquisitionValue)}</div></div>
+            </div>
+          </div>
+          <div>
+            <h2 style="margin-top:0">Criticidade do equipamento</h2>
+            <div class="crit-row"><span>Impacto na Produção</span>${stars(c.productionImpact)}</div>
+            <div class="crit-row"><span>Impacto na Segurança</span>${stars(c.safetyImpact)}</div>
+            <div class="crit-row"><span>Impacto Financeiro</span>${stars(c.financialImpact)}</div>
+            <div class="crit-general" style="background:${critColor[c.overall]}">CRITICIDADE GERAL: ${critLabel[c.overall]||c.overall}</div>
+
+            <h2>Medidores</h2>
+            ${a.meters.map(mt=>`<div class="crit-row"><span>${mt.kind==='HOURMETER'?'Horímetro':'Hodómetro'}</span>
+              <b>${num(mt.currentValue)} ${mt.unit}</b> <span class="muted">· média ${num(mt.dailyAverage)} ${mt.unit}/dia</span></div>`).join('')}
+            <div class="row-form">
+              <div><label>Nova leitura (${a.meters[0]?a.meters[0].unit:''})</label><input id="mr-val" type="number" placeholder="valor"/></div>
+              <button class="sm" onclick="addReading('${a.id}','${a.meters[0]?a.meters[0].kind:''}')">Registar</button>
+            </div>
+            <div class="flag hidden" id="mr-flag"></div>
+          </div>
+        </div>
+
+        <h2>Objetivo</h2>
+        <div class="obj">${esc(a.objective)||'—'}</div>
+
+        <h2>Inspeção diária (antes do arranque)</h2>
+        <div class="soon">11 itens · 15 minutos — Verificar / Inspecionar / Testar. Módulo de checklists: Fase 3 (em curso).</div>
+
+        <h2>Plano de manutenção por horas</h2>
+        <div class="soon">8 sistemas × 250 / 500 / 1000 / 2000 h + lubrificação a cada 50 h. Módulo de planos: Fase 3 (em curso).</div>
+
+        <h2>Manutenção preditiva</h2>
+        <div class="soon">Análise de vibração (mensal) · Termografia (trimestral) · Análise de óleo (semestral) — Fase 7.</div>
+
+        <h2>Observações</h2>
+        <div class="obj">Todas as manutenções devem ser registadas no sistema (OM). Utilizar apenas peças originais.
+        Seguir o manual do operador e de serviço. Manter o equipamento limpo e protegido contra intempéries.</div>
+      </div>
+    </div>`;
+}
+
+async function addReading(id, kind){
+  const val = parseFloat(document.getElementById('mr-val').value);
+  const flag = document.getElementById('mr-flag');
+  flag.classList.add('hidden');
+  if(isNaN(val)) return;
+  try{
+    const r = await api(`/assets/${id}/meters/${kind}/readings`,{method:'POST',body:JSON.stringify({value:val})});
+    if(r.reading.flagged){ flag.textContent = '⚠ ' + r.reading.flagReason; flag.classList.remove('hidden'); }
+    openAsset(id);
+  }catch(e){ flag.textContent = e.message; flag.classList.remove('hidden'); }
+}
+
+async function renderLocais(){
+  const m = document.getElementById('main');
+  m.innerHTML = '<h1>Locais</h1><p class="muted">A carregar…</p>';
+  const tree = await api('/locations/tree');
+  const node = n => `<li><b>${esc(n.name)}</b> <span class="muted">${esc(n.kind)}${n.code?' · '+esc(n.code):''}</span>
+    ${n.children&&n.children.length?'<ul>'+n.children.map(node).join('')+'</ul>':''}</li>`;
+  m.innerHTML = `<h1>Locais</h1><div class="sheet"><div class="body"><ul style="line-height:2">${tree.map(node).join('')}</ul></div></div>`;
+}
+
+if(token) boot();
+</script>
+</body>
+</html>

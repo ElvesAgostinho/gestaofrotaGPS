@@ -1,0 +1,47 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+web-build/
+.expo/
+
+# Ambiente
+.env
+.env.local
+*.env.local
+
+# Base de dados de desenvolvimento
+backend/prisma/*.db
+backend/prisma/*.db-journal
+
+# Logs e cobertura
+*.log
+coverage/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Backend: base de dados local, builds, ficheiros carregados
+backend/data/
+backend/target/
+backend/*.db
+backups/
+
+# Frontend: build
+web/dist/
+
+# Documento de referência do fabricante (não é nosso para redistribuir)
+plano-manutencao-CAT-416F2.pdf
+
+# Editor
+.vscode/
+.idea/
+*.iml
+
+# Mobile (Android) builds
+mobile/build/
+mobile/app/build/
+mobile/.gradle/
+mobile/local.properties

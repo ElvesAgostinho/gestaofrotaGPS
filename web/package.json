@@ -1,0 +1,37 @@
+{
+  "name": "autocare-web",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "description": "AutoCare — app web desktop-first de gestão de manutenção de frotas e ativos",
+  "scripts": {
+    "//dev": "--max-http-header-size: o Node corta os cabecalhos aos 16 KB e devolve 431. Os cookies de localhost sao partilhados por todas as portas, e um browser de trabalho passa disso facilmente. 32 KB iguala o limite do backend.",
+    "dev": "node --max-http-header-size=32768 ./node_modules/vite/bin/vite.js",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@mantine/core": "^7.13.4",
+    "@mantine/dates": "^7.13.4",
+    "@mantine/form": "^7.13.4",
+    "@mantine/hooks": "^7.13.4",
+    "@mantine/notifications": "^7.13.4",
+    "@tabler/icons-react": "^3.19.0",
+    "@tanstack/react-query": "^5.59.16",
+    "dayjs": "^1.11.13",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.27.0",
+    "zustand": "^5.0.0",
+    "maplibre-gl": "^4.7.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

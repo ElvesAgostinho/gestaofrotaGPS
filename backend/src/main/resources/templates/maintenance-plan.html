@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+<meta charset="UTF-8" />
+<style>
+  @page { size: A4; margin: 1.4cm 1.2cm; }
+  * { box-sizing: border-box; }
+  body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #1a1a1a; line-height: 1.4; }
+  h1 { font-size: 15pt; margin: 0; }
+  .head { display: flex; justify-content: space-between; align-items: center;
+          background: #facc15; padding: 8pt 12pt; }
+  .head .who { font-size: 8pt; }
+  .brand { font-weight: bold; font-size: 13pt; }
+  .sub { background: #111; color: #fff; padding: 6pt 12pt; font-weight: bold;
+         letter-spacing: .5pt; font-size: 10pt; }
+  h2 { font-size: 9.5pt; text-transform: uppercase; letter-spacing: .5pt;
+       color: #555; margin: 14pt 0 5pt; border-bottom: 1pt solid #ddd; padding-bottom: 2pt; }
+  table { width: 100%; border-collapse: collapse; }
+  .kv td { padding: 3pt 6pt; border: 0.6pt solid #ccc; vertical-align: top; }
+  .kv td.k { background: #f5f5f5; font-weight: bold; width: 26%; }
+  .obj { background: #f7f7f7; border: 0.6pt solid #ddd; padding: 6pt; }
+  .grid { width: 100%; }
+  .grid td { vertical-align: top; width: 50%; padding-right: 10pt; }
+  .crit td { padding: 3pt 0; border-bottom: 0.4pt dashed #ccc; }
+  .crit .stars { letter-spacing: 1pt; color: #b8860b; }
+  .badge { display: inline-block; padding: 3pt 8pt; font-weight: bold; color: #fff; margin-top: 4pt; }
+  .b-CRITICAL { background: #c0392b; } .b-HIGH { background: #d35400; }
+  .b-MEDIUM { background: #b7950b; } .b-LOW { background: #1e8449; }
+  .items td { border: 0.6pt solid #ccc; padding: 3pt 6pt; }
+  .items th { background: #f0f0f0; border: 0.6pt solid #ccc; padding: 3pt 6pt; text-align: left; }
+  .plan th { background: #111; color: #fff; padding: 4pt 6pt; text-align: left; font-size: 8pt; }
+  .plan td { border: 0.6pt solid #bbb; padding: 4pt 6pt; vertical-align: top; font-size: 8pt; }
+  .plan td.sys { background: #f0f0f0; font-weight: bold; width: 15%; }
+  .plan ul { margin: 0; padding-left: 12pt; }
+  .lube { background: #fffbe6; border: 0.6pt solid #e0c200; padding: 6pt; }
+  .muted { color: #777; font-style: italic; }
+  .foot { margin-top: 20pt; }
+  .foot td { border-top: 0.8pt solid #333; padding-top: 4pt; width: 33%; font-size: 8pt; color: #555; }
+  .kpi td { border: 0.6pt solid #ccc; padding: 3pt 6pt; }
+</style>
+</head>
+<body>
+
+  <div th:replace="~{timbre :: cabecalho(${timbre}, ${doc.asset.tag}, 'Plano de manutenção preventiva')}"></div>
+
+  <table class="grid"><tr>
+    <td>
+      <h2>Identificação do equipamento</h2>
+      <table class="kv">
+        <tr><td class="k">Equipamento</td><td th:text="${doc.asset.name}">—</td></tr>
+        <tr><td class="k">Etiqueta</td><td th:text="${doc.asset.tag}">—</td></tr>
+        <tr><td class="k">Modelo</td><td th:text="${doc.asset.model}">—</td></tr>
+        <tr><td class="k">N.º de série</td><td th:text="${doc.asset.serialNumber}">—</td></tr>
+        <tr><td class="k">Ano</td><td th:text="${doc.asset.modelYear}">—</td></tr>
+        <tr><td class="k">Localização</td><td th:text="${doc.asset.location}">—</td></tr>
+        <tr><td class="k">Responsável</td><td th:text="${doc.asset.responsible}">—</td></tr>
+      </table>
+    </td>
+    <td>
+      <h2>Criticidade do equipamento</h2>
+      <table class="crit">
+        <tr><td>Impacto na Produção</td>
+            <td class="stars" th:text="${doc.criticality.stars(doc.criticality.production)}">★★★★★</td></tr>
+        <tr><td>Impacto na Segurança</td>
+            <td class="stars" th:text="${doc.criticality.stars(doc.criticality.safety)}">★★★★★</td></tr>
+        <tr><td>Impacto Financeiro</td>
+            <td class="stars" th:text="${doc.criticality.stars(doc.criticality.financial)}">★★★★★</td></tr>
+      </table>
+      <span class="badge" th:classappend="'b-' + ${doc.criticality.overall}"
+            th:text="'CRITICIDADE GERAL: ' + ${doc.criticality.overallLabel}">CRITICIDADE GERAL</span>
+    </td>
+  </tr></table>
+
+  <h2>Objetivo</h2>
+  <div class="obj" th:text="${doc.asset.objective}">—</div>
+
+  <!-- Inspeção diária -->
+  <div th:if="${doc.checklist != null}">
+    <h2>
+      <span th:text="${doc.checklist.name}">Inspeção diária</span>
+      <span th:if="${doc.checklist.estimatedMinutes != null}"
+            th:text="' — ' + ${doc.checklist.estimatedMinutes} + ' minutos'"></span>
+    </h2>
+    <table class="items">
+      <tr><th style="width:70%">Item</th><th>Verificação</th></tr>
+      <tr th:each="it : ${doc.checklist.items}">
+        <td th:text="${it.text}">—</td><td th:text="${it.verification}">Verificar</td>
+      </tr>
+    </table>
+  </div>
+  <div th:if="${doc.checklist == null}" class="muted">Sem checklist de inspeção definida para este ativo.</div>
+
+  <!-- Plano de manutenção -->
+  <div th:if="${doc.plan != null}">
+    <div th:if="${doc.plan.lube != null}">
+      <h2>Lubrificação geral — a cada <span th:text="${doc.plan.lube.hours}">50</span> horas</h2>
+      <div class="lube">
+        <div th:text="${doc.plan.lube.title}">—</div>
+        <div th:if="${doc.plan.lube.tools != '—'}" style="margin-top:4pt">
+          <b>Ferramentas e materiais:</b> <span th:text="${doc.plan.lube.tools}"></span>
+        </div>
+      </div>
+    </div>
+
+    <h2>Plano de manutenção por horas</h2>
+    <table class="plan">
+      <tr>
+        <th>Sistema</th>
+        <th>250 h</th><th>500 h</th><th>1000 h</th><th>2000 h</th>
+      </tr>
+      <tr th:each="row : ${doc.plan.rows}">
+        <td class="sys" th:text="${row.system}">Motor</td>
+        <td><ul><li th:each="t : ${row.col250}" th:text="${t}"></li></ul></td>
+        <td><ul><li th:each="t : ${row.col500}" th:text="${t}"></li></ul></td>
+        <td><ul><li th:each="t : ${row.col1000}" th:text="${t}"></li></ul></td>
+        <td><ul><li th:each="t : ${row.col2000}" th:text="${t}"></li></ul></td>
+      </tr>
+    </table>
+    <div th:if="${doc.plan.notes != '—'}" style="margin-top:6pt" class="muted" th:text="${doc.plan.notes}"></div>
+  </div>
+  <div th:if="${doc.plan == null}" class="muted">Nenhum plano de manutenção atribuído a este ativo.</div>
+
+  <!-- Manutenção preditiva -->
+  <h2>Manutenção preditiva</h2>
+  <table class="items">
+    <tr><th>Frequência</th><th>Técnica</th><th>Componentes</th><th>Objetivo</th></tr>
+    <tr th:each="p : ${doc.predictive}">
+      <td th:text="${p.frequency}">Mensal</td>
+      <td th:text="${p.technique}">—</td>
+      <td th:text="${p.components}">—</td>
+      <td th:text="${p.goal}">—</td>
+    </tr>
+  </table>
+
+  <!-- Indicadores -->
+  <h2>Indicadores de desempenho</h2>
+  <table class="kpi">
+    <tr><th>Indicador</th><th>Meta</th><th>Fórmula</th></tr>
+    <tr th:each="k : ${doc.kpis}">
+      <td th:text="${k.name}">—</td><td th:text="${k.target}">—</td><td th:text="${k.formula}">—</td>
+    </tr>
+  </table>
+
+  <h2>Observações</h2>
+  <div class="obj" th:text="${doc.observations}">—</div>
+
+  <table class="foot"><tr>
+    <td>Elaborado por<br /><br />_______________________</td>
+    <td>Aprovado por<br /><br />_______________________</td>
+    <td>Data<br /><br />____ / ____ / ________</td>
+  </tr></table>
+
+</body>
+</html>

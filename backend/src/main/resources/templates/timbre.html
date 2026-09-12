@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<body>
+<!--
+  O timbre de todos os impressos: a empresa do cliente, à esquerda; o número
+  e o estado do documento, à direita. Usa-se com:
+    <div th:replace="~{timbre :: cabecalho(${timbre}, 'OM-2026-000001', 'Ordem de serviço')}"></div>
+-->
+<table class="timbre" th:fragment="cabecalho(t, numero, tipo)"
+       style="width:100%; border-collapse:collapse; border-bottom:1.5px solid #18181b; padding-bottom:6px; margin-bottom:10px;">
+  <tr>
+    <td th:if="${t.hasLogo()}" style="width:92px; vertical-align:top; padding:0 10px 6px 0;">
+      <img th:src="${t.logoDataUri}" alt="" style="max-width:86px; max-height:48px;"/>
+    </td>
+    <td style="vertical-align:top; padding-bottom:6px;">
+      <div th:text="${t.name}" style="font-size:14pt; font-weight:bold; letter-spacing:-0.2pt;">Empresa</div>
+      <div th:if="${t.taxId}" style="font-size:8pt; color:#3f3f46;">
+        NIF <span th:text="${t.taxId}">000000000</span>
+      </div>
+      <div th:if="${!#strings.isEmpty(t.contactLine())}" th:text="${t.contactLine()}"
+           style="font-size:7.5pt; color:#71717a;">Morada · telefone · email</div>
+    </td>
+    <td style="text-align:right; vertical-align:top; padding-bottom:6px; white-space:nowrap;">
+      <div th:text="${tipo}" style="font-size:7.5pt; color:#71717a; text-transform:uppercase; letter-spacing:0.5pt;">Tipo</div>
+      <div th:text="${numero}" style="font-size:13pt; font-weight:bold;">Nº</div>
+    </td>
+  </tr>
+</table>
+
+<!-- O rodapé: a marca do software, pequena, e quando foi gerado. -->
+<div th:fragment="rodape(geradoEm)" class="foot"
+     style="margin-top:16px; padding-top:5px; border-top:1px solid #d4d4d8; font-size:7pt; color:#a1a1aa;"
+     th:text="'Gerado por IMBONDEIRO OS em ' + ${geradoEm} + '. Documento emitido pelo sistema; a assinatura confere-lhe validade.'">
+  Rodapé
+</div>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Todos os textos visíveis ao utilizador — Português de Angola. -->
+<resources>
+    <string name="app_name">AutoCare</string>
+    <string name="app_tagline">A inteligência da sua viatura</string>
+
+    <!-- Comum -->
+    <string name="action_continue">Continuar</string>
+    <string name="action_back">Voltar</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_retry">Tentar novamente</string>
+    <string name="loading">A carregar…</string>
+    <string name="error_generic">Não foi possível concluir a operação. Tente novamente.</string>
+    <string name="error_offline">Sem ligação à internet.</string>
+    <string name="error_server">Sem ligação ao servidor. Verifique a internet.</string>
+
+    <!-- Autenticação -->
+    <string name="login_title">Entrar</string>
+    <string name="register_title">Criar conta</string>
+    <string name="field_name">Nome</string>
+    <string name="field_email_or_phone">Email ou telefone</string>
+    <string name="field_email">Email</string>
+    <string name="field_phone">Telefone</string>
+    <string name="field_password">Palavra-passe</string>
+    <string name="forgot_password">Esqueci-me da palavra-passe</string>
+    <string name="no_account_register">Ainda não tem conta? Criar conta</string>
+    <string name="has_account_login">Já tem conta? Entrar</string>
+    <string name="accept_terms">Aceito os termos e a política de privacidade</string>
+    <string name="must_accept_terms">Precisa de aceitar os termos para continuar.</string>
+    <string name="sign_out">Terminar sessão</string>
+    <string name="sign_out_confirm">Deseja terminar a sessão?</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_1_title">Controle tudo sobre a sua viatura.</string>
+    <string name="onboarding_1_body">Manutenção, documentos, despesas e combustível num só lugar.</string>
+    <string name="onboarding_2_title">Nunca mais esqueça uma manutenção.</string>
+    <string name="onboarding_2_body">Avisamos-lhe por quilómetros ou por data — o que acontecer primeiro.</string>
+    <string name="onboarding_3_title">Nunca mais perca a validade de um documento.</string>
+    <string name="onboarding_3_body">Alertas do seguro, inspeção e licenciamento com antecedência.</string>
+    <string name="onboarding_4_title">Saiba onde está a sua viatura em tempo real.</string>
+    <string name="onboarding_4_body">Rastreamento GPS, histórico de percursos e zonas de segurança.</string>
+    <string name="onboarding_add_vehicle">Adicionar primeira viatura</string>
+    <string name="onboarding_skip">Saltar</string>
+
+    <!-- Navegação -->
+    <string name="tab_home">Início</string>
+    <string name="tab_vehicles">Viaturas</string>
+    <string name="tab_map">Mapa</string>
+    <string name="tab_alerts">Alertas</string>
+    <string name="tab_profile">Perfil</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting">Olá, %1$s</string>
+    <string name="dashboard_no_vehicles">Ainda não adicionou nenhuma viatura.</string>
+    <string name="dashboard_no_vehicles_body">Adicione a sua primeira viatura para começar a controlar manutenção, documentos e despesas. Disponível na próxima atualização (Fase 2).</string>
+    <string name="dashboard_shortcuts">Atalhos</string>
+    <string name="shortcut_maintenance">Manutenção</string>
+    <string name="shortcut_fuel">Abastecimento</string>
+    <string name="shortcut_expense">Despesa</string>
+    <string name="shortcut_document">Documento</string>
+    <string name="shortcut_mileage">Quilometragem</string>
+    <string name="shortcut_trip">Viagem</string>
+
+    <!-- Estados / fases -->
+    <string name="badge_coming_soon">Em breve</string>
+    <string name="badge_demo_mode">Modo demonstração</string>
+    <string name="phase_2">Fase 2</string>
+    <string name="coming_soon_body">Este módulo faz parte de uma fase seguinte do AutoCare.</string>
+    <string name="vehicles_coming_soon">O cadastro e a gestão de viaturas chegam na Fase 2. A API e o modelo de dados já estão prontos.</string>
+    <string name="alerts_coming_soon">A central de notificações e os alertas de caducidade chegam na Fase 4.</string>
+    <string name="gps_not_configured">GPS não configurado</string>
+    <string name="gps_not_configured_body">Nenhum rastreador está associado a esta viatura. Quando configurar um dispositivo, a localização aparece aqui. O GPS em tempo real chega na Fase 7.</string>
+
+    <!-- Perfil -->
+    <string name="profile_server">Servidor</string>
+    <string name="profile_version">AutoCare · versão 0.1.0 · Fase 1</string>
+</resources>

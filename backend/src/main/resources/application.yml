@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: autocare
+
+  datasource:
+    # H2 em modo de compatibilidade PostgreSQL — o mesmo SQL das migrações
+    # Flyway corre em desenvolvimento (H2 em ficheiro) e em produção (PostgreSQL).
+    url: ${DATABASE_URL:jdbc:h2:file:./data/fleetos;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;AUTO_SERVER=TRUE}
+    username: ${DATABASE_USER:sa}
+    password: ${DATABASE_PASSWORD:}
+
+  jpa:
+    hibernate:
+      # O esquema é propriedade das migrações Flyway. Hibernate nunca altera a BD.
+      ddl-auto: none
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  h2:
+    console:
+      enabled: ${H2_CONSOLE:false}
+
+  jackson:
+    default-property-inclusion: non_null
+
+  # Email. Sem MAIL_HOST a propriedade fica vazia, o SmtpEmailSender não é criado
+  # e o sistema assume modo demonstração — nunca marca nada como enviado.
+  mail:
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_AUTH:true}
+          starttls:
+            enable: ${MAIL_STARTTLS:true}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      add-mappings: true
+
+  servlet:
+    multipart:
+      max-file-size: 15MB
+      max-request-size: 20MB
+
+autocare:
+  app:
+    name: ${APP_NAME:IMBONDEIRO OS}
+    tagline: ${APP_TAGLINE:Gestão de frota, manutenção e rastreamento}
+    web-url: ${APP_WEB_URL:http://localhost:5173}
+  security:
+    jwt:
+      access-secret: ${JWT_ACCESS_SECRET:desenvolvimento-segredo-de-acesso-substituir-em-producao-1234567890}
+      refresh-secret: ${JWT_REFRESH_SECRET:desenvolvimento-segredo-de-refresh-substituir-em-producao-1234567890}
+      access-ttl: ${JWT_ACCESS_TTL:PT15M}
+      refresh-ttl: ${JWT_REFRESH_TTL:P30D}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:*}
+  seed:
+    demo: ${SEED_DEMO:true}
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+  mail:
+    # Remetente dos emails. O envio real só liga quando MAIL_HOST for definido
+    # (ver spring.mail abaixo); sem isso os avisos ficam em modo demonstração.
+    from: ${MAIL_FROM:}
+    from-name: ${MAIL_FROM_NAME:AutoCare}
+  traccar:
+    # Servidor que mantem a ligacao aos aparelhos e entrega os comandos de
+    # bloqueio. Sem TRACCAR_URL o sistema NAO consegue bloquear viaturas, e
+    # di-lo claramente em vez de fingir que enviou.
+    url: ${TRACCAR_URL:}
+    user: ${TRACCAR_USER:}
+    password: ${TRACCAR_PASSWORD:}
+    token: ${TRACCAR_TOKEN:}
+  storage:
+    local-path: ${STORAGE_PATH:./data/files}
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:}
+    url-ttl-seconds: ${STORAGE_URL_TTL:3600}
+    max-file-bytes: ${STORAGE_MAX_FILE_BYTES:15728640}
+
+server:
+  # Cabeçalho maior do que os 8 KB por omissão do Tomcat.
+  #
+  # Os cookies de `localhost` são partilhados por todas as portas: qualquer
+  # outro projeto que tenha corrido na máquina deixa cookies que o browser
+  # envia também para este. Passados os 8 KB, o Tomcat recusa o pedido com 400
+  # e uma página HTML — antes de o Spring o ver —, e a aplicação recebia
+  # "<!doctype" onde esperava JSON.
+  #
+  # 32 KB acomoda uma sessão de browser com anos de cookies. Não é ilimitado de
+  # propósito: um cabeçalho sem limite é uma porta para esgotar memória.
+  # No Spring Boot 3 a propriedade chama-se max-http-request-header-size;
+  # a antiga (max-http-header-size) e aceite mas ignorada em silencio.
+  max-http-request-header-size: 32KB
+  tomcat:
+    # Quando o upload passa do limite, o Tomcat responde 400 mas corta a ligacao
+    # se ainda faltar receber mais do que isto — e o browser fica sem corpo de
+    # resposta, a mostrar "resposta inesperada" em vez do motivo real.
+    # Engolir ate 30 MB da tempo de entregar a mensagem; acima disso a ligacao
+    # cai de proposito, para nao servir de porta a envios gigantes.
+    max-swallow-size: 30MB
+  port: ${PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  servlet:
+    encoding:
+      charset: UTF-8
+      force-request: true
+
+springdoc:
+  swagger-ui:
+    path: /docs
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    org.hibernate.SQL: ${SQL_LOG:info}

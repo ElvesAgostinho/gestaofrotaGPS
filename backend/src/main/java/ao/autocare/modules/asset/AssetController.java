@@ -1,0 +1,149 @@
+package ao.autocare.modules.asset;
+
+import ao.autocare.domain.enums.Enums.MembershipRole;
+import ao.autocare.modules.asset.dto.AssetDtos.AssetSummary;
+import ao.autocare.modules.asset.dto.AssetDtos.AssetView;
+import ao.autocare.modules.asset.dto.AssetDtos.CreateAssetRequest;
+import ao.autocare.modules.asset.dto.AssetDtos.CriticalityRequest;
+import ao.autocare.modules.asset.dto.AssetDtos.CriticalityView;
+import ao.autocare.modules.asset.dto.AssetDtos.UpdateAssetRequest;
+import ao.autocare.common.PagedResponse;
+import ao.autocare.modules.org.OrgContext;
+import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
+import ao.autocare.security.RequireRole;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import java.util.Map;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+@Tag(name = "Ativos")
+@SecurityRequirement(name = "bearerAuth")
+@RestController
+@RequestMapping("/api/v1/assets")
+public class AssetController {
+
+    private final AssetService service;
+    private final OrgContext orgContext;
+    private final AssetSheetPdfService sheetPdf;
+
+    public AssetController(AssetService service, OrgContext orgContext,
+            AssetSheetPdfService sheetPdf) {
+        this.sheetPdf = sheetPdf;
+        this.service = service;
+        this.orgContext = orgContext;
+    }
+
+    @Operation(summary = "Listar ativos")
+    @GetMapping
+    public PagedResponse<AssetSummary> list(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @RequestParam(defaultValue = "false") boolean archived,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        var pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200),
+                Sort.by("tag").ascending());
+        return service.list(orgContext.requireOrganizationId(principal), archived, pageable);
+    }
+
+    @Operation(summary = "Ficha de equipamento em PDF",
+            description = "Com o timbre da empresa. Sem valores para quem nao os pode ver.")
+    @GetMapping(value = "/{id}/sheet.pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public org.springframework.http.ResponseEntity<byte[]> sheet(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        byte[] pdf = sheetPdf.render(orgContext.requireOrganizationId(principal), id,
+                canSeeCosts(principal));
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"ficha-equipamento.pdf\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    @Operation(summary = "Obter um ativo")
+    @GetMapping("/{id}")
+    public AssetView get(@AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        AssetView v = service.get(orgContext.requireOrganizationId(principal), id);
+        return canSeeCosts(principal) ? v : v.withoutMoney();
+    }
+
+    /** Valores financeiros so de gestor para cima -- a mesma regra das ordens. */
+    /** Valores financeiros só a quem tem a permissão de custos. */
+    private static boolean canSeeCosts(AuthPrincipal p) {
+        return p != null && p.has(Permission.COSTS_VIEW);
+    }
+
+    @Operation(summary = "Criar um ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public AssetView create(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @Valid @RequestBody CreateAssetRequest req) {
+        return service.create(orgContext.requireOrganizationId(principal), principal.id(), req);
+    }
+
+    @Operation(summary = "Atualizar um ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PatchMapping("/{id}")
+    public AssetView update(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String id,
+            @Valid @RequestBody UpdateAssetRequest req) {
+        return service.update(orgContext.requireOrganizationId(principal), principal.id(), id, req);
+    }
+
+    @Operation(summary = "Arquivar / desarquivar um ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PostMapping("/{id}/archive")
+    public Map<String, String> archive(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String id,
+            @RequestParam(defaultValue = "true") boolean archived) {
+        service.archive(orgContext.requireOrganizationId(principal), principal.id(), id, archived);
+        return Map.of("message", archived ? "Ativo arquivado." : "Ativo reativado.");
+    }
+
+    @Operation(summary = "Eliminar um ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @DeleteMapping("/{id}")
+    public Map<String, String> delete(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        service.delete(orgContext.requireOrganizationId(principal), principal.id(), id);
+        return Map.of("message", "Ativo eliminado.");
+    }
+
+    @Operation(summary = "Matriz de criticidade do ativo")
+    @GetMapping("/{id}/criticality")
+    public CriticalityView getCriticality(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        return service.getCriticality(orgContext.requireOrganizationId(principal), id);
+    }
+
+    @Operation(summary = "Definir a matriz de criticidade do ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PutMapping("/{id}/criticality")
+    public CriticalityView setCriticality(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String id,
+            @Valid @RequestBody CriticalityRequest req) {
+        return service.setCriticality(orgContext.requireOrganizationId(principal), principal.id(), id, req);
+    }
+}

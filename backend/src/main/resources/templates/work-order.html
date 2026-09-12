@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${w.number}">Ordem de Manutenção</title>
+  <style>
+    /*
+      Documento para imprimir e assinar, não para ver no ecrã. Tipos pequenos,
+      linhas finas, sem cor a não ser onde ela significa alguma coisa: uma
+      oficina imprime isto a preto e branco.
+    */
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h1 { font-size: 15pt; margin: 0; letter-spacing: -0.3pt; }
+    h2 { font-size: 9.5pt; margin: 14px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase;
+         letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .head td { vertical-align: top; padding: 0; }
+    .brand { font-size: 15pt; font-weight: bold; letter-spacing: -0.3pt; }
+    .brand span { color: #b08d3c; }
+    .num { font-size: 13pt; font-weight: bold; }
+    .muted { color: #71717a; }
+    .grid td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+    .grid .lbl { width: 24%; color: #71717a; font-size: 7.5pt;
+                 text-transform: uppercase; letter-spacing: 0.3pt; }
+    .box { border: 1px solid #d4d4d8; padding: 6px 8px; margin-bottom: 6px; }
+    .box .lbl { color: #71717a; font-size: 7.5pt; text-transform: uppercase;
+                letter-spacing: 0.3pt; display: block; margin-bottom: 2px; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase;
+                letter-spacing: 0.3pt; color: #71717a; border-bottom: 1px solid #d4d4d8;
+                padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3.5px 4px; }
+    .num-col { text-align: right; white-space: nowrap; }
+    .total td { border-top: 1.2px solid #18181b; border-bottom: none;
+                font-weight: bold; padding-top: 5px; }
+    .sign { margin-top: 26px; }
+    .sign td { width: 33%; padding-right: 14px; vertical-align: bottom; }
+    .sign .line { border-top: 1px solid #18181b; margin-top: 34px;
+                  padding-top: 3px; font-size: 7.5pt; color: #71717a; }
+    .foot { margin-top: 16px; padding-top: 5px; border-top: 1px solid #d4d4d8;
+            font-size: 7pt; color: #a1a1aa; }
+    .warn { border-left: 3px solid #b42318; padding-left: 7px; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${w.number}, 'Ordem de serviço · ' + ${w.statusLabel} + ' · ' + ${w.typeLabel})}"></div>
+
+<h1 th:text="${w.title}" style="margin-top: 12px;">Título</h1>
+
+<h2>Viatura</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Ativo</td><td th:text="${w.assetTag} + ' — ' + ${w.assetName}"></td>
+    <td class="lbl">Matrícula</td><td th:text="${w.plate} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Marca / modelo</td><td th:text="${w.model} ?: '—'"></td>
+    <td class="lbl">Nº de série</td><td th:text="${w.serial} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Medidor</td><td th:text="${w.meter} ?: '—'"></td>
+    <td class="lbl">Sistema</td><td th:text="${w.systemCode} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Filial</td><td th:text="${w.branch} ?: '—'"></td>
+    <td class="lbl">Condutor</td><td th:text="${w.driver} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Ordem</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Prioridade</td><td th:text="${w.priorityLabel}"></td>
+    <td class="lbl">Execução</td><td th:text="${w.executionLabel}"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Aberta em</td><td th:text="${w.openedAt}"></td>
+    <td class="lbl">Prazo</td><td th:text="${w.dueAt} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Iniciada</td><td th:text="${w.startedAt} ?: '—'"></td>
+    <td class="lbl">Concluída</td><td th:text="${w.completedAt} ?: '—'"></td>
+  </tr>
+  <tr th:if="${w.supplier != null}">
+    <td class="lbl">Oficina</td><td colspan="3" th:text="${w.supplier}"></td>
+  </tr>
+</table>
+
+<div th:if="${w.requiresShutdown}" class="box warn" style="margin-top: 8px;">
+  <span class="lbl">Segurança — exige paragem do ativo</span>
+  <span th:text="${w.safetyNotes} ?: 'Parar o ativo antes de iniciar.'"></span>
+</div>
+
+<div th:if="${w.hasDiagnosis}">
+  <h2>Diagnóstico</h2>
+  <div th:if="${w.symptom != null}" class="box">
+    <span class="lbl">Sintoma relatado</span><span th:text="${w.symptom}"></span>
+  </div>
+  <div th:if="${w.diagnosis != null}" class="box">
+    <span class="lbl">Diagnóstico técnico</span><span th:text="${w.diagnosis}"></span>
+  </div>
+  <div th:if="${w.probableCause != null}" class="box">
+    <span class="lbl">Causa provável</span><span th:text="${w.probableCause}"></span>
+  </div>
+  <div th:if="${w.recommendedAction != null}" class="box">
+    <span class="lbl">Solução recomendada</span><span th:text="${w.recommendedAction}"></span>
+  </div>
+  <div th:if="${w.diagnosedBy != null}" class="muted" style="font-size: 7.5pt;">
+    Por <span th:text="${w.diagnosedBy}"></span>, <span th:text="${w.diagnosedAt}"></span>
+  </div>
+</div>
+
+<div th:if="${!w.tasks.isEmpty()}">
+  <h2>Trabalho a executar</h2>
+  <table class="lines">
+    <tr th:each="t : ${w.tasks}">
+      <td style="width: 16px;" th:text="${t.done} ? '[X]' : '[  ]'"></td>
+      <td th:text="${t.title}"></td>
+      <td style="width: 26%;" class="muted" th:text="${t.system} ?: ''"></td>
+    </tr>
+  </table>
+</div>
+
+<div th:if="${!w.labor.isEmpty()}">
+  <h2>Mão de obra</h2>
+  <table class="lines">
+    <tr><th>Técnico</th><th class="num-col">Horas</th>
+        <th th:if="${w.showMoney}" class="num-col">Valor/hora</th>
+        <th th:if="${w.showMoney}" class="num-col">Total</th></tr>
+    <tr th:each="l : ${w.labor}">
+      <td th:text="${l.who} ?: '—'"></td>
+      <td class="num-col" th:text="${l.hours}"></td>
+      <td th:if="${w.showMoney}" class="num-col" th:text="${l.rate} ?: '—'"></td>
+      <td th:if="${w.showMoney}" class="num-col" th:text="${l.total} ?: '—'"></td>
+    </tr>
+  </table>
+</div>
+
+<div th:if="${!w.parts.isEmpty()}">
+  <h2>Peças e materiais</h2>
+  <table class="lines">
+    <tr><th>Descrição</th><th class="num-col">Qtd.</th>
+        <th th:if="${w.showMoney}" class="num-col">Unitário</th>
+        <th th:if="${w.showMoney}" class="num-col">Total</th></tr>
+    <tr th:each="p : ${w.parts}">
+      <td th:text="${p.name}"></td>
+      <td class="num-col" th:text="${p.quantity}"></td>
+      <td th:if="${w.showMoney}" class="num-col" th:text="${p.unitCost} ?: '—'"></td>
+      <td th:if="${w.showMoney}" class="num-col" th:text="${p.total} ?: '—'"></td>
+    </tr>
+  </table>
+</div>
+
+<div th:if="${!w.services.isEmpty()}">
+  <h2>Serviços de oficina externa</h2>
+  <table class="lines">
+    <tr><th>Fornecedor</th><th>Serviço</th><th>Fatura</th>
+        <th th:if="${w.showMoney}" class="num-col">Valor</th></tr>
+    <tr th:each="s : ${w.services}">
+      <td th:text="${s.supplier}"></td>
+      <td th:text="${s.description}"></td>
+      <td th:text="${s.invoice} ?: '—'"></td>
+      <td th:if="${w.showMoney}" class="num-col" th:text="${s.cost}"></td>
+    </tr>
+  </table>
+</div>
+
+<div th:if="${w.showMoney}">
+  <h2>Custos</h2>
+  <table class="lines">
+    <tr><td>Mão de obra</td><td class="num-col" th:text="${w.laborCost}"></td></tr>
+    <tr><td>Peças</td><td class="num-col" th:text="${w.partsCost}"></td></tr>
+    <tr><td>Oficina externa</td><td class="num-col" th:text="${w.externalCost}"></td></tr>
+    <tr th:if="${w.warrantyRecovered != null}">
+      <td>Recuperado pela garantia</td>
+      <td class="num-col" th:text="'-' + ${w.warrantyRecovered}"></td>
+    </tr>
+    <tr class="total"><td>TOTAL</td>
+        <td class="num-col" th:text="${w.totalCost} + ' ' + ${w.currency}"></td></tr>
+  </table>
+
+  <table class="grid" style="margin-top: 6px;">
+    <tr th:if="${w.approvedAmount != null}">
+      <td class="lbl">Aprovado</td>
+      <td th:text="${w.approvedAmount} + ' ' + ${w.currency} + ' · ' + (${w.approvedBy} ?: '') + ' · ' + (${w.approvedAt} ?: '')"></td>
+    </tr>
+    <tr th:if="${w.downtimeHours != null}">
+      <td class="lbl">Imobilização</td>
+      <td th:text="${w.downtimeHours} + ' h' + (${w.downtimeCost} != null ? ' · ' + ${w.downtimeCost} + ' ' + ${w.currency} : '')"></td>
+    </tr>
+  </table>
+</div>
+
+<div th:if="${w.resolution != null or w.rootCause != null}">
+  <h2>Resultado</h2>
+  <div th:if="${w.resolution != null}" class="box">
+    <span class="lbl">O que foi feito</span><span th:text="${w.resolution}"></span>
+  </div>
+  <div th:if="${w.rootCause != null}" class="box">
+    <span class="lbl">Causa raiz</span><span th:text="${w.rootCause}"></span>
+  </div>
+  <div th:if="${w.correctiveAction != null}" class="box">
+    <span class="lbl">Ação corretiva</span><span th:text="${w.correctiveAction}"></span>
+  </div>
+</div>
+
+<!-- Três assinaturas porque são três responsabilidades diferentes: quem
+     executou, quem verificou e quem autorizou a despesa. -->
+<table class="sign">
+  <tr>
+    <td><div class="line">Executado por<span th:if="${w.assignedTo != null}"
+        th:text="' — ' + ${w.assignedTo}"></span></div></td>
+    <td><div class="line">Verificado por<span th:if="${w.verifiedBy != null}"
+        th:text="' — ' + ${w.verifiedBy}"></span></div></td>
+    <td><div class="line">Autorizado por<span th:if="${w.approvedBy != null}"
+        th:text="' — ' + ${w.approvedBy}"></span></div></td>
+  </tr>
+</table>
+
+<div class="foot">
+  <span th:text="${w.number}"></span> ·
+  <span th:text="${org}"></span> ·
+  Emitido em <span th:text="${generatedAt}"></span>
+  <span th:if="${!w.showMoney}"> · Documento sem valores financeiros</span>
+</div>
+
+</body>
+</html>

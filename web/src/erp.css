@@ -1,0 +1,624 @@
+/*
+ * Pele ERP do IMBONDEIRO OS — preto e âmbar industrial sobre a estrutura
+ * clássico (PRIMAVERA V10 e afins).
+ *
+ * Esta folha muda o sistema inteiro de uma vez, em vez de obrigar a reescrever
+ * vinte ecrãs: aperta o espaçamento do Mantine, dá molduras às grelhas e
+ * transforma os cartões em painéis com barra de título.
+ *
+ * A regra por trás de tudo: quem gere uma frota passa o dia a varrer listas.
+ * Cada linha que obriga a rolar é uma linha que não se vê. Por isso a
+ * densidade não é gosto — é a diferença entre ver a frota toda e ver um terço.
+ */
+
+:root {
+  --erp-grafite: #141416;
+  --erp-grafite-claro: #2d2d2f;
+  /* Âmbar industrial — o amarelo da maquinaria pesada. */
+  --erp-dourado: #f5a800;
+  /* Tom escuro do âmbar, para texto e ligações sobre fundo claro: o âmbar
+     base sobre branco não chega ao mínimo de contraste. */
+  --erp-dourado-escuro: #8a5c00;
+  --erp-superficie: #efeff1;
+  --erp-moldura: #c4c4c9;
+  --erp-moldura-suave: #e2e2e6;
+  --erp-listra: #f8f8f9;
+  --erp-realce: #fff4d6;
+  --erp-texto: #141416;
+  --erp-texto-suave: #4b4b50;
+  --erp-cabeca: linear-gradient(#f7f7f8, #e8e8ea);
+  --erp-barra: linear-gradient(#f9f9fa, #eeeef0);
+  --erp-condensada: 'Barlow Condensed', Barlow, Impact, sans-serif;
+}
+
+body {
+  /*
+   * Fundo com profundidade, para o vidro ter o que refractar.
+   *
+   * Translúcido sobre liso lê-se como cinzento sujo, não como vidro. As duas
+   * manchas de cor — âmbar do lado da barra lateral, azul do outro — são
+   * fracas de propósito: dão movimento por trás das superfícies sem competir
+   * com as cores de estado das grelhas.
+   */
+  background:
+    radial-gradient(1100px 520px at 4% -6%, rgba(245, 168, 0, 0.16), transparent 60%),
+    radial-gradient(900px 460px at 96% 4%, rgba(37, 99, 235, 0.10), transparent 58%),
+    linear-gradient(160deg, #f7f7f9 0%, var(--erp-superficie) 55%, #e8e8ec 100%);
+  background-attachment: fixed;
+  font-size: 13px;
+}
+
+/* ---------------------------------------------------------------- tipografia
+   Tudo desce um degrau. O ecrã deixa de ser uma apresentação e passa a ser
+   uma ferramenta de trabalho.
+
+   Os títulos e os cabeçalhos vão em condensado maiúsculo — a leitura direita
+   da sinalética industrial, que cabe mais por linha e se lê de longe. */
+.erp h1,
+.erp .mantine-Title-root[data-order='1'] {
+  font-size: 1.15rem;
+  letter-spacing: -0.01em;
+}
+
+.erp .mantine-Title-root[data-order='2'] {
+  font-size: 1rem;
+}
+
+/* ------------------------------------------------------------------- painéis
+   O cartão arredondado e flutuante do estilo SaaS passa a painel com moldura,
+   como uma janela de aplicação instalada. */
+.erp .mantine-Card-root,
+.erp .mantine-Paper-root[data-with-border] {
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(20, 20, 22, 0.08),
+    0 8px 24px rgba(20, 20, 22, 0.08);
+}
+
+/* ------------------------------------------------------------------- grelhas
+   Linhas finas, molduras visíveis, números alinhados à direita pela tabela
+   monoespaçada dos algarismos. */
+.erp table {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+
+.erp .mantine-Table-th {
+  background: var(--erp-cabeca);
+  color: var(--erp-texto);
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 4px 8px !important;
+  border-bottom: 1px solid var(--erp-moldura) !important;
+  border-right: 1px solid var(--erp-moldura);
+  white-space: nowrap;
+}
+
+.erp .mantine-Table-th:last-child {
+  border-right: none;
+}
+
+.erp .mantine-Table-td {
+  padding: 3px 8px !important;
+  border-bottom: 1px solid var(--erp-moldura-suave) !important;
+}
+
+.erp .mantine-Table-tr:nth-of-type(even) .mantine-Table-td {
+  background: var(--erp-listra);
+}
+
+.erp .mantine-Table-tr:hover .mantine-Table-td {
+  background: var(--erp-realce);
+}
+
+/* ------------------------------------------------------------------ controlos
+   Campos e botões compactos, cantos quase rectos. */
+.erp .mantine-Button-root {
+  border-radius: 2px;
+  height: 28px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.erp .mantine-Button-root[data-size='xs'] {
+  height: 24px;
+  padding: 0 9px;
+  font-size: 11.5px;
+}
+
+.erp .mantine-Input-input,
+.erp .mantine-InputWrapper-root input,
+.erp .mantine-Textarea-input {
+  border-radius: 2px;
+  border-color: var(--erp-moldura);
+  font-size: 12.5px;
+  min-height: 28px;
+}
+
+.erp .mantine-InputWrapper-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--erp-texto-suave);
+  margin-bottom: 2px;
+}
+
+.erp .mantine-Badge-root {
+  border-radius: 2px;
+  font-size: 10.5px;
+  height: 18px;
+  padding: 0 6px;
+}
+
+/* ---------------------------------------------------------------- separadores
+   Separadores clássicos: a lingueta activa liga-se ao painel por baixo. */
+.erp .mantine-Tabs-tab {
+  border-radius: 2px 2px 0 0;
+  font-size: 12.5px;
+  padding: 5px 14px;
+}
+
+.erp .mantine-Tabs-tab[data-active] {
+  background: #fff;
+  border-color: var(--erp-moldura);
+  border-bottom-color: #fff;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------- modais
+   Um formulário de ERP é uma janela, não um cartão a flutuar. */
+.erp .mantine-Modal-content,
+.mantine-Modal-content {
+  border-radius: 2px;
+}
+
+.mantine-Modal-header {
+  background: var(--erp-grafite);
+  color: var(--erp-superficie);
+  padding: 7px 12px;
+  min-height: unset;
+}
+
+.mantine-Modal-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--erp-superficie);
+}
+
+.mantine-Modal-close {
+  color: var(--erp-superficie);
+}
+
+.mantine-Modal-close:hover {
+  background: var(--erp-grafite-claro);
+}
+
+/* -------------------------------------------------------------- responsivo
+   Em janela estreita a grelha rola na horizontal em vez de espremer as
+   colunas até o texto ficar ilegível. */
+@media (max-width: 1100px) {
+  .erp table {
+    font-size: 11.5px;
+  }
+}
+
+/* ---------------------------------------------------------------- mapa
+   Pulso à volta das viaturas em movimento. É o que separa, de relance, quem
+   está a andar de quem está parado — sem obrigar a ler a velocidade. */
+@keyframes pulsoViatura {
+  0%   { transform: scale(1);   opacity: .45; }
+  70%  { transform: scale(1.9); opacity: 0; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+
+/* Quem prefere o ecrã quieto não leva animação nenhuma. */
+@media (prefers-reduced-motion: reduce) {
+  @keyframes pulsoViatura {
+    0%, 100% { transform: scale(1); opacity: .3; }
+  }
+}
+
+/* --------------------------------------------------------------- industrial
+   Barras de título, cabeçalhos de grelha e separadores em condensado
+   maiúsculo. É o que separa uma ferramenta de trabalho de um sítio bonito. */
+.erp .mantine-Table-th,
+.erp .mantine-Tabs-tab,
+.erp .mantine-Button-root {
+  font-family: var(--erp-condensada);
+  letter-spacing: 0.02em;
+}
+
+.erp .mantine-Table-th {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.045em;
+}
+
+.erp .mantine-Button-root {
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* O âmbar leva texto preto. Branco sobre âmbar fica muito abaixo do mínimo de
+   contraste, e um botão principal que se lê mal carrega-se por engano. */
+.erp .mantine-Button-root[data-variant='filled'] {
+  color: var(--erp-grafite);
+}
+
+.erp .mantine-Tabs-tab {
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+/* A lingueta activa ganha a barra âmbar por baixo, como a faixa de navegação. */
+.erp .mantine-Tabs-tab[data-active] {
+  border-bottom: 2px solid var(--erp-dourado);
+}
+
+.erp .mantine-InputWrapper-label {
+  font-family: var(--erp-condensada);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+}
+
+/* --------------------------------------------------------- faixa de navegação
+   A tira âmbar por baixo do cabeçalho preto: é a assinatura visual da
+   maquinaria pesada, e serve de separador entre a moldura e o trabalho. */
+.faixa-industrial {
+  background: var(--erp-dourado);
+  border-bottom: 3px solid var(--erp-grafite);
+}
+
+.faixa-industrial a,
+.faixa-industrial button {
+  font-family: var(--erp-condensada);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--erp-grafite);
+}
+
+/* ------------------------------------------------------------------- listras
+   A listra âmbar à esquerda marca o que está selecionado sem pintar a linha
+   toda — numa grelha, pintar a linha toda apaga as cores de estado. */
+.marca-activa {
+  box-shadow: inset 3px 0 0 var(--erp-dourado);
+}
+
+/* ============================================================== vidro
+   Glassmorphism: superfícies translúcidas com o fundo desfocado por trás.
+
+   Aplicado à moldura — cabeçalho, barra lateral, barras de título e de
+   ferramentas, botões — e não às grelhas. Numa tabela de trinta linhas, o
+   desfoque por trás de cada célula tira nitidez ao texto e é exatamente onde
+   a nitidez importa. O vidro veste o que rodeia o trabalho, não o trabalho.
+
+   `backdrop-filter` custa GPU. Por isso o desfoque é modesto (10–14 px) e
+   desliga-se em ecrãs pequenos, onde há menos GPU e mais bateria a perder. */
+
+:root {
+  --vidro-claro: rgba(255, 255, 255, 0.62);
+  --vidro-escuro: rgba(20, 20, 22, 0.72);
+  --vidro-borda: rgba(255, 255, 255, 0.18);
+  --vidro-desfoque: blur(12px) saturate(140%);
+  --vidro-sombra: 0 1px 12px rgba(0, 0, 0, 0.16);
+}
+
+/* ---- cabeçalho e barra lateral ---------------------------------------- */
+.erp .mantine-AppShell-header {
+  background: var(--vidro-escuro) !important;
+  backdrop-filter: var(--vidro-desfoque);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  box-shadow: 0 2px 18px rgba(20, 20, 22, 0.22);
+}
+
+.erp .mantine-AppShell-navbar {
+  background: rgba(20, 20, 22, 0.82) !important;
+  backdrop-filter: var(--vidro-desfoque);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+}
+
+/* A zona de trabalho deixa passar o fundo do documento: é o que dá ao vidro
+   alguma coisa para refractar quando a página rola por baixo dele. */
+.erp .mantine-AppShell-main {
+  background: transparent;
+}
+
+/* ---- barras de título e de ferramentas dos painéis --------------------- */
+.painel-vidro-titulo {
+  background: var(--vidro-escuro) !important;
+  backdrop-filter: var(--vidro-desfoque);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+}
+
+.painel-vidro-barra {
+  background: var(--vidro-claro) !important;
+  backdrop-filter: var(--vidro-desfoque);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+  border-bottom: 1px solid var(--vidro-borda);
+}
+
+.painel-vidro {
+  background: rgba(255, 255, 255, 0.76);
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  /* Aresta clara por cima e sombra por baixo: é o que dá a leitura de painel
+     de vidro assente, em vez de rectângulo branco transparente. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 1px 2px rgba(20, 20, 22, 0.08),
+    0 8px 24px rgba(20, 20, 22, 0.10);
+}
+
+/* O corpo da grelha fica opaco de propósito: o texto de uma tabela tem de
+   estar nítido, e o desfoque por trás de cada linha rouba-lhe nitidez. */
+.painel-vidro > .painel-corpo {
+  background: #fff;
+}
+
+/* ---- botões ------------------------------------------------------------ */
+.erp .mantine-Button-root[data-variant='default'],
+.erp .mantine-Button-root[data-variant='outline'] {
+  background: var(--vidro-claro);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  border-color: rgba(140, 140, 150, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.erp .mantine-Button-root[data-variant='default']:hover {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* O botão principal mantém-se sólido: é o que tem de se ver primeiro, e um
+   botão translúcido perde a hierarquia contra os outros. Ganha só o brilho de
+   cima, que é o que dá o ar de vidro sem lhe tirar peso. */
+.erp .mantine-Button-root[data-variant='filled'] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    0 1px 6px rgba(245, 168, 0, 0.35);
+}
+
+/* ---- modais e notificações --------------------------------------------- */
+.mantine-Modal-content {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.mantine-Modal-header {
+  background: var(--vidro-escuro) !important;
+  backdrop-filter: var(--vidro-desfoque);
+  -webkit-backdrop-filter: var(--vidro-desfoque);
+}
+
+.mantine-Modal-overlay {
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+.mantine-Notification-root {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+}
+
+/* ---- campos ------------------------------------------------------------ */
+.erp .mantine-Input-input {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.erp .mantine-Input-input:focus {
+  background: #fff;
+}
+
+/* ---- quando não há vidro ----------------------------------------------- */
+
+/* Browser sem backdrop-filter: superfícies opacas, e o ecrã continua legível
+   em vez de ficar um cinzento lavado. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .erp .mantine-AppShell-header,
+  .painel-vidro-titulo,
+  .mantine-Modal-header {
+    background: var(--erp-grafite) !important;
+  }
+  .erp .mantine-AppShell-navbar {
+    background: var(--erp-grafite) !important;
+  }
+  .painel-vidro-barra,
+  .erp .mantine-Button-root[data-variant='default'] {
+    background: var(--erp-barra) !important;
+  }
+  .painel-vidro,
+  .mantine-Modal-content,
+  .mantine-Notification-root {
+    background: #fff !important;
+  }
+}
+
+/* Ecrã pequeno: menos GPU e mais bateria a perder do que nitidez a ganhar. */
+@media (max-width: 820px) {
+  .erp .mantine-AppShell-header,
+  .erp .mantine-AppShell-navbar,
+  .painel-vidro-titulo,
+  .painel-vidro-barra,
+  .painel-vidro,
+  .erp .mantine-Button-root,
+  .mantine-Modal-content {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .erp .mantine-AppShell-header,
+  .erp .mantine-AppShell-navbar,
+  .painel-vidro-titulo {
+    background: var(--erp-grafite) !important;
+  }
+  .painel-vidro {
+    background: #fff;
+  }
+}
+
+/* ================================================================ grelha
+   A grelha de um ERP: densa, cabeçalho fixo, linha selecionada com o fio
+   dourado à esquerda, rodapé com contagem e páginas. O texto das células é
+   opaco de propósito — é onde a nitidez importa. */
+
+.grelha {
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+}
+
+.grelha-corpo:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--erp-dourado);
+}
+
+.grelha-tabela {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.grelha-tabela thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--erp-cabeca);
+  color: var(--erp-texto);
+  font-family: var(--erp-condensada);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--erp-moldura);
+  border-right: 1px solid var(--erp-moldura);
+  white-space: nowrap;
+}
+
+.grelha-tabela thead th:last-child {
+  border-right: none;
+}
+
+.grelha-tabela thead th:hover {
+  background: linear-gradient(#fbfbfc, #e2e2e5);
+}
+
+.grelha-tabela tbody td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--erp-moldura-suave);
+  vertical-align: middle;
+  line-height: 1.35;
+}
+
+.grelha-linha:nth-of-type(even) td {
+  background: var(--erp-listra);
+}
+
+.grelha-linha:hover td {
+  background: var(--erp-realce);
+}
+
+/* A linha selecionada: o fio dourado à esquerda é o que o olho procura ao
+   descer com as setas — mais do que a cor de fundo. */
+.grelha-selecionada td {
+  background: #fff1cc !important;
+}
+
+.grelha-selecionada td:first-child {
+  box-shadow: inset 3px 0 0 var(--erp-dourado);
+}
+
+.grelha-grupo td {
+  background: var(--erp-grafite) !important;
+  color: var(--erp-dourado);
+  font-family: var(--erp-condensada);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  position: sticky;
+  top: 27px;
+  z-index: 1;
+}
+
+.grelha-vazia {
+  text-align: center;
+  color: var(--erp-texto-suave);
+  padding: 36px 8px !important;
+  font-size: 13px;
+}
+
+.grelha-rodape {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  background: var(--erp-barra);
+  border-top: 1px solid var(--erp-moldura);
+  min-height: 30px;
+}
+
+/* Ligações e texto dentro das células: sem sublinhado até passar por cima. */
+.grelha-tabela a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.grelha-tabela a:hover {
+  text-decoration: underline;
+  color: var(--erp-dourado-escuro);
+}
+
+/* ============================================================ barra de estado
+   O rodapé de um ERP: empresa, utilizador, servidor, hora. Grafite como o
+   cabeçalho, para fechar a moldura por baixo. */
+.barra-rodape {
+  display: flex;
+  align-items: stretch;
+  height: 26px;
+  background: var(--erp-grafite);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11.5px;
+  border-top: 2px solid var(--erp-dourado);
+  overflow: hidden;
+}
+
+.barra-rodape-celula {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  white-space: nowrap;
+}
+
+.barra-rodape-rotulo {
+  font-family: var(--erp-condensada);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--erp-dourado);
+}
+
+/* A grelha desconta o rodapé na altura. */
+.grelha-corpo {
+  max-height: calc(100vh - 290px);
+}

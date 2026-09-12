@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${a.tag}">Ficha de equipamento</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h1 { font-size: 15pt; margin: 8px 0 0; }
+    h2 { font-size: 9.5pt; margin: 12px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase; letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .grid td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+    .grid .lbl { width: 22%; color: #71717a; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+                color: #71717a; border-bottom: 1px solid #d4d4d8; padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3.5px 4px; }
+    .num-col { text-align: right; white-space: nowrap; }
+    .foto { width: 150px; height: 100px; border: 1px solid #d4d4d8; text-align: center; vertical-align: middle; }
+    .foto img { max-width: 148px; max-height: 98px; }
+    .muted { color: #71717a; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${a.tag}, 'Ficha de equipamento')}"></div>
+
+<table>
+  <tr>
+    <td>
+      <h1 th:text="${a.name}">Nome</h1>
+      <div class="muted" th:text="${a.type} + (${a.status} != null ? ' · ' + ${a.status} : '')"></div>
+    </td>
+    <td th:if="${a.photoDataUri}" class="foto" style="width:150px;">
+      <img th:src="${a.photoDataUri}" alt=""/>
+    </td>
+  </tr>
+</table>
+
+<h2>Identificação</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Fabricante</td><td th:text="${a.manufacturer} ?: '—'"></td>
+    <td class="lbl">Modelo</td><td th:text="${a.model} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Ano</td><td th:text="${a.modelYear} ?: '—'"></td>
+    <td class="lbl">Nº de série</td><td th:text="${a.serialNumber} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Matrícula</td><td th:text="${a.plate} ?: '—'"></td>
+    <td class="lbl">Local</td><td th:text="${a.location} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Responsável</td><td th:text="${a.responsible} ?: '—'"></td>
+    <td class="lbl">Criticidade</td><td th:text="${a.criticality} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Medidor</td><td th:text="${a.meter} ?: '—'"></td>
+    <td class="lbl">Aquisição</td><td th:text="${a.acquisitionDate} ?: '—'"></td>
+  </tr>
+  <tr th:if="${a.showMoney}">
+    <td class="lbl">Valor de aquisição</td><td th:text="${a.acquisitionValue} ?: '—'"></td>
+    <td class="lbl">Custo de paragem/h</td><td th:text="${a.downtimeCostPerHour} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Últimas ordens de serviço</h2>
+<p class="muted" th:if="${a.orders.isEmpty()}">Sem ordens registadas.</p>
+<table class="lines" th:if="${!a.orders.isEmpty()}">
+  <thead>
+    <tr>
+      <th style="width:16%;">Nº</th><th>Título</th><th style="width:14%;">Tipo</th>
+      <th style="width:12%;">Aberta</th><th style="width:12%;">Concluída</th><th style="width:13%;">Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="o : ${a.orders}">
+      <td th:text="${o.number}"></td>
+      <td th:text="${o.title}"></td>
+      <td th:text="${o.type}"></td>
+      <td th:text="${o.openedAt}"></td>
+      <td th:text="${o.completedAt} ?: '—'"></td>
+      <td th:text="${o.status}"></td>
+    </tr>
+  </tbody>
+</table>
+
+<div th:if="${a.notes}" style="margin-top:10px;">
+  <h2>Notas</h2>
+  <div th:text="${a.notes}"></div>
+</div>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+</body>
+</html>

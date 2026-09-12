@@ -1,0 +1,117 @@
+import { Center, Loader } from '@mantine/core';
+import { Suspense, lazy } from 'react';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { AuthProvider, useAuth } from './auth/AuthContext';
+import { Shell } from './layout/Shell';
+import { AlertsPage } from './pages/AlertsPage';
+import { AssetDetailPage } from './pages/AssetDetailPage';
+import { AparelhosGpsPage } from './pages/AparelhosGpsPage';
+import { GuiasTransportePage } from './pages/GuiasTransportePage';
+import { TiposAtivoPage } from './pages/TiposAtivoPage';
+import { AssetsPage } from './pages/AssetsPage';
+import { AuditPage } from './pages/AuditPage';
+import { CommandsPage } from './pages/CommandsPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { DocumentsPage } from './pages/DocumentsPage';
+import { DriversPage } from './pages/DriversPage';
+import { DrivingPage } from './pages/DrivingPage';
+import { FuelPage } from './pages/FuelPage';
+import { RoutesPage } from './pages/RoutesPage';
+import { LocationsPage } from './pages/LocationsPage';
+import { LandingPage } from './pages/publico/LandingPage';
+import { LoginPage } from './pages/LoginPage';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { NotificationsPage } from './pages/NotificationsPage';
+import { PartsPage } from './pages/PartsPage';
+import { PredictivePage } from './pages/PredictivePage';
+import { ReportsPage } from './pages/ReportsPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { TeamPage } from './pages/TeamPage';
+import { WorkOrderDetailPage } from './pages/WorkOrderDetailPage';
+import { WorkOrdersPage } from './pages/WorkOrdersPage';
+
+// O MapLibre pesa mais do que todo o resto da aplicação junta e só serve uma
+// página. Carregá-lo à parte tira ~250 kB do primeiro arranque — que numa
+// ligação móvel angolana é a diferença entre abrir depressa e parecer avariado.
+const MapPage = lazy(() => import('./pages/MapPage').then((m) => ({ default: m.MapPage })));
+
+export function App() {
+  return (
+    <AuthProvider>
+      <Router />
+    </AuthProvider>
+  );
+}
+
+function Router() {
+  const { user, loading } = useAuth();
+
+  // Enquanto não se sabe se há sessão, não se decide nada: mostrar o ecrã de
+  // entrada e logo a seguir o painel faria a página piscar a cada recarga.
+  if (loading) {
+    return (
+      <Center h="100vh">
+        <Loader />
+      </Center>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Routes>
+        {/* Quem chega sem sessão vê primeiro o que o sistema é. Mandar um
+            visitante directo para o formulário de entrada é pedir a palavra-passe
+            a quem ainda nem sabe o que está a comprar. */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/entrar" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route path="/entrar" element={<Navigate to="/" replace />} />
+      <Route element={<Shell />}>
+        <Route path="/" element={<DashboardPage />} />
+        <Route path="/ativos" element={<AssetsPage />} />
+        <Route path="/tipos-equipamento" element={<TiposAtivoPage />} />
+        <Route path="/ativos/:id" element={<AssetDetailPage />} />
+        <Route path="/aparelhos-gps" element={<AparelhosGpsPage />} />
+        <Route
+          path="/mapa"
+          element={
+            <Suspense
+              fallback={
+                <Center h="60vh">
+                  <Loader />
+                </Center>
+              }
+            >
+              <MapPage />
+            </Suspense>
+          }
+        />
+        <Route path="/guias" element={<GuiasTransportePage />} />
+        <Route path="/ordens" element={<WorkOrdersPage />} />
+        <Route path="/ordens/:id" element={<WorkOrderDetailPage />} />
+        <Route path="/preditiva" element={<PredictivePage />} />
+        <Route path="/pecas" element={<PartsPage />} />
+        <Route path="/documentos" element={<DocumentsPage />} />
+        <Route path="/alertas" element={<AlertsPage />} />
+        <Route path="/comandos" element={<CommandsPage />} />
+        <Route path="/relatorios" element={<ReportsPage />} />
+        <Route path="/equipa" element={<TeamPage />} />
+        <Route path="/motoristas" element={<DriversPage />} />
+        <Route path="/conducao" element={<DrivingPage />} />
+        <Route path="/combustivel" element={<FuelPage />} />
+        <Route path="/rotas" element={<RoutesPage />} />
+        <Route path="/filiais" element={<LocationsPage />} />
+        <Route path="/auditoria" element={<AuditPage />} />
+        <Route path="/definicoes" element={<SettingsPage />} />
+        <Route path="/notificacoes" element={<NotificationsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
+  );
+}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Identidade visual AutoCare (secções 6 e 64 do produto). -->
+<resources>
+    <color name="brand_deep">#0F172A</color>
+    <color name="brand_blue">#2563EB</color>
+    <color name="brand_blue_dark">#3B82F6</color>
+    <color name="success">#16A34A</color>
+    <color name="success_dark">#22C55E</color>
+    <color name="warning">#F59E0B</color>
+    <color name="danger">#DC2626</color>
+    <color name="danger_dark">#EF4444</color>
+
+    <color name="bg_light">#F8FAFC</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="border_light">#E2E8F0</color>
+    <color name="text_light">#0F172A</color>
+    <color name="text_muted_light">#64748B</color>
+
+    <color name="bg_dark">#0B1120</color>
+    <color name="surface_dark">#111827</color>
+    <color name="border_dark">#1E293B</color>
+    <color name="text_dark">#F8FAFC</color>
+    <color name="text_muted_dark">#94A3B8</color>
+
+    <color name="white">#FFFFFF</color>
+</resources>

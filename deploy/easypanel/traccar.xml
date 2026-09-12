@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE properties SYSTEM 'http://java.sun.com/dtd/properties.dtd'>
+<!--
+  Configuração do Traccar para correr ao lado do IMBONDEIRO OS.
+
+  O que interessa aqui:
+    * o encaminhamento (forward): cada posição que chega é enviada ao
+      IMBONDEIRO OS no mesmo instante. O segredo gera-se em
+      Configurações → Servidor Traccar → «Gerar o segredo de encaminhamento»
+      e cola-se abaixo em forward.url. Sem ele, o IMBONDEIRO OS recusa (401).
+    * a sondagem de 20 em 20 s continua ligada do lado do IMBONDEIRO OS como
+      rede de segurança; o encaminhamento é o que dá tempo real.
+
+  Depois de mudar este ficheiro, reinicie o serviço «traccar».
+-->
+<properties>
+  <entry key='config.default'>./conf/default.xml</entry>
+
+  <!-- Base de dados própria do Traccar (H2 no volume traccar-data). -->
+  <entry key='database.driver'>org.h2.Driver</entry>
+  <entry key='database.url'>jdbc:h2:./data/database</entry>
+  <entry key='database.user'>sa</entry>
+  <entry key='database.password'></entry>
+
+  <!-- A interface web fica atrás do Easypanel (HTTPS). -->
+  <entry key='web.port'>8082</entry>
+
+  <!-- Encaminhamento das posições para o IMBONDEIRO OS.
+       Substitua SEGREDO pelo valor gerado nas Configurações. -->
+  <entry key='forward.enable'>true</entry>
+  <entry key='forward.url'>http://api:8080/api/v1/telemetry/traccar/forward?secret=SEGREDO</entry>
+  <entry key='forward.retry.enable'>true</entry>
+  <entry key='forward.retry.count'>5</entry>
+
+  <!-- Guardar posições e eventos por 1 ano no Traccar; o histórico que
+       interessa à frota fica no IMBONDEIRO OS. -->
+  <entry key='database.positionsHistoryDays'>365</entry>
+  <entry key='database.eventsHistoryDays'>365</entry>
+</properties>

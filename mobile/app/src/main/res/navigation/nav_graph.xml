@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/nav_home">
+
+    <fragment
+        android:id="@+id/nav_home"
+        android:name="ao.autocare.app.ui.main.DashboardFragment"
+        android:label="@string/tab_home"
+        tools:layout="@layout/fragment_dashboard"
+        xmlns:tools="http://schemas.android.com/tools" />
+
+    <fragment
+        android:id="@+id/nav_vehicles"
+        android:name="ao.autocare.app.ui.main.VehiclesFragment"
+        android:label="@string/tab_vehicles" />
+
+    <fragment
+        android:id="@+id/nav_map"
+        android:name="ao.autocare.app.ui.main.MapFragment"
+        android:label="@string/tab_map" />
+
+    <fragment
+        android:id="@+id/nav_alerts"
+        android:name="ao.autocare.app.ui.main.AlertsFragment"
+        android:label="@string/tab_alerts" />
+
+    <fragment
+        android:id="@+id/nav_profile"
+        android:name="ao.autocare.app.ui.main.ProfileFragment"
+        android:label="@string/tab_profile" />
+</navigation>

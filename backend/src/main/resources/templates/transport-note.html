@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${g.number}">Guia de transporte</title>
+  <style>
+    /* Documento de acompanhamento de carga: vai na cabina, é mostrado num
+       posto de controlo e assinado na entrega. Preto e branco, tipos claros. */
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h2 { font-size: 9.5pt; margin: 12px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase; letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .grid td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+    .grid .lbl { width: 22%; color: #71717a; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+                color: #71717a; border-bottom: 1px solid #d4d4d8; padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3.5px 4px; }
+    .num-col { text-align: right; white-space: nowrap; }
+    .total td { border-top: 1.2px solid #18181b; border-bottom: none; font-weight: bold; padding-top: 5px; }
+    .box { border: 1px solid #d4d4d8; padding: 6px 8px; margin-top: 6px; }
+    .sign { margin-top: 26px; }
+    .sign td { width: 33%; padding-right: 14px; vertical-align: bottom; }
+    .sign .line { border-top: 1px solid #18181b; margin-top: 34px; padding-top: 3px; font-size: 7.5pt; color: #71717a; }
+    .warn { border-left: 3px solid #b42318; padding-left: 7px; margin-top: 6px; }
+    .estado { display: inline-block; border: 1px solid #18181b; padding: 1px 6px; font-size: 7.5pt;
+              text-transform: uppercase; letter-spacing: 0.4pt; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${g.number}, 'Guia de transporte')}"></div>
+
+<table class="grid">
+  <tr>
+    <td class="lbl">Estado</td><td><span class="estado" th:text="${g.statusLabel}">Emitida</span></td>
+    <td class="lbl">Emitida em</td><td th:text="${g.issuedAt} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Remetente e destinatário</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Origem</td><td th:text="${g.originLabel}"></td>
+    <td class="lbl">Destino</td><td th:text="${g.destinationLabel}"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Morada</td><td th:text="${g.originAddress} ?: '—'"></td>
+    <td class="lbl">Morada</td><td th:text="${g.destinationAddress} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Cliente</td><td th:text="${g.customerName} ?: '—'"></td>
+    <td class="lbl">NIF do cliente</td><td th:text="${g.customerTaxId} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Contacto</td><td colspan="3" th:text="${g.customerContact} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Viatura e condutor</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Viatura</td><td th:text="${g.assetTag} + (${g.plate} != null ? ' · ' + ${g.plate} : '')"></td>
+    <td class="lbl">Reboque</td><td th:text="${g.trailerPlate} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Condutor</td><td th:text="${g.driver} ?: '—'"></td>
+    <td class="lbl">Carta</td><td th:text="${g.driverLicense} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Partida</td><td th:text="${g.departedAt} ?: '—'"></td>
+    <td class="lbl">Km à partida</td><td th:text="${g.departureMeter} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Entrega</td><td th:text="${g.deliveredAt} ?: '—'"></td>
+    <td class="lbl">Km à chegada</td><td th:text="${g.arrivalMeter} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Carga</h2>
+<div th:if="${g.cargoDescription}" th:text="${g.cargoDescription}" style="margin-bottom:6px;"></div>
+<div th:if="${g.hazardClass}" class="warn">
+  <b>Mercadoria perigosa</b> — classe <span th:text="${g.hazardClass}"></span>
+</div>
+<table class="lines" th:if="${!g.items.isEmpty()}">
+  <thead>
+    <tr>
+      <th style="width:4%;">#</th>
+      <th>Descrição</th>
+      <th style="width:14%;">Referência</th>
+      <th class="num-col" style="width:10%;">Qtd.</th>
+      <th style="width:8%;">Un.</th>
+      <th class="num-col" style="width:11%;">Peso (kg)</th>
+      <th class="num-col" style="width:10%;">Volumes</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="l, i : ${g.items}">
+      <td th:text="${i.count}"></td>
+      <td th:text="${l.description}"></td>
+      <td th:text="${l.reference} ?: '—'"></td>
+      <td class="num-col" th:text="${l.quantity} ?: '—'"></td>
+      <td th:text="${l.unit} ?: ''"></td>
+      <td class="num-col" th:text="${l.weightKg} ?: '—'"></td>
+      <td class="num-col" th:text="${l.packages} ?: '—'"></td>
+    </tr>
+    <tr class="total">
+      <td colspan="5">Totais</td>
+      <td class="num-col" th:text="${g.totalWeightKg} ?: '—'"></td>
+      <td class="num-col" th:text="${g.totalPackages} ?: '—'"></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box" th:if="${g.notes}">
+  <span style="color:#71717a; font-size:7.5pt; text-transform:uppercase;">Observações</span><br/>
+  <span th:text="${g.notes}"></span>
+</div>
+
+<div class="box" th:if="${g.receivedByName}">
+  <span style="color:#71717a; font-size:7.5pt; text-transform:uppercase;">Receção</span><br/>
+  Recebido por <b th:text="${g.receivedByName}"></b>
+  <span th:if="${g.receivedByDocument}" th:text="' (doc. ' + ${g.receivedByDocument} + ')'"></span>
+  <span th:if="${g.deliveryNotes}" th:text="' — ' + ${g.deliveryNotes}"></span>
+</div>
+
+<table class="sign">
+  <tr>
+    <td><div class="line">O expedidor</div></td>
+    <td><div class="line">O condutor</div></td>
+    <td><div class="line">Recebido por (nome, documento e data)</div></td>
+  </tr>
+</table>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+</body>
+</html>

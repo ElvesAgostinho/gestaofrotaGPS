@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${title}">Aviso</title>
+</head>
+<!--
+  Email em tabelas e com estilos em linha, de propósito: os clientes de email
+  (sobretudo o Outlook) ignoram folhas de estilo e flexbox. É feio de escrever,
+  mas é o que chega inteiro ao destinatário.
+-->
+<body style="margin:0; padding:0; background:#f4f5f7;
+             font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+         style="background:#f4f5f7; padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+               style="max-width:560px; background:#ffffff; border-radius:8px;
+                      border:1px solid #e3e5e8; overflow:hidden;">
+
+          <tr>
+            <td style="background:#ffc107; padding:16px 24px;">
+              <span th:text="${appName}"
+                    style="font-size:18px; font-weight:700; color:#1a1a1a;">IMBONDEIRO OS</span>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:24px;">
+              <h1 th:text="${title}"
+                  style="margin:0 0 12px; font-size:18px; line-height:1.4;
+                         color:#1a1a1a; font-weight:600;">Aviso</h1>
+              <p th:text="${body}"
+                 style="margin:0; font-size:15px; line-height:1.6; color:#454952;
+                        white-space:pre-line;">Detalhe do aviso.</p>
+            </td>
+          </tr>
+
+          <tr th:if="${webUrl != null and !webUrl.isBlank()}">
+            <td style="padding:0 24px 24px;">
+              <a th:href="${webUrl}"
+                 style="display:inline-block; background:#1a1a1a; color:#ffffff;
+                        text-decoration:none; padding:10px 20px; border-radius:6px;
+                        font-size:14px; font-weight:600;">Abrir o IMBONDEIRO OS</a>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:16px 24px; background:#fafbfc; border-top:1px solid #e3e5e8;">
+              <p style="margin:0; font-size:12px; line-height:1.5; color:#8a8f98;">
+                Recebeu esta mensagem porque tem avisos ativos no
+                <span th:text="${appName}">IMBONDEIRO OS</span>.
+                Pode desligá-los nas suas preferências de notificação.
+              </p>
+              <p style="margin:8px 0 0; font-size:12px; color:#8a8f98;">
+                &copy; <span th:text="${year}">2026</span>
+                <span th:text="${appName}">IMBONDEIRO OS</span>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
