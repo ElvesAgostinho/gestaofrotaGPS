@@ -141,7 +141,7 @@ Abra `https://traccar.o-seu-dominio`: entra com `admin` / `admin` e
 No IMBONDEIRO OS, **Configurações → Servidor Traccar**:
 - Endereço: `http://traccar:8082` (ou `http://frota_traccar:8082`)
 - Token: o token do passo 5
-- **Guardar** → **Testar ligação**. Tem de dizer «Sessão aceite».
+- **Guardar** → **Testar ligação**. Tem de dizer «Credenciais aceites».
 
 A partir daqui a **sondagem** traz as posições de 20 em 20 s para os
 aparelhos que existirem nos dois lados com o mesmo IMEI (Rastreadores GPS no
@@ -217,7 +217,7 @@ anterior correu.
 
 - [ ] `https://frota.…` abre e a barra de baixo diz **servidor: ligado**
 - [ ] Criou a empresa e entrou como Dono
-- [ ] Configurações → Traccar → Testar ligação: «Sessão aceite»
+- [ ] Configurações → Traccar → Testar ligação: «Credenciais aceites»
 - [ ] Um rastreador real configurado para o IP da VPS e a porta do seu protocolo
       aparece no Traccar **e**, registado com o mesmo IMEI, no mapa do IMBONDEIRO OS
 - [ ] Serviço `backup` com «feito» nos logs; pasta de cópias com dois ficheiros

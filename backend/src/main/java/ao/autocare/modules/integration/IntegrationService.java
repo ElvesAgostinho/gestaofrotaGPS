@@ -110,8 +110,10 @@ public class IntegrationService {
     /**
      * Liga-se mesmo ao Traccar e pergunta quem somos.
      *
-     * <p>{@code /api/session} é o ponto que valida credenciais sem alterar nada
-     * no servidor do cliente.
+     * <p>{@code /api/devices} é o ponto que valida credenciais sem alterar nada
+     * no servidor do cliente. Não {@code /api/session}: num Traccar 6.6 real,
+     * com token, esse responde 404 — e o teste dava falso negativo a uma
+     * ligação que funcionava. Descoberto na primeira instalação a sério.
      */
     @Transactional
     public IntegrationDtos.TestResult testTraccar(String orgId, String userId) {
@@ -126,7 +128,7 @@ public class IntegrationService {
 
         try {
             HttpRequest.Builder pedido = HttpRequest.newBuilder()
-                    .uri(URI.create(s.getTraccarUrl() + "/api/session"))
+                    .uri(URI.create(s.getTraccarUrl() + "/api/devices"))
                     .timeout(TEMPO_LIMITE)
                     .header("Accept", "application/json")
                     .GET();
@@ -151,7 +153,7 @@ public class IntegrationService {
 
             if (r.statusCode() == 200) {
                 ok = true;
-                detalhe = "Sessão aceite pelo servidor Traccar.";
+                detalhe = "Credenciais aceites pelo servidor Traccar.";
             } else if (r.statusCode() == 401) {
                 erro = "O servidor respondeu, mas recusou as credenciais.";
             } else {

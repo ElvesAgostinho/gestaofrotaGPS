@@ -69,10 +69,12 @@ public class TraccarPositions {
     private final TelemetryService telemetry;
     private final SecretBox cofre;
     private final ObjectMapper json;
+    private final org.springframework.transaction.support.TransactionTemplate transacao;
 
     public TraccarPositions(IntegrationSettingsRepository settings, GpsDeviceRepository devices,
             GpsPositionRepository positions, TelemetryService telemetry, SecretBox cofre,
-            ObjectMapper json) {
+            ObjectMapper json, org.springframework.transaction.PlatformTransactionManager txManager) {
+        this.transacao = new org.springframework.transaction.support.TransactionTemplate(txManager);
         this.settings = settings;
         this.devices = devices;
         this.positions = positions;
@@ -83,7 +85,16 @@ public class TraccarPositions {
 
     // ==== Sondagem =========================================================
 
-    /** Visita cada empresa com Traccar apontado. Erros de uma não param as outras. */
+    /**
+     * Visita cada empresa com Traccar apontado. Erros de uma não param as outras.
+     *
+     * <p>A transação é explícita: {@code sondar} chamado daqui é uma chamada
+     * interna, e o {@code @Transactional} dele não se aplica a chamadas
+     * internas. Sem isto a ronda corria, mas o que gravava — última ronda,
+     * erro, posições — perdia-se em silêncio. Os testes passavam porque chamam
+     * {@code sondar} de fora, pelo proxy. Só a primeira instalação real o
+     * mostrou.
+     */
     @Scheduled(fixedDelayString = "${autocare.traccar.poll-ms:20000}",
             initialDelayString = "${autocare.traccar.poll-initial-ms:15000}")
     public void sondarTodas() {
@@ -92,7 +103,8 @@ public class TraccarPositions {
                 continue;
             }
             try {
-                sondar(s.getId());
+                String id = s.getId();
+                transacao.execute(status -> sondar(id));
             } catch (RuntimeException e) {
                 log.warn("Sondagem do Traccar falhou para {}: {}", s.getId(), e.toString());
             }

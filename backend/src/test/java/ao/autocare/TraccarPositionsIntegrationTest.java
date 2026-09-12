@@ -61,7 +61,11 @@ class TraccarPositionsIntegrationTest extends AbstractIntegrationTest {
         servidor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         servidor.createContext("/api/devices", troca -> responder(troca, devicesJson.get()));
         servidor.createContext("/api/positions", troca -> responder(troca, positionsJson.get()));
-        servidor.createContext("/api/session", troca -> responder(troca, "{\"id\":1}"));
+        // Como o Traccar 6.6 real com token: /api/session responde 404.
+        servidor.createContext("/api/session", troca -> {
+            troca.sendResponseHeaders(404, -1);
+            troca.close();
+        });
         servidor.start();
 
         Map<String, Object> cfg = new HashMap<>();
@@ -123,6 +127,16 @@ class TraccarPositionsIntegrationTest extends AbstractIntegrationTest {
     // ===================================================================
 
     @Test
+    void oTesteDeLigacaoAceitaUmTraccarRealComToken() throws Exception {
+        // Num Traccar 6.6 a sério, com token, GET /api/session dá 404 e
+        // /api/devices dá 200. O teste tem de usar o segundo — descoberto na
+        // primeira instalação real, onde o botão dava falso negativo.
+        JsonNode r = send(post("/api/v1/integrations/traccar/test"), null, 200);
+        assertThat(r.get("ok").asBoolean()).isTrue();
+        assertThat(r.get("message").asText()).contains("aceites");
+    }
+
+    @Test
     void aSondagemTrazAPosicaoEConverteAsUnidades() throws Exception {
         Instant agora = Instant.now().minusSeconds(60);
         positionsJson.set(posicao(1001, -8.8383, 13.2344, 30.0, agora,
@@ -156,6 +170,19 @@ class TraccarPositionsIntegrationTest extends AbstractIntegrationTest {
         assertThat(defs.get("traccarLastPollAt").isNull()).isFalse();
         assertThat(defs.get("traccarLastPositionAt").isNull()).isFalse();
         assertThat(defs.has("traccarPollError")).isFalse();
+    }
+
+    @Test
+    void aRondaAgendadaGravaOQueFez() throws Exception {
+        // sondarTodas() é o que o relógio chama. Chamado daqui, passa pelo
+        // mesmo caminho que em produção — e tem de deixar rasto: a última
+        // ronda gravada. Foi por aqui que a primeira instalação real falhou.
+        positionsJson.set(posicao(1501, -8.8383, 13.2344, 0, Instant.now().minusSeconds(30), Map.of("fuel", 100.0)));
+        traccar.sondarTodas();
+        JsonNode defs = send(get("/api/v1/integrations"), null, 200);
+        assertThat(defs.get("traccarLastPollAt").isNull()).isFalse();
+        assertThat(defs.get("traccarLastPositionAt").isNull()).isFalse();
+        assertThat(send(get("/api/v1/telemetry/live"), null, 200)).hasSize(1);
     }
 
     @Test
