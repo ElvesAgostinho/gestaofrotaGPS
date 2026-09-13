@@ -29,9 +29,12 @@ public class ImportController {
     private final ImportService imports;
     private final OrgContext orgContext;
 
-    public ImportController(ImportService imports, OrgContext orgContext) {
+    private final WorkOrderHistoryImporter historico;
+
+    public ImportController(ImportService imports, OrgContext orgContext, WorkOrderHistoryImporter historico) {
         this.imports = imports;
         this.orgContext = orgContext;
+        this.historico = historico;
     }
 
     private String org(AuthPrincipal p) {
@@ -90,6 +93,24 @@ public class ImportController {
             @Parameter(description = "Verificar sem gravar")
             @RequestParam(defaultValue = "false") boolean dryRun) {
         return imports.importFuel(org(p), p.id(), read(file), dryRun);
+    }
+
+    @Operation(summary = "Modelo de ficheiro para importar o histórico de ordens de manutenção")
+    @GetMapping(value = "/work-orders/template", produces = "text/csv")
+    public String workOrdersTemplate() {
+        return historico.template();
+    }
+
+    @Operation(summary = "Importar o histórico de ordens de manutenção (Excel/CSV do cliente)",
+            description = "Cada linha entra como uma ordem já concluída, com data, contador e custo. "
+                    + "Com dryRun=true verifica e não grava nada.")
+    @RequireRole(MembershipRole.MANAGER)
+    @PostMapping(value = "/work-orders", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ImportReport importWorkOrders(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(defaultValue = "false") boolean dryRun) {
+        return historico.importar(org(p), p.id(), read(file), dryRun);
     }
 
     private String read(MultipartFile file) {

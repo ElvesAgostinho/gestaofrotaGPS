@@ -9,6 +9,8 @@ public interface SupplierRepository extends JpaRepository<Supplier, String> {
 
     Optional<Supplier> findByIdAndOrganizationId(String id, String organizationId);
 
+    Optional<Supplier> findByOrganizationIdAndNameIgnoreCase(String organizationId, String name);
+
     List<Supplier> findByOrganizationIdOrderByNameAsc(String organizationId);
 
     boolean existsByOrganizationIdAndTaxId(String organizationId, String taxId);

@@ -27,6 +27,8 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
 
     long countByOrganizationId(String organizationId);
 
+    boolean existsByOrganizationIdAndNumber(String organizationId, String number);
+
     @Query("""
             select count(w) from WorkOrder w
             where w.organization.id = :orgId and w.openedAt >= :from and w.openedAt < :to

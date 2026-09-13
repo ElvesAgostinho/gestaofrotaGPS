@@ -24,6 +24,7 @@ import {
 } from '../components/erp';
 import { fmtDate } from '../lib/format';
 import { NovaOrdemForm } from './workorders/NovaOrdemForm';
+import { ImportarCsv } from '../components/ImportarCsv';
 
 interface WorkOrder {
   id: string;
@@ -48,6 +49,7 @@ export function WorkOrdersPage() {
   const [filter, setFilter] = useState('todas');
   const [procura, setProcura] = useState('');
   const [novaAberta, setNovaAberta] = useState(false);
+  const [importar, setImportar] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['work-orders', filter],
@@ -73,6 +75,17 @@ export function WorkOrdersPage() {
 
   return (
     <Stack gap="sm">
+      <ImportarCsv
+        aberto={importar}
+        fechar={() => setImportar(false)}
+        titulo="Importar histórico de manutenção"
+        explicacao="Cada linha entra como uma ordem já concluída: viatura (etiqueta ou matrícula), data, o que foi feito, contador e custo. Serve para trazer os anos de Excel de um cliente novo."
+        rota="/imports/work-orders"
+        modelo="/imports/work-orders/template"
+        nomeDoModelo="modelo-historico-manutencao.csv"
+        invalidar={[['work-orders'], ['assets'], ['asset-plan']]}
+        substantivo="ordem(ns)"
+      />
       <NovaOrdemForm aberto={novaAberta} fechar={() => setNovaAberta(false)} />
 
       <Painel
@@ -104,6 +117,14 @@ export function WorkOrdersPage() {
               titulo="Custo de manutenção por ativo (PDF)"
             >
               Custo por viatura
+            </BotaoBarra>
+            <SeparadorBarra />
+            <BotaoBarra
+              icone={<IconFileExport size={13} />}
+              onClick={() => setImportar(true)}
+              titulo="Trazer as ordens antigas de uma folha Excel/CSV, já concluídas"
+            >
+              Importar histórico
             </BotaoBarra>
             <SeparadorBarra />
             <SegmentedControl
