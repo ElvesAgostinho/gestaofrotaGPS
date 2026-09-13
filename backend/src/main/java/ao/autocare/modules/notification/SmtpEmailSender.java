@@ -58,6 +58,12 @@ public class SmtpEmailSender implements EmailSender {
 
     @Override
     public boolean send(String to, String subject, String body) {
+        return send(to, subject, body, null, null, null);
+    }
+
+    @Override
+    public boolean send(String to, String subject, String body, String attachmentName, byte[] attachment,
+            String attachmentType) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(
@@ -68,6 +74,10 @@ public class SmtpEmailSender implements EmailSender {
             helper.setSubject(subject);
             // Texto simples e HTML: o cliente de email escolhe o que consegue ler.
             helper.setText(body, render(subject, body));
+            if (attachment != null && attachmentName != null) {
+                helper.addAttachment(attachmentName, new org.springframework.core.io.ByteArrayResource(attachment),
+                        attachmentType != null ? attachmentType : "application/octet-stream");
+            }
 
             mailSender.send(message);
             return true;

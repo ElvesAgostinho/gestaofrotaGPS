@@ -85,18 +85,25 @@ public class NotificationService {
             String body,
             String sourceKind,
             String sourceId,
-            String link) {
+            String link,
+            /** Só dentro da aplicação: o conteúdo já seguiu por outro canal (ex.: o PDF por email). */
+            boolean inAppOnly) {
 
         public static Draft of(
                 String orgId, AlertCategory category, AlertSeverity severity,
                 String title, String body, String sourceKind, String sourceId, String link) {
             return new Draft(orgId, null, category, severity, title, body,
-                    sourceKind, sourceId, link);
+                    sourceKind, sourceId, link, false);
         }
 
         public Draft forAsset(Asset asset) {
             return new Draft(orgId, asset, category, severity, title, body,
-                    sourceKind, sourceId, link);
+                    sourceKind, sourceId, link, inAppOnly);
+        }
+
+        public Draft soNaAplicacao() {
+            return new Draft(orgId, asset, category, severity, title, body,
+                    sourceKind, sourceId, link, true);
         }
     }
 
@@ -137,11 +144,11 @@ public class NotificationService {
         n.setLink(draft.link());
         notifications.save(n);
 
-        if (pref == null || pref.isEmail()) {
+        if ((pref == null || pref.isEmail()) && !draft.inAppOnly()) {
             deliverByEmail(user, n);
         }
         // Ao telemóvel só vai o que é grave: ninguém quer o WhatsApp a apitar por um aviso leve.
-        if ((pref == null || pref.isSms()) && draft.severity() != AlertSeverity.INFO) {
+        if ((pref == null || pref.isSms()) && draft.severity() != AlertSeverity.INFO && !draft.inAppOnly()) {
             deliverByPhone(user, n);
         }
         return Optional.of(n);

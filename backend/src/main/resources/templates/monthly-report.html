@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Relatório mensal — ' + ${r.monthLabel}">Relatório mensal</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h1 { font-size: 15pt; margin: 8px 0 0; }
+    h2 { font-size: 9.5pt; margin: 14px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase; letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .kpis td { width: 25%; padding: 6px 8px; border: 1px solid #d4d4d8; vertical-align: top; }
+    .kpis .lbl { font-size: 7.5pt; color: #71717a; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .kpis .n { font-size: 15pt; font-weight: bold; margin-top: 2px; }
+    .kpis .sub { font-size: 7.5pt; color: #71717a; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+                color: #71717a; border-bottom: 1px solid #d4d4d8; padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3px 4px; vertical-align: top; }
+    .num-col { text-align: right; white-space: nowrap; }
+    .muted { color: #71717a; }
+    .pend { margin-top: 4px; }
+    .pend .g { font-weight: bold; margin-top: 5px; }
+    .pend .crit { color: #b91c1c; }
+    ul { margin: 2px 0 2px 14px; padding: 0; }
+    li { margin: 1px 0; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${r.monthLabel}, 'Relatório mensal da frota')}"></div>
+
+<h1 th:text="'Relatório mensal — ' + ${r.monthLabel}">Relatório mensal</h1>
+<div class="muted" th:text="'Período: ' + ${r.periodo}"></div>
+
+<h2>Em resumo</h2>
+<table class="kpis">
+  <tr>
+    <td><div class="lbl">Frota</div><div class="n" th:text="${r.fleetSize}">0</div>
+        <div class="sub" th:text="${r.assetsDown} + ' parada(s) no fim do mês'"></div></td>
+    <td><div class="lbl">Disponibilidade</div><div class="n" th:text="${r.availability != null ? r.availability : '—'}">—</div>
+        <div class="sub" th:if="${r.availabilityTarget != null}" th:text="'meta: pelo menos ' + ${r.availabilityTarget}"></div></td>
+    <td><div class="lbl">Ordens concluídas</div><div class="n" th:text="${r.ordersClosed}">0</div>
+        <div class="sub" th:text="${r.corrective} + ' corretiva(s) · ' + ${r.preventive} + ' preventiva(s) · ' + ${r.ordersOpened} + ' abertas no mês'"></div></td>
+    <td th:if="${r.showMoney}"><div class="lbl">Custo de manutenção</div><div class="n" th:text="${r.totalCost} + ' ' + ${r.currency}">0</div>
+        <div class="sub" th:text="'mão de obra ' + ${r.laborCost} + ' · peças ' + ${r.partsCost} + ' · oficinas ' + ${r.externalCost}"></div></td>
+    <td th:unless="${r.showMoney}"><div class="lbl">Horas paradas</div><div class="n" th:text="${r.downtimeHours} + ' h'">0</div></td>
+  </tr>
+  <tr>
+    <td><div class="lbl">Horas paradas por manutenção</div><div class="n" th:text="${r.downtimeHours} + ' h'">0</div></td>
+    <td><div class="lbl">MTBF</div><div class="n" th:text="${r.mtbf != null ? r.mtbf : '—'}">—</div><div class="sub">tempo médio entre avarias</div></td>
+    <td><div class="lbl">MTTR</div><div class="n" th:text="${r.mttr != null ? r.mttr : '—'}">—</div><div class="sub">tempo médio de reparação</div></td>
+    <td><div class="lbl">Cumprimento do plano</div><div class="n" th:text="${r.planCompliance != null ? r.planCompliance : '—'}">—</div></td>
+  </tr>
+</table>
+
+<h2>Combustível</h2>
+<div th:if="${r.fuel.records == 0}" class="muted">Sem abastecimentos registados neste mês.</div>
+<table class="kpis" th:if="${r.fuel.records > 0}">
+  <tr>
+    <td><div class="lbl">Litros</div><div class="n" th:text="${r.fuel.liters}">0</div>
+        <div class="sub" th:text="${r.fuel.records} + ' abastecimento(s)'"></div></td>
+    <td th:if="${r.showMoney and r.fuel.cost != null}"><div class="lbl">Custo</div><div class="n" th:text="${r.fuel.cost} + ' ' + ${r.currency}">0</div></td>
+    <td><div class="lbl">Consumo médio</div><div class="n" th:text="${r.fuel.consumption != null ? r.fuel.consumption + ' ' + r.fuel.consumptionUnit : '—'}">—</div>
+        <div class="sub" th:if="${r.fuel.consumption == null}">sem leituras de contador suficientes</div></td>
+    <td><div class="lbl">Anomalias</div><div class="n" th:text="${r.fuel.anomalies}">0</div>
+        <div class="sub">detetadas neste mês</div></td>
+  </tr>
+</table>
+
+<h2>Viaturas que mais custaram</h2>
+<div th:if="${#lists.isEmpty(r.topAssets)}" class="muted">Sem ordens concluídas neste mês.</div>
+<table class="lines" th:unless="${#lists.isEmpty(r.topAssets)}">
+  <thead><tr>
+    <th>Viatura</th><th>Nome</th><th class="num-col">Ordens</th>
+    <th class="num-col" th:if="${r.showMoney}" th:text="'Custo (' + ${r.currency} + ')'">Custo</th>
+    <th class="num-col">Horas paradas</th>
+  </tr></thead>
+  <tbody>
+    <tr th:each="l : ${r.topAssets}">
+      <td th:text="${l.tag}"></td>
+      <td th:text="${l.name}"></td>
+      <td class="num-col" th:text="${l.orders}"></td>
+      <td class="num-col" th:if="${r.showMoney}" th:text="${l.cost}"></td>
+      <td class="num-col" th:text="${l.downtime}"></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 th:text="'Pendente à data de emissão (' + ${r.openAlerts} + ')'">Pendente</h2>
+<div th:if="${r.openAlerts == 0}" class="muted">Nada por resolver: viaturas a andar, manutenções em dia, documentos válidos, aparelhos a comunicar.</div>
+<div class="pend" th:each="g : ${r.pending}">
+  <div class="g" th:classappend="${g.severity == 'CRITICAL'} ? 'crit'" th:text="${g.label} + ' (' + ${g.count} + ')'"></div>
+  <ul>
+    <li th:each="i : ${g.items}">
+      <span th:if="${i.assetTag != null}" th:text="${i.assetTag} + ' · '"></span><span th:text="${i.title}"></span>
+      <span class="muted" th:text="' — ' + ${i.detail}"></span>
+    </li>
+    <li class="muted" th:if="${g.count > #lists.size(g.items)}" th:text="'… e mais ' + (${g.count} - ${#lists.size(g.items)})"></li>
+  </ul>
+</div>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+</body>
+</html>

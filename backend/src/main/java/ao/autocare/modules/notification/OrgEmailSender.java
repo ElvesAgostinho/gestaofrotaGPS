@@ -49,6 +49,11 @@ public class OrgEmailSender {
      * quando tem e o envio foi aceite/recusado.
      */
     public Optional<Boolean> send(String orgId, String to, String subject, String body) {
+        return send(orgId, to, subject, body, null, null, null);
+    }
+
+    public Optional<Boolean> send(String orgId, String to, String subject, String body,
+            String attachmentName, byte[] attachment, String attachmentType) {
         if (orgId == null) {
             return Optional.empty();
         }
@@ -64,6 +69,10 @@ public class OrgEmailSender {
             h.setTo(to);
             h.setSubject(subject);
             h.setText(body, render(subject, body));
+            if (attachment != null && attachmentName != null) {
+                h.addAttachment(attachmentName, new org.springframework.core.io.ByteArrayResource(attachment),
+                        attachmentType != null ? attachmentType : "application/octet-stream");
+            }
             remetente.send(msg);
             return Optional.of(true);
         } catch (Exception e) {

@@ -15,6 +15,12 @@ public interface EmailSender {
      */
     boolean send(String to, String subject, String body);
 
+    /** Com um ficheiro anexo (ex.: o relatório mensal em PDF). Por omissão não suportado. */
+    default boolean send(String to, String subject, String body, String attachmentName, byte[] attachment,
+            String attachmentType) {
+        return false;
+    }
+
     /** {@code false} enquanto não houver serviço de email configurado. */
     boolean isConfigured();
 }

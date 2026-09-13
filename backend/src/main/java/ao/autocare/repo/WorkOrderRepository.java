@@ -40,10 +40,10 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
 
     @Query("""
             select count(w) from WorkOrder w
-            where w.organization.id = :orgId
+            where w.organization.id = :orgId and w.type = :type
               and w.completedAt is not null and w.completedAt >= :from and w.completedAt < :to
             """)
-    long countCompletedBetween(String orgId, Instant from, Instant to);
+    long countCompletedBetween(String orgId, ao.autocare.domain.enums.Enums.WorkOrderType type, Instant from, Instant to);
 
     @Query("""
             select count(w) from WorkOrder w

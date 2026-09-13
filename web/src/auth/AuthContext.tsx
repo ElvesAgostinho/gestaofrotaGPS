@@ -30,6 +30,7 @@ export interface Organization {
   onboardingDone?: boolean;
   maintenanceApprovalLimit?: number | null;
   closeRequiresAfterPhoto?: boolean;
+  monthlyReportEnabled?: boolean;
   defaultSpeedLimitKph?: number;
   /** Último dia da licença (nulo = sem prazo). */
   licenseUntil?: string | null;

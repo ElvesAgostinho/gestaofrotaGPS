@@ -32,11 +32,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class ReportController {
 
     private final ReportService reports;
+    private final MonthlyReportService monthly;
     private final OrgContext orgContext;
     private final TablePdf tablePdf;
 
-    public ReportController(ReportService reports, OrgContext orgContext, TablePdf tablePdf) {
+    public ReportController(ReportService reports, OrgContext orgContext, TablePdf tablePdf, MonthlyReportService monthly) {
         this.reports = reports;
+        this.monthly = monthly;
         this.orgContext = orgContext;
         this.tablePdf = tablePdf;
     }
@@ -102,6 +104,25 @@ public class ReportController {
     @GetMapping("/documents.{ext:csv|xlsx|pdf}")
     public ResponseEntity<byte[]> documents(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String ext) {
         return exportar(p, ext, reports.documents(org(p)), "documentos", "Documentos e validades");
+    }
+
+    @Operation(summary = "Relatório mensal da frota em PDF (o mesmo que segue por email no dia 1)")
+    @GetMapping(value = "/monthly.pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    public ResponseEntity<byte[]> monthly(@AuthenticationPrincipal AuthPrincipal p,
+            @RequestParam(required = false) String month) {
+        java.time.YearMonth mes;
+        try {
+            mes = month == null || month.isBlank() ? java.time.YearMonth.now(java.time.ZoneId.of("Africa/Luanda")).minusMonths(1)
+                    : java.time.YearMonth.parse(month);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw ao.autocare.common.ApiException.badRequest("Indique o mês como AAAA-MM (ex.: 2026-08).");
+        }
+        byte[] pdf = monthly.pdf(org(p), mes, p.permissions() != null
+                && p.permissions().contains(ao.autocare.security.Permission.COSTS_VIEW));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"relatorio-mensal-" + mes + ".pdf\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     @Operation(summary = "Registo de auditoria: quem fez o quê e quando (por omissão os últimos 90 dias)")

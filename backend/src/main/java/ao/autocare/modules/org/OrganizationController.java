@@ -84,7 +84,9 @@ public class OrganizationController {
             /** Orçamentos até este valor aprovam-se sozinhos; acima, o dono decide. Nulo = tudo passa pelo dono. */
             java.math.BigDecimal maintenanceApprovalLimit,
             /** Só se conclui uma ordem com fotografia do «depois». */
-            boolean closeRequiresAfterPhoto) {}
+            boolean closeRequiresAfterPhoto,
+            /** Relatório mensal automático ao dono e gestores. */
+            boolean monthlyReportEnabled) {}
 
     /** Alterações às definições da empresa. Cada campo é opcional. */
     public record UpdateOrganizationRequest(
@@ -98,7 +100,8 @@ public class OrganizationController {
             java.math.BigDecimal defaultSpeedLimitKph,
             /** Limite de aprovação automática de orçamentos; zero ou negativo = sem limite (tudo pelo dono). */
             java.math.BigDecimal maintenanceApprovalLimit,
-            Boolean closeRequiresAfterPhoto) {}
+            Boolean closeRequiresAfterPhoto,
+            Boolean monthlyReportEnabled) {}
 
     @Operation(summary = "Dados da empresa atual")
     @GetMapping
@@ -122,7 +125,8 @@ public class OrganizationController {
                 org.blockedReason(java.time.LocalDate.now()),
                 org.getOnboardingDoneAt() != null,
                 org.getMaintenanceApprovalLimit(),
-                org.isCloseRequiresAfterPhoto());
+                org.isCloseRequiresAfterPhoto(),
+                org.isMonthlyReportEnabled());
     }
 
     @Operation(summary = "Dar o assistente de primeira utilização por concluído (ou saltado)")
@@ -160,6 +164,9 @@ public class OrganizationController {
         }
         if (req.closeRequiresAfterPhoto() != null) {
             org.setCloseRequiresAfterPhoto(req.closeRequiresAfterPhoto());
+        }
+        if (req.monthlyReportEnabled() != null) {
+            org.setMonthlyReportEnabled(req.monthlyReportEnabled());
         }
         if (req.address() != null) org.setAddress(limpar(req.address()));
         if (req.city() != null) org.setCity(limpar(req.city()));

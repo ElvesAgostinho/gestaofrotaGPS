@@ -69,6 +69,14 @@ public class Organization extends TimestampedEntity {
     @jakarta.persistence.Column(name = "maintenance_approval_limit", precision = 16, scale = 2)
     private java.math.BigDecimal maintenanceApprovalLimit;
 
+    /** Relatório mensal automático (email com PDF + resumo no telemóvel) ao dono e gestores. */
+    @jakarta.persistence.Column(name = "monthly_report_enabled", nullable = false)
+    private boolean monthlyReportEnabled = true;
+
+    /** Último mês (AAAA-MM) cujo relatório já foi enviado. */
+    @jakarta.persistence.Column(name = "monthly_report_sent_for", length = 7)
+    private String monthlyReportSentFor;
+
     /** Só se conclui uma ordem com pelo menos uma fotografia do «depois». */
     @jakarta.persistence.Column(name = "close_requires_after_photo", nullable = false)
     private boolean closeRequiresAfterPhoto = false;

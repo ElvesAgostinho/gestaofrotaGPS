@@ -27,6 +27,7 @@ export function SettingsPage() {
   const [speedLimit, setSpeedLimit] = useState<number | ''>(org?.defaultSpeedLimitKph ?? '');
   const [limiteAprovacao, setLimiteAprovacao] = useState<number | ''>(org?.maintenanceApprovalLimit ?? '');
   const [fotoDepois, setFotoDepois] = useState(org?.closeRequiresAfterPhoto ?? false);
+  const [relatorioMensal, setRelatorioMensal] = useState(org?.monthlyReportEnabled ?? true);
   const [taxId, setTaxId] = useState(org?.taxId ?? '');
   const [address, setAddress] = useState(org?.address ?? '');
   const [city, setCity] = useState(org?.city ?? '');
@@ -64,6 +65,7 @@ export function SettingsPage() {
           // Zero = sem limite: todos os orçamentos passam pelo dono.
           maintenanceApprovalLimit: limiteAprovacao === '' ? 0 : limiteAprovacao,
           closeRequiresAfterPhoto: fotoDepois,
+          monthlyReportEnabled: relatorioMensal,
           // Vazio apaga; é assim que se tira um NIF escrito por engano.
           taxId,
           address,
@@ -178,6 +180,14 @@ export function SettingsPage() {
                 onChange={(e) => setFotoDepois(e.currentTarget.checked)}
               />
             </Group>
+          </SeccaoForm>
+          <SeccaoForm titulo="Relatório mensal">
+            <Switch
+              label="Enviar o relatório mensal da frota no dia 1 ao dono e aos gestores"
+              description="PDF por email (pelo servidor de email da empresa, se configurado) e resumo no telemóvel quando há WhatsApp/SMS. Fica sempre disponível em Relatórios."
+              checked={relatorioMensal}
+              onChange={(e) => setRelatorioMensal(e.currentTarget.checked)}
+            />
           </SeccaoForm>
           <Group>
             <Button onClick={() => save.mutate()} loading={save.isPending}>

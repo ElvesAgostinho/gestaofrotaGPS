@@ -1,4 +1,7 @@
-import { Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Button, Card, Group, Select, SimpleGrid, Stack, Text } from '@mantine/core';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '../auth/AuthContext';
 import { notifications } from '@mantine/notifications';
 import {
   IconBuildingStore,
@@ -144,6 +147,8 @@ export function ReportsPage() {
         </Text>
       </div>
 
+      <RelatorioMensal />
+
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
         {REPORTS.map((r) => (
           <Card key={r.path} p="md">
@@ -169,5 +174,59 @@ export function ReportsPage() {
         ))}
       </SimpleGrid>
     </Stack>
+  );
+}
+
+/** Os últimos 12 meses, do mais recente para o mais antigo, como AAAA-MM. */
+function ultimosMeses(): { value: string; label: string }[] {
+  const out: { value: string; label: string }[] = [];
+  const d = new Date();
+  d.setDate(1);
+  for (let i = 0; i < 12; i++) {
+    const value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const label = d.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    out.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
+    d.setMonth(d.getMonth() - 1);
+  }
+  return out;
+}
+
+/**
+ * O relatório mensal: o mesmo PDF que no dia 1 segue sozinho por email (e em
+ * resumo no telemóvel) ao dono e aos gestores. Aqui abre-se qualquer mês.
+ */
+function RelatorioMensal() {
+  const { org } = useAuth();
+  const [params] = useSearchParams();
+  const meses = ultimosMeses();
+  const [mes, setMes] = useState<string | null>(params.get('mes') ?? meses[1]?.value ?? meses[0].value);
+  return (
+    <Card p="md" style={{ borderLeft: '4px solid var(--erp-dourado)' }}>
+      <Group justify="space-between" align="flex-end" wrap="wrap">
+        <div>
+          <Text fw={700}>Relatório mensal da frota</Text>
+          <Text size="sm" c="dimmed">
+            Custo por viatura, disponibilidade, ordens, combustível e o que ficou pendente — numa página.{' '}
+            {org?.monthlyReportEnabled === false
+              ? 'O envio automático está desligado nas Definições.'
+              : 'Segue sozinho no dia 1 de cada mês, por email (PDF) e em resumo no telemóvel, ao dono e aos gestores.'}
+          </Text>
+        </div>
+        <Group gap="xs">
+          <Select data={meses} value={mes} onChange={setMes} allowDeselect={false} w={190} />
+          <Button
+            onClick={async () => {
+              try {
+                await openFile(`/reports/monthly.pdf?month=${mes}`);
+              } catch (e) {
+                notifications.show({ title: 'Não foi possível abrir', message: (e as Error).message, color: 'red' });
+              }
+            }}
+          >
+            Abrir PDF
+          </Button>
+        </Group>
+      </Group>
+    </Card>
   );
 }

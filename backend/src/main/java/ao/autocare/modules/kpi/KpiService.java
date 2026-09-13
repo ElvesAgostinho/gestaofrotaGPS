@@ -120,12 +120,14 @@ public class KpiService {
                 orgId, WorkOrderType.PREVENTIVE, start, end);
         int executedOrders = (int) (assetId != null
                 ? workOrders.countCompletedForAssetBetween(assetId, WorkOrderType.PREVENTIVE, start, end)
-                : workOrders.countCompletedBetween(orgId, start, end));
+                : workOrders.countCompletedBetween(orgId, WorkOrderType.PREVENTIVE, start, end));
+        // Cumprir mais do que o planeado não é 200 %: é 100 % com trabalho a mais.
         Double compliance = plannedOrders > 0
-                ? round((double) executedOrders / plannedOrders * 100)
+                ? Math.min(100.0, round((double) executedOrders / plannedOrders * 100))
                 : null;
 
-        Double mtbf = failureCount > 0 ? round(operatingHours / failureCount) : null;
+        // Sem horas de operação (nenhum contador a andar) o MTBF não é zero, é desconhecido.
+        Double mtbf = failureCount > 0 && operatingHours > 0 ? round(operatingHours / failureCount) : null;
         Double mttr = repairCount > 0 ? round(totalRepairHours / repairCount) : null;
 
         List<Metric> metrics = new ArrayList<>();
