@@ -260,7 +260,7 @@ public class CommandService {
      * Marca os comandos abertos como substituídos por um desbloqueio.
      *
      * <p>Há aqui uma honestidade desconfortável a manter. Um comando que já saiu
-     * para o fornecedor <b>não pode ser recolhido pelo AutoCare</b>: se o
+     * para o fornecedor <b>não pode ser recolhido pelo sistema</b>: se o
      * aparelho estava offline, o Traccar guardou-o e vai entregá-lo quando ele
      * ligar, possivelmente depois do desbloqueio. Fingir que substituir apaga o
      * comando anterior seria mentir sobre o estado de uma viatura. Por isso o
@@ -272,7 +272,7 @@ public class CommandService {
             c.setStatus(DeviceCommandStatus.SUPERSEDED);
             c.setFailureReason(jaSaiu
                     ? "Substituído por um pedido de desbloqueio. O comando já tinha saído "
-                            + "para o fornecedor e o AutoCare não o consegue recolher: se o "
+                            + "para o fornecedor e o sistema não o consegue recolher: se o "
                             + "aparelho estava offline, pode ainda vir a ser executado."
                     : "Substituído por um pedido de desbloqueio antes de chegar a ser enviado.");
 

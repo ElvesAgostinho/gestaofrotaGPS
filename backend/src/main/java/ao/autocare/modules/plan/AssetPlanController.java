@@ -7,6 +7,7 @@ import ao.autocare.modules.plan.dto.AssetPlanDtos.AssetPlanView;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.AssignPlanRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.CompleteTaskRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.CompletionView;
+import ao.autocare.modules.plan.dto.AssetPlanDtos.IntervalRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.TaskCompletionResult;
 import ao.autocare.security.AuthPrincipal;
 import ao.autocare.security.Permission;
@@ -40,7 +41,11 @@ public class AssetPlanController {
     private final AssetPlanService service;
     private final OrgContext orgContext;
 
-    public AssetPlanController(AssetPlanService service, OrgContext orgContext) {
+    private final PlanService planService;
+
+    public AssetPlanController(AssetPlanService service, OrgContext orgContext,
+            PlanService planService) {
+        this.planService = planService;
         this.service = service;
         this.orgContext = orgContext;
     }
@@ -96,6 +101,21 @@ public class AssetPlanController {
         return service.completionHistory(
                 orgContext.requireOrganizationId(principal), assetId,
                 PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200)));
+    }
+
+    @Operation(summary = "Definir o limite de manutenção do ativo (a cada N km / h / dias)",
+            description = "A forma simples de dizer «revisão a cada 5 000 km». Cria um plano "
+                    + "de uma tarefa (ou reutiliza um igual) e atribui-o ao ativo; a partir "
+                    + "daí o contador — manual ou pelo GPS — faz a tarefa vencer.")
+    @RequirePermission(Permission.PLANS_MANAGE)
+    @PostMapping("/maintenance-interval")
+    @ResponseStatus(HttpStatus.CREATED)
+    public AssetPlanView defineInterval(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String assetId,
+            @Valid @RequestBody IntervalRequest req) {
+        return service.defineInterval(orgContext.requireOrganizationId(principal), principal.id(),
+                assetId, req, planService);
     }
 
     @Operation(summary = "Recalcular o vencimento das tarefas do ativo")

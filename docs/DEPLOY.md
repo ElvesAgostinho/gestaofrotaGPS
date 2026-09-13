@@ -142,6 +142,8 @@ As migrações correm sozinhas no arranque. Faça sempre a cópia da base de dad
 | `SPRING_PROFILES_ACTIVE` | — | Tem de ser `prod` |
 | `DATABASE_URL` · `DATABASE_USER` · `DATABASE_PASSWORD` | — | PostgreSQL |
 | `JWT_ACCESS_SECRET` · `JWT_REFRESH_SECRET` | — | Assinatura das sessões |
+| `ADMIN_EMAIL` · `ADMIN_PASSWORD` · `ADMIN_NAME` | — | A conta do administrador da plataforma (criada no 1.º arranque) |
+| `REGISTRATION_OPEN` | `false` em `prod` | `true` deixa qualquer pessoa criar uma empresa no ecrã de entrada |
 | `CORS_ORIGINS` | — | Origens da aplicação web, separadas por vírgula |
 | `APP_WEB_URL` | `http://localhost:5173` | Base dos links dos convites |
 | `STORAGE_PATH` | `/var/lib/autocare/files` | Ficheiros carregados |

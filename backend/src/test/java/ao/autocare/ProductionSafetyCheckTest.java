@@ -23,18 +23,43 @@ class ProductionSafetyCheckTest {
 
     private ProductionSafetyCheck check(
             String access, String refresh, String url, String origins, String... profiles) {
+        return check(access, refresh, url, origins, false, "dono@sistema.ao", profiles);
+    }
+
+    private ProductionSafetyCheck check(
+            String access, String refresh, String url, String origins,
+            boolean registoAberto, String adminEmail, String... profiles) {
 
         MockEnvironment env = new MockEnvironment();
         env.setActiveProfiles(profiles);
         env.setProperty("spring.datasource.url", url);
 
         AutoCareProperties props = new AutoCareProperties(
-                new AutoCareProperties.App("AutoCare", "tagline", "https://app.autocare.ao"),
+                new AutoCareProperties.App("IMBONDEIRO OS", "tagline", "https://app.autocare.ao"),
                 new AutoCareProperties.Security(new AutoCareProperties.Security.Jwt(
                         access, refresh, Duration.ofMinutes(15), Duration.ofDays(30))),
                 new AutoCareProperties.Cors(origins),
-                new AutoCareProperties.Seed(false));
+                new AutoCareProperties.Seed(false),
+                new AutoCareProperties.Registration(registoAberto),
+                new AutoCareProperties.Admin(adminEmail, null, null));
         return new ProductionSafetyCheck(props, env);
+    }
+
+    @Test
+    void refusesClosedRegistrationWithoutAPlatformAdmin() {
+        // Registo fechado e sem ADMIN_EMAIL: ninguém conseguiria entrar.
+        ProductionSafetyCheck unsafe = check(BOM_ACESSO, BOM_REFRESH,
+                "jdbc:postgresql://db:5432/autocare", "https://app.autocare.ao",
+                false, "", "prod");
+        assertThatThrownBy(unsafe::verify)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("ADMIN_EMAIL");
+
+        // Registo aberto: o primeiro a registar-se entra, não é preciso administrador.
+        ProductionSafetyCheck aberto = check(BOM_ACESSO, BOM_REFRESH,
+                "jdbc:postgresql://db:5432/autocare", "https://app.autocare.ao",
+                true, "", "prod");
+        assertThatCode(aberto::verify).doesNotThrowAnyException();
     }
 
     @Test

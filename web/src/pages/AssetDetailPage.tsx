@@ -45,6 +45,7 @@ import { IconeAtivo } from '../components/Equipamento';
 import { FotografiasPorParte, type Foto } from './assets/FotografiasPorParte';
 import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
+import { EstadoTarefa, LimiteManutencaoModal, PainelProximaManutencao, unidade } from './assets/LimiteManutencao';
 import type { AssetView } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber, statusLabel } from '../lib/format';
@@ -231,6 +232,7 @@ export function AssetDetailPage() {
         ]}
       />
 
+      <div style={{ display: 'grid', gridTemplateColumns: meter ? 'repeat(auto-fit, minmax(340px, 1fr))' : '1fr', gap: 16 }}>
       {meter && (
         <Painel titulo="Leitura do medidor">
           <Group justify="space-between" align="flex-end">
@@ -273,6 +275,8 @@ export function AssetDetailPage() {
           </Group>
         </Painel>
       )}
+      <PainelProximaManutencao asset={asset} />
+      </div>
 
       <Tabs defaultValue="ordens" keepMounted={false}>
         <Tabs.List>
@@ -314,7 +318,7 @@ export function AssetDetailPage() {
           <OrdensTab assetId={id} />
         </Tabs.Panel>
         <Tabs.Panel value="plano" pt="md">
-          <PlanTab assetId={id} />
+          <PlanTab assetId={id} asset={asset} />
         </Tabs.Panel>
         <Tabs.Panel value="pontos" pt="md">
           <PontosDeServico tipo={asset.assetTypeName} />
@@ -522,9 +526,11 @@ interface Evento {
   summary?: string | null;
 }
 
-function PlanTab({ assetId }: { assetId: string }) {
+function PlanTab({ assetId, asset }: { assetId: string; asset: AssetView }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { has } = useAuth();
+  const [definir, setDefinir] = useState(false);
 
   const { data } = useQuery({
     queryKey: ['asset-plan', assetId],
@@ -567,13 +573,37 @@ function PlanTab({ assetId }: { assetId: string }) {
   if (tasks.length === 0) {
     return (
       <Alert variant="light" icon={<IconInfoCircle size={18} />}>
-        Este ativo ainda não tem plano de manutenção atribuído.
+        <Group justify="space-between" wrap="wrap" gap="sm">
+          <div>
+            Este ativo ainda não tem plano de manutenção atribuído.
+            <Text size="xs" c="dimmed">
+              Defina o limite (a cada N km, horas ou dias) ou atribua um plano completo em «Planos de manutenção».
+            </Text>
+          </div>
+          {has('PLANS_MANAGE') && (
+            <Button size="xs" leftSection={<IconTool size={14} />} onClick={() => setDefinir(true)}>
+              Definir limite
+            </Button>
+          )}
+        </Group>
+        <LimiteManutencaoModal asset={asset} aberto={definir} fechar={() => setDefinir(false)} />
       </Alert>
     );
   }
 
   return (
     <>
+      <LimiteManutencaoModal asset={asset} aberto={definir} fechar={() => setDefinir(false)} />
+      <Group justify="flex-end" mb="xs">
+        {has('PLANS_MANAGE') && (
+          <Button size="xs" variant="default" leftSection={<IconTool size={14} />} onClick={() => setDefinir(true)}>
+            Acrescentar limite
+          </Button>
+        )}
+        <Button size="xs" variant="subtle" onClick={() => navigate('/planos')}>
+          Planos de manutenção
+        </Button>
+      </Group>
       {(vencidas.length > 0 || aVencer.length > 0) && (
         <Alert
           color={vencidas.length > 0 ? 'red' : 'yellow'}
@@ -626,7 +656,9 @@ function PlanTab({ assetId }: { assetId: string }) {
         <Table.Tr>
           <Table.Th>Sistema</Table.Th>
           <Table.Th>Tarefa</Table.Th>
+          <Table.Th>Última</Table.Th>
           <Table.Th>Próxima</Table.Th>
+          <Table.Th>Falta</Table.Th>
           <Table.Th>Estado</Table.Th>
         </Table.Tr>
       </Table.Thead>
@@ -636,17 +668,30 @@ function PlanTab({ assetId }: { assetId: string }) {
             <Table.Td>{t.systemName ?? '—'}</Table.Td>
             <Table.Td>{t.title}</Table.Td>
             <Table.Td>
+              <Text size="sm" c="dimmed">
+                {t.lastDoneMeter != null
+                  ? `${fmtNumber(t.lastDoneMeter, 0)} ${unidade(t.nextDueMeterKind)}`
+                  : t.lastDoneAt
+                    ? fmtDate(t.lastDoneAt)
+                    : '—'}
+              </Text>
+            </Table.Td>
+            <Table.Td>
               {t.nextDueMeter != null
-                ? `${fmtNumber(t.nextDueMeter)} ${t.nextDueMeterKind === 'HOURMETER' ? 'h' : 'km'}`
+                ? `${fmtNumber(t.nextDueMeter, 0)} ${unidade(t.nextDueMeterKind)}`
                 : fmtDate(t.nextDueAt)}
             </Table.Td>
             <Table.Td>
-              <Badge
-                variant="light"
-                color={t.status === 'OVERDUE' ? 'red' : t.status === 'DUE_SOON' ? 'yellow' : 'green'}
-              >
-                {t.status === 'OVERDUE' ? 'Vencida' : t.status === 'DUE_SOON' ? 'A vencer' : 'Em dia'}
-              </Badge>
+              <Text size="sm" c={t.status === 'OVERDUE' ? 'red' : t.status === 'DUE_SOON' ? 'orange' : undefined} fw={600}>
+                {t.remainingMeter != null
+                  ? `${fmtNumber(t.remainingMeter, 0)} ${unidade(t.nextDueMeterKind)}`
+                  : t.remainingDays != null
+                    ? `${t.remainingDays} dias`
+                    : '—'}
+              </Text>
+            </Table.Td>
+            <Table.Td>
+              <EstadoTarefa status={t.status} />
             </Table.Td>
           </Table.Tr>
         ))}
@@ -663,6 +708,10 @@ interface PlanTask {
   nextDueAt?: string | null;
   nextDueMeter?: number | null;
   nextDueMeterKind?: string | null;
+  remainingMeter?: number | null;
+  remainingDays?: number | null;
+  lastDoneAt?: string | null;
+  lastDoneMeter?: number | null;
   status: string;
 }
 

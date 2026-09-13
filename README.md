@@ -23,12 +23,15 @@ cd backend && mvn spring-boot:run
 cd web && npm install && npm run dev
 ```
 
-Conta de demonstração criada no primeiro arranque: `demo@autocare.ao` / `demo1234`.
+Conta de demonstração criada no primeiro arranque: `demo@autocare.ao` / `demo1234`
+(é administrador da plataforma: vê o ecrã **Plataforma**, onde se criam as
+empresas clientes). Em desenvolvimento o registo livre está aberto; em
+produção está fechado e o administrador vem de `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 
 ## Testes
 
 ```bash
-cd backend && mvn test          # 426 testes de integração
+cd backend && mvn test          # 455 testes de integração
 cd web && npx tsc --noEmit      # tipos
 ```
 

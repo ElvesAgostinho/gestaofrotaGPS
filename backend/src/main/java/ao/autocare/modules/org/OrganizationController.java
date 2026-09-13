@@ -74,7 +74,11 @@ public class OrganizationController {
             /** URL assinado do logótipo, ou nulo. */
             String logoUrl,
             /** As minhas permissões efetivas: é com isto que o ecrã esconde o que não posso. */
-            java.util.List<String> myPermissions) {}
+            java.util.List<String> myPermissions,
+            /** Último dia da licença (nulo = sem prazo). */
+            java.time.LocalDate licenseUntil,
+            /** Por que a empresa está travada (suspensa ou licença vencida); nulo = tudo bem. */
+            String blockedReason) {}
 
     /** Alterações às definições da empresa. Cada campo é opcional. */
     public record UpdateOrganizationRequest(
@@ -104,7 +108,9 @@ public class OrganizationController {
                 org.getTaxId(), org.getAddress(), org.getCity(), org.getPhone(), org.getEmail(),
                 org.getLogoFileId() != null ? fileUrls.signed(org.getLogoFileId()) : null,
                 principal.permissions() == null ? java.util.List.of()
-                        : principal.permissions().stream().map(Enum::name).sorted().toList());
+                        : principal.permissions().stream().map(Enum::name).sorted().toList(),
+                org.getLicenseUntil(),
+                org.blockedReason(java.time.LocalDate.now()));
     }
 
     @Operation(summary = "Alterar os dados da empresa (nome, limite de velocidade da frota)")

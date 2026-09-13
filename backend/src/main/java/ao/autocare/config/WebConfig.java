@@ -1,5 +1,6 @@
 package ao.autocare.config;
 
+import ao.autocare.security.LicenseInterceptor;
 import ao.autocare.security.RateLimitInterceptor;
 import ao.autocare.security.RoleInterceptor;
 import java.nio.charset.StandardCharsets;
@@ -20,12 +21,15 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final RoleInterceptor roleInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
+    private final LicenseInterceptor licenseInterceptor;
 
     public WebConfig(
             RoleInterceptor roleInterceptor,
-            RateLimitInterceptor rateLimitInterceptor) {
+            RateLimitInterceptor rateLimitInterceptor,
+            LicenseInterceptor licenseInterceptor) {
         this.roleInterceptor = roleInterceptor;
         this.rateLimitInterceptor = rateLimitInterceptor;
+        this.licenseInterceptor = licenseInterceptor;
     }
 
     @Override
@@ -44,6 +48,7 @@ public class WebConfig implements WebMvcConfigurer {
         // A travagem vem primeiro: não vale a pena verificar papéis de quem já
         // ultrapassou o limite de tentativas.
         registry.addInterceptor(rateLimitInterceptor).addPathPatterns("/api/**");
+        registry.addInterceptor(licenseInterceptor).addPathPatterns("/api/**");
         registry.addInterceptor(roleInterceptor).addPathPatterns("/api/**");
     }
 }

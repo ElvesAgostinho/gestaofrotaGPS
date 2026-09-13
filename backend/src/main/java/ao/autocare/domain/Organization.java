@@ -68,4 +68,47 @@ public class Organization extends TimestampedEntity {
      */
     @jakarta.persistence.Column(name = "maintenance_approval_limit", precision = 16, scale = 2)
     private java.math.BigDecimal maintenanceApprovalLimit;
+
+    // ---- Licenciamento (gerido pelo administrador da plataforma) ----------
+
+    /** Quando a plataforma suspendeu a empresa; nulo = ativa. */
+    @Column(name = "suspended_at")
+    private java.time.Instant suspendedAt;
+
+    @Column(name = "suspended_reason", length = 300)
+    private String suspendedReason;
+
+    /** Último dia de validade da licença; nulo = sem prazo. */
+    @Column(name = "license_until")
+    private java.time.LocalDate licenseUntil;
+
+    /** Notas internas da plataforma (contrato, contacto comercial). Nunca saem para a empresa. */
+    @Column(name = "platform_notes", length = 1000)
+    private String platformNotes;
+
+    public boolean isSuspended() {
+        return suspendedAt != null;
+    }
+
+    public boolean isLicenseExpired(java.time.LocalDate today) {
+        return licenseUntil != null && licenseUntil.isBefore(today);
+    }
+
+    /**
+     * Motivo pelo qual os utilizadores desta empresa não podem trabalhar, ou
+     * nulo se estiver tudo em ordem. É a frase que o ecrã mostra.
+     */
+    public String blockedReason(java.time.LocalDate today) {
+        if (isSuspended()) {
+            return "A conta da empresa está suspensa"
+                    + (suspendedReason != null && !suspendedReason.isBlank() ? ": " + suspendedReason : "")
+                    + ". Contacte o fornecedor do sistema.";
+        }
+        if (isLicenseExpired(today)) {
+            return "A licença da empresa terminou em "
+                    + licenseUntil.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + ". Contacte o fornecedor do sistema para a renovar.";
+        }
+        return null;
+    }
 }

@@ -11,6 +11,7 @@ import ao.autocare.domain.MeterReading;
 import ao.autocare.domain.User;
 import ao.autocare.domain.enums.Enums.AssetStatus;
 import ao.autocare.domain.enums.Enums.MeterKind;
+import ao.autocare.modules.asset.dto.AssetDtos;
 import ao.autocare.modules.asset.dto.AssetDtos.AssetSummary;
 import ao.autocare.modules.asset.dto.AssetDtos.AssetView;
 import ao.autocare.modules.asset.dto.AssetDtos.CreateAssetRequest;
@@ -23,6 +24,7 @@ import ao.autocare.modules.audit.AuditService;
 import ao.autocare.repo.AssetCriticalityRepository;
 import ao.autocare.repo.AssetMeterRepository;
 import ao.autocare.repo.AssetPhotoRepository;
+import ao.autocare.repo.AssetPlanTaskRepository;
 import ao.autocare.repo.AssetRepository;
 import ao.autocare.repo.AssetTypeRepository;
 import ao.autocare.repo.LocationRepository;
@@ -52,6 +54,7 @@ public class AssetService {
     private final OrganizationRepository organizations;
     private final FileUrls fileUrls;
     private final AuditService audit;
+    private final AssetPlanTaskRepository assetPlanTasks;
 
     public AssetService(
             AssetRepository assets,
@@ -64,7 +67,9 @@ public class AssetService {
             UserRepository users,
             OrganizationRepository organizations,
             FileUrls fileUrls,
-            AuditService audit) {
+            AuditService audit,
+            AssetPlanTaskRepository assetPlanTasks) {
+        this.assetPlanTasks = assetPlanTasks;
         this.assets = assets;
         this.assetTypes = assetTypes;
         this.locations = locations;
@@ -344,13 +349,24 @@ public class AssetService {
         String primaryPhoto = photos.findByAssetIdAndPrimaryTrue(a.getId()).stream()
                 .findFirst().map(p -> fileUrls.signed(p.getFile().getId())).orElse(null);
         var familia = a.getAssetType().getCategory();
+        AssetDtos.NextMaintenance proxima = assetPlanTasks.findByAssetPlanAssetId(a.getId()).stream()
+                .filter(t -> t.getAssetPlan().isActive())
+                .filter(t -> t.getRemainingMeter() != null || t.getRemainingDays() != null)
+                .min(java.util.Comparator
+                        .comparingInt(AssetDtos.NextMaintenance::urgencia)
+                        .thenComparing(t -> t.getRemainingDays() != null
+                                ? t.getRemainingDays() : Integer.MAX_VALUE)
+                        .thenComparing(t -> t.getRemainingMeter() != null
+                                ? t.getRemainingMeter() : new BigDecimal("1e12")))
+                .map(AssetDtos.NextMaintenance::of)
+                .orElse(null);
         return new AssetSummary(
                 a.getId(), a.getTag(), a.getName(), a.getAssetType().getName(),
                 familia.name(), familia.label(), familia.sortOrder(),
                 a.getLocation() != null ? a.getLocation().getName() : null,
                 a.getStatus().name(), crit, a.isArchived(),
                 primaryPhoto, photos.countByAssetId(a.getId()),
-                a.getLatitude(), a.getLongitude(), meterViews);
+                a.getLatitude(), a.getLongitude(), meterViews, proxima);
     }
 
     private Asset load(String orgId, String id) {

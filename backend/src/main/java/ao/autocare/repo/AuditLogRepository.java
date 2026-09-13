@@ -28,4 +28,8 @@ public interface AuditLogRepository
             order by a.action
             """)
     List<String> distinctActions(String organizationId);
+
+    /** Última ação registada na empresa — a plataforma usa-o para ver quem está vivo. */
+    @Query("select max(a.createdAt) from AuditLog a where a.organizationId = :organizationId")
+    java.time.Instant lastActivity(String organizationId);
 }

@@ -14,6 +14,7 @@ import { NovaOrdemForm } from './workorders/NovaOrdemForm';
 import type { AssetSummary, AssetTypeView, LocationView, Paged } from '../api/types';
 import { CRITICALITY } from '../theme';
 import { fmtNumber, statusLabel } from '../lib/format';
+import { fraseRestante } from './assets/LimiteManutencao';
 
 export function AssetsPage() {
   const queryClient = useQueryClient();
@@ -198,6 +199,36 @@ export function AssetsPage() {
                 a.meters?.length
                   ? `${fmtNumber(a.meters[0].currentValue)} ${a.meters[0].kind === 'HOURMETER' ? 'h' : 'km'}`
                   : '—',
+            },
+            {
+              id: 'manutencao',
+              titulo: 'Próx. manutenção',
+              largura: 170,
+              valor: (a) =>
+                a.nextMaintenance
+                  ? (a.nextMaintenance.status === 'OVERDUE' ? -1 : a.nextMaintenance.status === 'DUE_SOON' ? 0 : 1)
+                  : null,
+              render: (a) => {
+                const p = a.nextMaintenance;
+                if (!p) {
+                  return (
+                    <Text size="xs" c="dimmed">
+                      sem limite
+                    </Text>
+                  );
+                }
+                const cor = p.status === 'OVERDUE' ? 'red' : p.status === 'DUE_SOON' ? 'orange' : undefined;
+                return (
+                  <div>
+                    <Text size="sm" fw={600} c={cor}>
+                      {fraseRestante(p)}
+                    </Text>
+                    <Text size="xs" c="dimmed" lineClamp={1}>
+                      {p.title}
+                    </Text>
+                  </div>
+                );
+              },
             },
             {
               id: 'criticidade',

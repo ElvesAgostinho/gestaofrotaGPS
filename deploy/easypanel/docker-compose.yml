@@ -60,6 +60,11 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-IMBONDEIRO OS}
+      # O administrador da plataforma (quem vende o sistema). Criado no
+      # primeiro arranque; depois a palavra-passe muda-se na aplicação.
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?indique o email do administrador da plataforma}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?indique a palavra-passe inicial do administrador}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador da plataforma}
     volumes:
       - files:/var/lib/autocare/files
 

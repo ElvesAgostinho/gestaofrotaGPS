@@ -37,6 +37,8 @@ public class AppConfigService {
         out.put("locale", stored.getOrDefault("app.locale", "pt-AO"));
         out.put("supportPhone", stored.get("app.supportPhone"));
         out.put("supportEmail", stored.get("app.supportEmail"));
+        // O ecrã de entrada esconde «Criar empresa» quando o registo está fechado.
+        out.put("registrationOpen", props.registration() != null && props.registration().open());
         return out;
     }
 

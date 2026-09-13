@@ -21,7 +21,9 @@ class JwtServiceTest {
                         Duration.ofMinutes(15),
                         Duration.ofDays(30))),
                 new AutoCareProperties.Cors("*"),
-                new AutoCareProperties.Seed(false));
+                new AutoCareProperties.Seed(false),
+                new AutoCareProperties.Registration(true),
+                new AutoCareProperties.Admin(null, null, null));
         jwt = new JwtService(props);
     }
 
@@ -63,7 +65,9 @@ class JwtServiceTest {
                         "OUTRO-segredo-de-refresh-com-mais-de-32-bytes-00",
                         Duration.ofMinutes(15), Duration.ofDays(30))),
                 new AutoCareProperties.Cors("*"),
-                new AutoCareProperties.Seed(false));
+                new AutoCareProperties.Seed(false),
+                new AutoCareProperties.Registration(true),
+                new AutoCareProperties.Admin(null, null, null));
         String foreign = new JwtService(otherProps).generateAccessToken("intruso");
         assertThat(jwt.parseAccessSubject(foreign)).isNull();
     }

@@ -73,6 +73,17 @@ autocare:
     allowed-origins: ${CORS_ORIGINS:*}
   seed:
     demo: ${SEED_DEMO:true}
+  registration:
+    # Qualquer pessoa pode criar uma empresa no ecrã de entrada? Em produção
+    # (application-prod.yml) fica fechado: quem cria empresas é o administrador
+    # da plataforma, no ecrã «Plataforma».
+    open: ${REGISTRATION_OPEN:true}
+  admin:
+    # Administrador da plataforma (o dono do sistema). Criado no arranque se
+    # não existir; ADMIN_PASSWORD só conta nesse momento.
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    name: ${ADMIN_NAME:Administrador da plataforma}
   scheduler:
     enabled: ${SCHEDULER_ENABLED:true}
   rate-limit:
@@ -81,7 +92,7 @@ autocare:
     # Remetente dos emails. O envio real só liga quando MAIL_HOST for definido
     # (ver spring.mail abaixo); sem isso os avisos ficam em modo demonstração.
     from: ${MAIL_FROM:}
-    from-name: ${MAIL_FROM_NAME:AutoCare}
+    from-name: ${MAIL_FROM_NAME:IMBONDEIRO OS}
   traccar:
     # Servidor que mantem a ligacao aos aparelhos e entrega os comandos de
     # bloqueio. Sem TRACCAR_URL o sistema NAO consegue bloquear viaturas, e

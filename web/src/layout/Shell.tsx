@@ -20,12 +20,14 @@ import {
   IconRoute,
   IconSettings,
   IconShieldLock,
+  IconBuildingSkyscraper,
   IconSteeringWheel,
   IconDeviceCctv,
   IconTruck,
   IconUserCheck,
   IconUsers,
   IconWaveSine,
+  IconCalendarRepeat,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { MARCA } from '../theme';
@@ -86,6 +88,7 @@ const NAV: NavSection[] = [
     title: 'Manutenção',
     items: [
       { to: '/ordens', label: 'Ordens de serviço', icon: IconClipboardList },
+      { to: '/planos', label: 'Planos e intervalos', icon: IconCalendarRepeat },
       { to: '/preditiva', label: 'Manutenção preditiva', icon: IconWaveSine },
       { to: '/pecas', label: 'Peças e armazém', icon: IconPackage, minRole: 'TECHNICIAN' },
     ],
@@ -129,6 +132,12 @@ const NAV: NavSection[] = [
   },
 ];
 
+/** O menu do dono do sistema: as empresas clientes. Só quem é administrador da plataforma o vê. */
+const NAV_PLATAFORMA: NavSection = {
+  title: 'Plataforma',
+  items: [{ to: '/plataforma', label: 'Empresas clientes', icon: IconBuildingSkyscraper }],
+};
+
 export function Shell() {
   const [opened, { toggle }] = useDisclosure();
   const { user, org, can, signOut, has } = useAuth();
@@ -143,14 +152,17 @@ export function Shell() {
     refetchInterval: 60_000,
   });
 
-  const visible = NAV
+  // O administrador da plataforma sem empresa própria só tem a Plataforma; com
+  // empresa, tem o menu normal e a Plataforma no fim.
+  const visible = (org ? NAV : [])
     .map((section) => ({
       ...section,
       items: section.items.filter(
         (item) => (!item.minRole || can(item.minRole)) && (!item.permissao || has(item.permissao)),
       ),
     }))
-    .filter((section) => section.items.length > 0);
+    .filter((section) => section.items.length > 0)
+    .concat(user?.admin ? [NAV_PLATAFORMA] : []);
 
   return (
     <AppShell

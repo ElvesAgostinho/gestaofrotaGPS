@@ -17,6 +17,7 @@ import ao.autocare.modules.plan.dto.AssetPlanDtos.AssetPlanView;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.AssignPlanRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.CompleteTaskRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.CompletionView;
+import ao.autocare.modules.plan.dto.AssetPlanDtos.IntervalRequest;
 import ao.autocare.modules.plan.dto.AssetPlanDtos.TaskCompletionResult;
 import ao.autocare.repo.AssetMeterRepository;
 import ao.autocare.repo.AssetPlanRepository;
@@ -92,6 +93,18 @@ public class AssetPlanService {
         BigDecimal currentMeter = primary != null ? primary.getCurrentValue() : null;
         boolean startFromNow = req.startFromNow() == null || req.startFromNow();
         Instant now = Instant.now();
+        // «A última revisão foi aos 48 000 km em Junho»: o relógio arranca daí,
+        // não de hoje — senão a próxima vencia 5 000 km depois do que devia.
+        Instant baseAt = req.lastDoneAt() != null ? req.lastDoneAt() : now;
+        BigDecimal baseMeter = req.lastDoneMeter() != null ? req.lastDoneMeter() : currentMeter;
+        if (req.lastDoneAt() != null && req.lastDoneAt().isAfter(now)) {
+            throw ApiException.badRequest("A data da última revisão não pode ser no futuro.");
+        }
+        if (req.lastDoneMeter() != null && currentMeter != null
+                && req.lastDoneMeter().compareTo(currentMeter) > 0) {
+            throw ApiException.badRequest("A leitura da última revisão (" + req.lastDoneMeter()
+                    + ") é maior do que a leitura atual do contador (" + currentMeter + ").");
+        }
 
         AssetPlan ap = new AssetPlan();
         ap.setOrganization(organizations.getReferenceById(orgId));
@@ -105,9 +118,9 @@ public class AssetPlanService {
             apt.setTitle(task.getTitle());
             apt.setSystemName(task.getSystemName());
             apt.setTask(task);
-            if (startFromNow) {
-                apt.setLastDoneAt(now);
-                apt.setLastDoneMeter(currentMeter);
+            if (startFromNow || req.lastDoneAt() != null || req.lastDoneMeter() != null) {
+                apt.setLastDoneAt(baseAt);
+                apt.setLastDoneMeter(baseMeter);
             }
             ap.addTask(apt);
         }
@@ -117,6 +130,91 @@ public class AssetPlanService {
         audit.record(orgId, userId, "asset_plan.assign", "Asset", assetId,
                 asset.getTag() + " ← " + plan.getName());
         return AssetPlanView.of(ap, ap.getTasks());
+    }
+
+    /**
+     * Define o limite de manutenção do ativo («revisão a cada 5 000 km»).
+     *
+     * <p>Valida contra o contador principal do ativo: um intervalo em horas
+     * num camião que conta por km nunca venceria, e o sistema ficaria calado
+     * a fingir que vigiava. Por isso recusa, e diz qual é o contador.
+     */
+    @Transactional
+    public AssetPlanView defineInterval(String orgId, String userId, String assetId,
+            IntervalRequest req, PlanService planService) {
+        Asset asset = requireAsset(orgId, assetId);
+        AssetMeter primary = primaryMeter(assetId);
+        boolean temKm = req.everyKm() != null && req.everyKm().signum() > 0;
+        boolean temHoras = req.everyHours() != null && req.everyHours().signum() > 0;
+        boolean temDias = req.everyDays() != null && req.everyDays() > 0;
+        if (!temKm && !temHoras && !temDias) {
+            throw ApiException.badRequest(
+                    "Indique o intervalo: a cada quantos km, horas ou dias.");
+        }
+        if ((temKm || temHoras) && primary == null) {
+            throw ApiException.badRequest("Este ativo ainda não tem contador. Registe a primeira "
+                    + "leitura (km ou horas) na ficha, ou ligue-lhe um rastreador GPS.");
+        }
+        if (temKm && primary.getKind() != MeterKind.ODOMETER) {
+            throw ApiException.badRequest("Este ativo conta por horas (horímetro), não por km. "
+                    + "Indique o intervalo em horas.");
+        }
+        if (temHoras && primary.getKind() != MeterKind.HOURMETER) {
+            throw ApiException.badRequest("Este ativo conta por km (odómetro), não por horas. "
+                    + "Indique o intervalo em km.");
+        }
+
+        String titulo = req.title() != null && !req.title().isBlank()
+                ? req.title().trim() : "Revisão geral";
+        List<String> partes = new ArrayList<>();
+        List<ao.autocare.modules.plan.dto.PlanDtos.TriggerInput> gatilhos = new ArrayList<>();
+        if (temKm) {
+            gatilhos.add(new ao.autocare.modules.plan.dto.PlanDtos.TriggerInput(
+                    ao.autocare.domain.enums.Enums.PlanTriggerType.METER_INTERVAL,
+                    MeterKind.ODOMETER, req.everyKm(), null));
+            partes.add("cada " + req.everyKm().stripTrailingZeros().toPlainString() + " km");
+        }
+        if (temHoras) {
+            gatilhos.add(new ao.autocare.modules.plan.dto.PlanDtos.TriggerInput(
+                    ao.autocare.domain.enums.Enums.PlanTriggerType.METER_INTERVAL,
+                    MeterKind.HOURMETER, req.everyHours(), null));
+            partes.add("cada " + req.everyHours().stripTrailingZeros().toPlainString() + " h");
+        }
+        if (temDias) {
+            gatilhos.add(new ao.autocare.modules.plan.dto.PlanDtos.TriggerInput(
+                    ao.autocare.domain.enums.Enums.PlanTriggerType.CALENDAR_DAYS,
+                    null, BigDecimal.valueOf(req.everyDays()), null));
+            partes.add("cada " + req.everyDays() + " dias");
+        }
+        String nome = titulo + " — " + String.join(" ou ", partes);
+
+        // O mesmo intervalo noutro ativo do mesmo tipo reutiliza o plano: a
+        // lista de planos não se enche de cópias iguais.
+        MaintenancePlan plano = plans.findByOrganizationIdOrderByNameAsc(orgId).stream()
+                .filter(p -> p.getName().equalsIgnoreCase(nome))
+                .filter(p -> p.getAssetType() == null
+                        || p.getAssetType().getId().equals(asset.getAssetType().getId()))
+                .findFirst()
+                .orElse(null);
+        String planId;
+        if (plano != null) {
+            planId = plano.getId();
+        } else {
+            var task = new ao.autocare.modules.plan.dto.PlanDtos.TaskInput(
+                    null, null, titulo, blankToNull(req.notes()), null, null, gatilhos, List.of());
+            var save = new ao.autocare.modules.plan.dto.PlanDtos.SavePlanRequest(
+                    nome, asset.getAssetType().getId(), null, null,
+                    "Manter " + asset.getAssetType().getName().toLowerCase() + " dentro do intervalo "
+                            + "de manutenção definido pela empresa.",
+                    null, null, List.of(task));
+            planId = planService.create(orgId, userId, save).id();
+        }
+
+        // Já tinha este mesmo plano: substituir a atribuição em vez de duplicar.
+        assetPlans.findByAssetIdAndPlanId(assetId, planId).ifPresent(assetPlans::delete);
+
+        return assign(orgId, userId, assetId,
+                new AssignPlanRequest(planId, true, req.lastDoneAt(), req.lastDoneMeter()));
     }
 
     @Transactional

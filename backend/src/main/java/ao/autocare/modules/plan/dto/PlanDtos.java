@@ -96,7 +96,20 @@ public final class PlanDtos {
             String objective, String sourceReference,
             String preparedByLabel, Instant preparedAt,
             String approvedByLabel, Instant approvedAt, boolean approved,
-            int taskCount, List<TaskView> tasks) {
+            int taskCount, List<TaskView> tasks,
+            /** Os intervalos distintos do plano («cada 250 h», «cada 90 dias»), para a lista. */
+            List<TriggerView> intervals) {
+
+        private static List<TriggerView> intervalsOf(MaintenancePlan p) {
+            return p.getTasks().stream()
+                    .flatMap(t -> t.getTriggers().stream())
+                    .map(TriggerView::of)
+                    .distinct()
+                    .sorted(java.util.Comparator
+                            .comparing((TriggerView v) -> v.type())
+                            .thenComparing(v -> v.interval()))
+                    .toList();
+        }
 
         public static PlanView of(MaintenancePlan p) {
             return new PlanView(
@@ -108,7 +121,8 @@ public final class PlanDtos {
                     p.getPreparedByLabel(), p.getPreparedAt(),
                     p.getApprovedByLabel(), p.getApprovedAt(), p.isApproved(),
                     p.getTasks().size(),
-                    p.getTasks().stream().map(TaskView::of).toList());
+                    p.getTasks().stream().map(TaskView::of).toList(),
+                    intervalsOf(p));
         }
 
         /** A mesma vista sem as tarefas, para listas. */
@@ -121,7 +135,7 @@ public final class PlanDtos {
                     p.getObjective(), p.getSourceReference(),
                     p.getPreparedByLabel(), p.getPreparedAt(),
                     p.getApprovedByLabel(), p.getApprovedAt(), p.isApproved(),
-                    p.getTasks().size(), List.of());
+                    p.getTasks().size(), List.of(), intervalsOf(p));
         }
     }
 }

@@ -71,7 +71,15 @@ CORS_ORIGINS=https://frota.o-seu-dominio
 STORAGE_PUBLIC_BASE_URL=https://frota.o-seu-dominio
 STORAGE_PATH=/var/lib/autocare/files
 MAIL_FROM_NAME=IMBONDEIRO OS
+ADMIN_EMAIL=o-seu-email@dominio
+ADMIN_PASSWORD=uma-palavra-passe-forte-so-sua
+ADMIN_NAME=O seu nome
 ```
+  `ADMIN_EMAIL` / `ADMIN_PASSWORD`: a **sua** conta de administrador da
+  plataforma — quem vende o sistema. É criada no primeiro arranque (a
+  palavra-passe só conta nesse momento; depois muda-a no Perfil). Em produção
+  o registo livre está fechado: ninguém cria empresas pelo ecrã de entrada,
+  só você, no ecrã **Plataforma**.
   `DATABASE_URL`: se o Easypanel deu ao Postgres outro nome interno, use-o em
   vez de `db` (ex.: `jdbc:postgresql://frota_db:5432/...`).
 
@@ -102,8 +110,20 @@ API_UPSTREAM=api:8080
 - **Domains** → + Domain: `frota.o-seu-dominio`, porta **80**, HTTPS ligado.
 - Deploy (3–5 minutos).
 
-Abra `https://frota.o-seu-dominio`. A página pública abre; **Criar conta**
-regista a primeira empresa (o primeiro utilizador é o Dono dela).
+Abra `https://frota.o-seu-dominio` e entre com o `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` do passo 3. Entra diretamente no ecrã **Plataforma**:
+
+- **Nova empresa** → nome, NIF, o nome e o email do Dono, a validade da
+  licença. O sistema gera uma palavra-passe temporária para o Dono e
+  mostra-a **uma única vez** — copie-a e entregue-lha.
+- O Dono entra com ela, muda-a no Perfil, e a partir daí gere a empresa
+  dele: convida a equipa, liga o Traccar, põe o timbre.
+- **Suspender** trava todos os utilizadores da empresa (os dados ficam
+  intactos) até **Reativar**; a licença vencida faz o mesmo sozinha. Quem é
+  travado vê o motivo ao entrar.
+- **Palavra-passe** gera uma nova para o Dono quando ele a perde.
+
+Ninguém consegue criar uma empresa pelo ecrã de entrada — só aqui.
 
 ---
 
@@ -216,7 +236,8 @@ anterior correu.
 ## 10. Verificação final
 
 - [ ] `https://frota.…` abre e a barra de baixo diz **servidor: ligado**
-- [ ] Criou a empresa e entrou como Dono
+- [ ] Entrou com a conta `ADMIN_EMAIL` e viu o ecrã Plataforma
+- [ ] Criou a primeira empresa e o Dono entrou com a palavra-passe temporária
 - [ ] Configurações → Traccar → Testar ligação: «Credenciais aceites»
 - [ ] Um rastreador real configurado para o IP da VPS e a porta do seu protocolo
       aparece no Traccar **e**, registado com o mesmo IMEI, no mapa do IMBONDEIRO OS

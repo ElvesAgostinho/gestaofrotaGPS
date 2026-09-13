@@ -41,6 +41,10 @@ autocare:
   seed:
     # Nada de dados de demonstração numa base de dados real.
     demo: false
+  registration:
+    # As empresas são criadas pelo administrador da plataforma (ecrã
+    # «Plataforma»), não por quem passa no endereço.
+    open: ${REGISTRATION_OPEN:false}
   storage:
     local-path: ${STORAGE_PATH:/var/lib/autocare/files}
 

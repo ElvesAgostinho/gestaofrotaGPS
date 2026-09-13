@@ -71,6 +71,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwt;
     private final AuditService audit;
+    private final ao.autocare.config.AutoCareProperties props;
 
     public AuthService(
             UserRepository users,
@@ -84,8 +85,10 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtService jwt,
             AuditService audit,
-            ao.autocare.security.RateLimiter rateLimiter) {
+            ao.autocare.security.RateLimiter rateLimiter,
+            ao.autocare.config.AutoCareProperties props) {
         this.users = users;
+        this.props = props;
         this.rateLimiter = rateLimiter;
         this.refreshTokens = refreshTokens;
         this.resetTokens = resetTokens;
@@ -102,6 +105,13 @@ public class AuthService {
     // -----------------------------------------------------------------------
     @Transactional
     public AuthResponse register(RegisterRequest req, HttpServletRequest http) {
+        if (props.registration() == null || !props.registration().open()) {
+            // O sistema vende-se a empresas: as contas são abertas pelo
+            // fornecedor, no ecrã «Plataforma», não por quem passa no endereço.
+            throw ApiException.forbidden(
+                    "O registo livre está fechado. As contas das empresas são criadas "
+                            + "pelo fornecedor do sistema — contacte-o para começar.");
+        }
         if (!req.acceptTerms()) {
             throw ApiException.badRequest(
                     "Precisa de aceitar os termos e a política de privacidade para continuar.");
@@ -294,7 +304,12 @@ public class AuthService {
         return new TokenPair(access, refresh, "Bearer", jwt.accessTtl().toSeconds());
     }
 
-    private Organization createOrganization(User user, String requestedName) {
+    /**
+     * Cria uma empresa com este utilizador como Dono. Usado pelo registo e
+     * pelo administrador da plataforma quando vende o sistema a uma empresa.
+     */
+    @Transactional
+    public Organization createOrganization(User user, String requestedName) {
         String name = requestedName != null && !requestedName.isBlank()
                 ? requestedName.trim()
                 : user.getName().trim();

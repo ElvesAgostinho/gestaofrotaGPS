@@ -15,13 +15,23 @@ public record AuthPrincipal(
         String organizationId,
         String role,
         /** Permissões efetivas na organização: as do papel, mais e menos as do membro. */
-        java.util.Set<Permission> permissions) {
+        java.util.Set<Permission> permissions,
+        /**
+         * Frase que explica por que a empresa está bloqueada (suspensa pela
+         * plataforma ou licença vencida), ou nulo quando pode trabalhar.
+         */
+        String organizationBlocked) {
+
+    public AuthPrincipal(String id, String email, boolean admin, String organizationId,
+            String role, java.util.Set<Permission> permissions) {
+        this(id, email, admin, organizationId, role, permissions, null);
+    }
 
     /** Construtor antigo, para quem não tem permissões a dar: só as do papel. */
     public AuthPrincipal(String id, String email, boolean admin, String organizationId,
             String role) {
         this(id, email, admin, organizationId, role,
-                Permission.defaultsFor(parseRole(role)));
+                Permission.defaultsFor(parseRole(role)), null);
     }
 
     /** Pode fazer isto? O administrador da plataforma pode tudo. */

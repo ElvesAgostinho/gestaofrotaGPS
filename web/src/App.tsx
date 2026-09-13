@@ -23,6 +23,9 @@ import { LoginPage } from './pages/LoginPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { PartsPage } from './pages/PartsPage';
+import { PlataformaPage } from './pages/PlataformaPage';
+import { PlanosPage } from './pages/PlanosPage';
+import { EmpresaBloqueadaPage } from './pages/EmpresaBloqueadaPage';
 import { PredictivePage } from './pages/PredictivePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { SettingsPage } from './pages/SettingsPage';
@@ -44,7 +47,7 @@ export function App() {
 }
 
 function Router() {
-  const { user, loading } = useAuth();
+  const { user, org, loading } = useAuth();
 
   // Enquanto não se sabe se há sessão, não se decide nada: mostrar o ecrã de
   // entrada e logo a seguir o painel faria a página piscar a cada recarga.
@@ -69,11 +72,31 @@ function Router() {
     );
   }
 
+  // Empresa suspensa pela plataforma ou com a licença vencida: o servidor
+  // recusa tudo menos o essencial, por isso o ecrã diz porquê em vez de
+  // mostrar um painel cheio de erros.
+  if (org?.blockedReason && !user.admin) {
+    return <EmpresaBloqueadaPage motivo={org.blockedReason} />;
+  }
+
+  // O administrador da plataforma sem empresa própria só tem a Plataforma.
+  if (user.admin && !org) {
+    return (
+      <Routes>
+        <Route element={<Shell />}>
+          <Route path="/plataforma" element={<PlataformaPage />} />
+          <Route path="*" element={<Navigate to="/plataforma" replace />} />
+        </Route>
+      </Routes>
+    );
+  }
+
   return (
     <Routes>
       <Route path="/entrar" element={<Navigate to="/" replace />} />
       <Route element={<Shell />}>
         <Route path="/" element={<DashboardPage />} />
+        {user.admin && <Route path="/plataforma" element={<PlataformaPage />} />}
         <Route path="/ativos" element={<AssetsPage />} />
         <Route path="/tipos-equipamento" element={<TiposAtivoPage />} />
         <Route path="/ativos/:id" element={<AssetDetailPage />} />
@@ -95,6 +118,7 @@ function Router() {
         <Route path="/guias" element={<GuiasTransportePage />} />
         <Route path="/ordens" element={<WorkOrdersPage />} />
         <Route path="/ordens/:id" element={<WorkOrderDetailPage />} />
+        <Route path="/planos" element={<PlanosPage />} />
         <Route path="/preditiva" element={<PredictivePage />} />
         <Route path="/pecas" element={<PartsPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />

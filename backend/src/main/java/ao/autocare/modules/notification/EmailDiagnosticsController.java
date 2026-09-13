@@ -105,8 +105,8 @@ public class EmailDiagnosticsController {
         }
 
         boolean sent = email.send(destination,
-                "AutoCare — teste de configuração de email",
-                "Se está a ler esta mensagem, o envio de email do AutoCare está a funcionar.\n\n"
+                "IMBONDEIRO OS — teste de configuração de email",
+                "Se está a ler esta mensagem, o envio de email do IMBONDEIRO OS está a funcionar.\n\n"
                         + "Pedido por " + user.getName() + " em " + Instant.now() + ".");
 
         audit.record(principal.organizationId(), principal.id(),

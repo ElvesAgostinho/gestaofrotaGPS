@@ -97,7 +97,7 @@ public class CatalogApplyService {
         if (assetId != null && !assetId.isBlank()) {
             try {
                 assetPlans.assign(orgId, userId, assetId,
-                        new AssignPlanRequest(plano.id(), Boolean.TRUE));
+                        new AssignPlanRequest(plano.id(), Boolean.TRUE, null, null));
             } catch (ApiException e) {
                 avisos.add("O plano foi criado mas não ficou atribuído: " + e.getMessage());
             }

@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * Porta de saída para quem consegue mesmo falar com o aparelho.
  *
- * <p>O AutoCare recebe posições por HTTP e não mantém ligação aberta a nenhum
+ * <p>O sistema recebe posições por HTTP e não mantém ligação aberta a nenhum
  * rastreador — não tem por onde enviar um comando. Quem tem é o servidor do
  * fornecedor (Traccar), que mantém a sessão TCP de cada aparelho. Esta interface
  * é a fronteira: o ciclo de vida, as travas de segurança e a auditoria ficam do

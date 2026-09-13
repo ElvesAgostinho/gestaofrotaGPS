@@ -65,6 +65,16 @@ export interface AssetSummary {
   primaryPhotoUrl: string | null;
   photoCount: number;
   meters: MeterView[];
+  /** A tarefa de manutenção que vence primeiro; nulo sem plano. */
+  nextMaintenance?: {
+    title: string;
+    status: 'OK' | 'DUE_SOON' | 'OVERDUE' | string;
+    remainingMeter?: number | null;
+    meterKind?: string | null;
+    remainingDays?: number | null;
+    nextDueMeter?: number | null;
+    nextDueAt?: string | null;
+  } | null;
 }
 
 export interface AssetView {

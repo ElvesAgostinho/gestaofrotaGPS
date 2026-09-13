@@ -24,6 +24,10 @@ export interface Organization {
   assetCount: number;
   memberCount: number;
   defaultSpeedLimitKph?: number;
+  /** Último dia da licença (nulo = sem prazo). */
+  licenseUntil?: string | null;
+  /** Frase do servidor quando a empresa está suspensa ou a licença venceu. */
+  blockedReason?: string | null;
 }
 
 export type Role = 'OWNER' | 'MANAGER' | 'TECHNICIAN' | 'DRIVER' | 'VIEWER';

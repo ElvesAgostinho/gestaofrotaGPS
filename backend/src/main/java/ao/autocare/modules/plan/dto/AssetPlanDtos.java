@@ -17,7 +17,31 @@ public final class AssetPlanDtos {
     public record AssignPlanRequest(
             @NotBlank(message = "Indique o plano a atribuir.") String planId,
             /** Se verdadeiro, considera as tarefas como feitas agora (relógio começa hoje). */
-            Boolean startFromNow) {}
+            Boolean startFromNow,
+            /** Quando foi a última revisão (se não for «agora»). */
+            Instant lastDoneAt,
+            /** Leitura do contador na última revisão (km ou horas, conforme o contador principal). */
+            BigDecimal lastDoneMeter) {}
+
+    /**
+     * O limite de manutenção de um ativo, dito da forma mais simples: «revisão a
+     * cada 5 000 km» ou «a cada 250 h», com ou sem prazo em dias. Por trás cria um
+     * plano de uma tarefa e atribui-o ao ativo — o motor é o mesmo dos planos
+     * completos, e é ele que faz a tarefa vencer quando o GPS chega lá.
+     */
+    public record IntervalRequest(
+            @Size(max = 200) String title,
+            /** A cada N km (ativos com odómetro). */
+            BigDecimal everyKm,
+            /** A cada N horas (ativos com horímetro). */
+            BigDecimal everyHours,
+            /** A cada N dias de calendário, independentemente do contador. */
+            Integer everyDays,
+            /** Leitura do contador na última revisão; vazio = a leitura atual. */
+            BigDecimal lastDoneMeter,
+            /** Data da última revisão; vazio = agora. */
+            Instant lastDoneAt,
+            @Size(max = 2000) String notes) {}
 
     public record CompleteTaskRequest(
             Instant completedAt,

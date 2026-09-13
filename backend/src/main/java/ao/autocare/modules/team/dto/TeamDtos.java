@@ -138,7 +138,7 @@ public final class TeamDtos {
             @Size(min = 8, max = 72, message = "A palavra-passe deve ter pelo menos 8 caracteres.")
             String password) {}
 
-    /** Aceitação por quem já tem conta AutoCare (autenticado). */
+    /** Aceitação por quem já tem conta (autenticado). */
     public record AcceptWithAccountRequest(
             @NotBlank(message = "Falta o código do convite.") String token) {}
 }

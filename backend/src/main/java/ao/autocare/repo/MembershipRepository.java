@@ -26,6 +26,13 @@ public interface MembershipRepository extends JpaRepository<Membership, String> 
 
     long countByOrganizationIdAndRoleAndSuspendedAtIsNull(String organizationId, MembershipRole role);
 
+    /** Organização ativa do utilizador, já com a empresa carregada (o filtro de sessão lê-lhe a licença). */
+    @Query("select m from Membership m join fetch m.organization where m.user.id = :userId "
+            + "and m.suspendedAt is null order by m.createdAt asc")
+    List<Membership> activeWithOrganization(@Param("userId") String userId);
+
     /** Organização ativa do utilizador — ignora as adesões suspensas. */
-    Optional<Membership> findFirstByUserIdAndSuspendedAtIsNullOrderByCreatedAtAsc(String userId);
+    default Optional<Membership> findFirstByUserIdAndSuspendedAtIsNullOrderByCreatedAtAsc(String userId) {
+        return activeWithOrganization(userId).stream().findFirst();
+    }
 }

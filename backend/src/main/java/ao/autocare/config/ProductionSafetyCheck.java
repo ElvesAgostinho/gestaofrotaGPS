@@ -90,6 +90,17 @@ public class ProductionSafetyCheck {
             problems.add("CORS_ORIGINS está aberto a qualquer origem; "
                     + "indique os endereços da aplicação web.");
         }
+
+        // Registo fechado sem administrador da plataforma = um sistema em que
+        // ninguém consegue entrar. Melhor recusar arrancar do que descobrir
+        // isso no cliente.
+        boolean registoAberto = props.registration() != null && props.registration().open();
+        String adminEmail = props.admin() != null ? props.admin().email() : null;
+        if (!registoAberto && (adminEmail == null || adminEmail.isBlank())) {
+            problems.add("ADMIN_EMAIL não está definido. Com o registo livre fechado "
+                    + "(REGISTRATION_OPEN=false) só o administrador da plataforma cria "
+                    + "empresas — defina ADMIN_EMAIL e ADMIN_PASSWORD.");
+        }
         return problems;
     }
 

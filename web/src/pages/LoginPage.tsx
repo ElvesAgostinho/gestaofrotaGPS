@@ -14,7 +14,7 @@ import {
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { login, registerAccount } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 
@@ -23,6 +23,17 @@ export function LoginPage() {
   const [mode, setMode] = useState<'entrar' | 'criar'>('entrar');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Em produção o registo livre está fechado: as empresas são criadas pelo
+  // fornecedor. Até a resposta chegar não se mostra a opção — aparecer e
+  // desaparecer é pior do que aparecer um instante depois.
+  const [registoAberto, setRegistoAberto] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetch('/api/v1/config')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((cfg) => setRegistoAberto(cfg?.registrationOpen === true))
+      .catch(() => setRegistoAberto(false));
+  }, []);
 
   const form = useForm({
     initialValues: { name: '', identifier: '', password: '', organizationName: '' },
@@ -137,28 +148,33 @@ export function LoginPage() {
                 {mode === 'entrar' ? 'Entrar' : 'Criar conta'}
               </Button>
 
-              <Divider />
+              {registoAberto && (
+                <>
+                  <Divider />
 
-              <Group justify="center" gap={6}>
-                <Text size="sm" c="dimmed">
-                  {mode === 'entrar' ? 'Ainda não tem conta?' : 'Já tem conta?'}
-                </Text>
-                <Anchor
-                  size="sm"
-                  onClick={() => {
-                    setMode(mode === 'entrar' ? 'criar' : 'entrar');
-                    setError(null);
-                  }}
-                >
-                  {mode === 'entrar' ? 'Criar empresa' : 'Entrar'}
-                </Anchor>
-              </Group>
+                  <Group justify="center" gap={6}>
+                    <Text size="sm" c="dimmed">
+                      {mode === 'entrar' ? 'Ainda não tem conta?' : 'Já tem conta?'}
+                    </Text>
+                    <Anchor
+                      size="sm"
+                      onClick={() => {
+                        setMode(mode === 'entrar' ? 'criar' : 'entrar');
+                        setError(null);
+                      }}
+                    >
+                      {mode === 'entrar' ? 'Criar empresa' : 'Entrar'}
+                    </Anchor>
+                  </Group>
+                </>
+              )}
             </Stack>
           </form>
         </Card>
 
         <Text size="xs" c="dimmed" ta="center">
           Foi convidado por uma empresa? Abra o link que recebeu para entrar na equipa.
+          {!registoAberto && ' As contas das empresas são criadas pelo fornecedor do sistema.'}
         </Text>
       </Stack>
     </Center>

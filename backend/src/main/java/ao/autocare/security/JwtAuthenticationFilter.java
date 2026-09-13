@@ -62,10 +62,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String organizationId = membership != null ? membership.getOrganization().getId() : null;
         String role = membership != null ? membership.getRole().name() : null;
 
+        // Empresa suspensa pela plataforma ou com a licença vencida: a sessão
+        // vale, mas o LicenseInterceptor só deixa passar o essencial.
+        String blocked = membership != null
+                ? membership.getOrganization().blockedReason(java.time.LocalDate.now())
+                : null;
+
         AuthPrincipal principal = new AuthPrincipal(
                 user.getId(), user.getEmail(), user.isAdmin(), organizationId, role,
                 membership != null ? membership.effectivePermissions()
-                        : java.util.EnumSet.noneOf(Permission.class));
+                        : java.util.EnumSet.noneOf(Permission.class),
+                blocked);
 
         var authorities = user.isAdmin()
                 ? List.of(new SimpleGrantedAuthority("ROLE_USER"), new SimpleGrantedAuthority("ROLE_ADMIN"))

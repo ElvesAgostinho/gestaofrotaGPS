@@ -128,7 +128,35 @@ public final class AssetDtos {
             String locationName, String status, String criticality,
             boolean archived, String primaryPhotoUrl, long photoCount,
             BigDecimal latitude, BigDecimal longitude,
-            List<MeterView> meters) {}
+            List<MeterView> meters,
+            /** A tarefa de manutenção que vence primeiro, ou nulo se não há plano. */
+            NextMaintenance nextMaintenance) {}
+
+    /**
+     * «Próxima manutenção: revisão geral em 1 250 km». O que o gestor quer ver
+     * na lista sem abrir a ficha.
+     */
+    public record NextMaintenance(
+            String title, String status,
+            BigDecimal remainingMeter, String meterKind, Integer remainingDays,
+            BigDecimal nextDueMeter, Instant nextDueAt) {
+
+        public static NextMaintenance of(ao.autocare.domain.AssetPlanTask t) {
+            return new NextMaintenance(t.getTitle(), t.getStatus().name(),
+                    t.getRemainingMeter(),
+                    t.getNextDueMeterKind() != null ? t.getNextDueMeterKind().name() : null,
+                    t.getRemainingDays(), t.getNextDueMeter(), t.getNextDueAt());
+        }
+
+        /** Vencida antes de a vencer, a vencer antes de em dia; depois, a que tem menos margem. */
+        public static int urgencia(ao.autocare.domain.AssetPlanTask t) {
+            return switch (t.getStatus()) {
+                case OVERDUE -> 0;
+                case DUE_SOON -> 1;
+                default -> 2;
+            };
+        }
+    }
 
     public record AssetView(
             String id,

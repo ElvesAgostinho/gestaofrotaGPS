@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
  *
  * <p>O Traccar mantém a ligação a cada aparelho e conhece o protocolo de cada
  * fabricante; é ele que sabe traduzir "bloquear motor" para os bytes certos do
- * rastreador em causa. O AutoCare limita-se a pedir-lho, com todas as travas de
+ * rastreador em causa. O sistema limita-se a pedir-lho, com todas as travas de
  * segurança já verificadas do seu lado.
  *
  * <p>Endpoints usados, todos da API REST documentada do Traccar:

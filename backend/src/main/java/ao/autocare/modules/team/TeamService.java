@@ -254,7 +254,7 @@ public class TeamService {
         Invitation invite = requireUsable(token);
         if (users.existsByEmailIgnoreCase(invite.getEmail())) {
             throw ApiException.conflict(
-                    "Já existe uma conta AutoCare com este email. Inicie sessão e aceite "
+                    "Já existe uma conta com este email. Inicie sessão e aceite "
                             + "o convite a partir da sua conta.");
         }
         User user = auth.createInvitedUser(req.name(), invite.getEmail(), req.password());
@@ -262,7 +262,7 @@ public class TeamService {
         return auth.issueSession(user, http);
     }
 
-    /** Aceitar com uma conta AutoCare já existente (o email tem de coincidir). */
+    /** Aceitar com uma conta já existente (o email tem de coincidir). */
     @Transactional
     public MemberView acceptAsExistingUser(String userId, String token) {
         Invitation invite = requireUsable(token);

@@ -62,6 +62,9 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-IMBONDEIRO OS}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?indique o email do administrador da plataforma; ver .env.example}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?indique a palavra-passe inicial do administrador}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrador da plataforma}
       TRACCAR_URL: ${TRACCAR_URL:-}
       TRACCAR_TOKEN: ${TRACCAR_TOKEN:-}
     volumes:
