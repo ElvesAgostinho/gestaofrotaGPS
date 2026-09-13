@@ -38,6 +38,8 @@ public class SecurityConfig {
         "/swagger-ui/**",
         // Ficheiros servidos por URL assinado (o controlador valida a assinatura)
         "/api/v1/files/**",
+        // Logótipo das empresas com domínio próprio (marca branca)
+        "/api/v1/public/**",
         // Raiz: redireciona para a aplicação web (RootController)
         "/",
         "/index.html",

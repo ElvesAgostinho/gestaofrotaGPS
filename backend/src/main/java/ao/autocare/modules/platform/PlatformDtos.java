@@ -43,7 +43,11 @@ public final class PlatformDtos {
             Instant lastActivityAt,
             /** A empresa já tem servidor Traccar nas Configurações (dela ou da plataforma). */
             boolean traccarConfigured,
-            String traccarUrl) {}
+            String traccarUrl,
+            /** Marca branca: domínio próprio, nome e cor mostrados no ecrã de entrada. */
+            String customDomain,
+            String brandName,
+            String brandColor) {}
 
     public record Summary(
             long organizations,
@@ -76,7 +80,11 @@ public final class PlatformDtos {
             LocalDate licenseUntil,
             /** Verdadeiro para retirar o prazo (licença sem fim). */
             Boolean clearLicense,
-            @Size(max = 1000) String platformNotes) {}
+            @Size(max = 1000) String platformNotes,
+            /** Marca branca: «frota.empresa.ao». Vazio retira o domínio. */
+            @Size(max = 190) String customDomain,
+            @Size(max = 80) String brandName,
+            @Size(max = 9) String brandColor) {}
 
     public record SuspendRequest(@Size(max = 300) String reason) {}
 

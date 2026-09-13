@@ -216,6 +216,37 @@ class PlatformIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void marcaBrancaPeloDominioDaEmpresa() throws Exception {
+        String id = idDe("Cliente Lda");
+        JsonNode r = send(admin, put("/api/v1/admin/platform/organizations/" + id),
+                Map.of("customDomain", "https://frota.cliente.ao/", "brandName", "Cliente Frota", "brandColor", "#1E88E5"), 200);
+        assertThat(r.get("customDomain").asText()).isEqualTo("frota.cliente.ao");
+
+        // Pelo domínio geral: sem marca. Pelo domínio da empresa: a marca dela.
+        assertThat(send(null, get("/api/v1/config"), null, 200).has("brand")).isFalse();
+        JsonNode cfg = json.readTree(mvc.perform(get("/api/v1/config").header("Host", "frota.cliente.ao"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(cfg.get("brand").get("name").asText()).isEqualTo("Cliente Frota");
+        assertThat(cfg.get("brand").get("color").asText()).isEqualTo("#1E88E5");
+        // atrás de um proxy, o domínio vem em X-Forwarded-Host
+        cfg = json.readTree(mvc.perform(get("/api/v1/config").header("Host", "api-interna")
+                        .header("X-Forwarded-Host", "FROTA.cliente.ao:443"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray());
+        assertThat(cfg.get("brand").get("name").asText()).isEqualTo("Cliente Frota");
+
+        // Domínio inválido e domínio repetido
+        send(admin, put("/api/v1/admin/platform/organizations/" + id), Map.of("customDomain", "sem ponto"), 400);
+        String outra = idDe("Plataforma");
+        send(admin, put("/api/v1/admin/platform/organizations/" + outra), Map.of("customDomain", "frota.cliente.ao"), 409);
+        send(admin, put("/api/v1/admin/platform/organizations/" + id), Map.of("brandColor", "azul"), 400);
+
+        // Retirar o domínio
+        send(admin, put("/api/v1/admin/platform/organizations/" + id), Map.of("customDomain", ""), 200);
+        assertThat(json.readTree(mvc.perform(get("/api/v1/config").header("Host", "frota.cliente.ao"))
+                .andReturn().getResponse().getContentAsByteArray()).has("brand")).isFalse();
+    }
+
+    @Test
     void raizDaApiRedirecionaParaAAplicacao() throws Exception {
         mvc.perform(get("/")).andExpect(status().isFound());
         mvc.perform(get("/index.html")).andExpect(status().isFound());

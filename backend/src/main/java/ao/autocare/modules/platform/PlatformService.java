@@ -196,6 +196,32 @@ public class PlatformService {
         if (req.platformNotes() != null) {
             org.setPlatformNotes(blankToNull(req.platformNotes()));
         }
+        if (req.customDomain() != null) {
+            String dominio = blankToNull(req.customDomain());
+            if (dominio != null) {
+                dominio = dominio.toLowerCase().replaceFirst("^https?://", "").replaceAll("/.*$", "");
+                if (!dominio.matches("[a-z0-9.-]+\\.[a-z]{2,}")) {
+                    throw ApiException.badRequest("O domínio tem de ser como frota.empresa.ao (sem http://).");
+                }
+                final String d = dominio;
+                organizations.findByCustomDomainIgnoreCase(d)
+                        .filter(o -> !o.getId().equals(org.getId()))
+                        .ifPresent(o -> {
+                            throw ApiException.conflict("O domínio " + d + " já está atribuído a " + o.getName() + ".");
+                        });
+            }
+            org.setCustomDomain(dominio);
+        }
+        if (req.brandName() != null) {
+            org.setBrandName(blankToNull(req.brandName()));
+        }
+        if (req.brandColor() != null) {
+            String cor = blankToNull(req.brandColor());
+            if (cor != null && !cor.matches("#[0-9a-fA-F]{6}")) {
+                throw ApiException.badRequest("A cor tem de ser no formato #RRGGBB.");
+            }
+            org.setBrandColor(cor);
+        }
         audit.record(org.getId(), adminId, "platform.organization.update", "Organization",
                 org.getId(), "Licença até: " + (org.getLicenseUntil() != null
                         ? org.getLicenseUntil() : "sem prazo"));
@@ -292,7 +318,8 @@ public class PlatformService {
                 integrations.findByOrganizationId(o.getId())
                         .map(ao.autocare.domain.IntegrationSettings::hasTraccar).orElse(false),
                 integrations.findByOrganizationId(o.getId())
-                        .map(ao.autocare.domain.IntegrationSettings::getTraccarUrl).orElse(null));
+                        .map(ao.autocare.domain.IntegrationSettings::getTraccarUrl).orElse(null),
+                o.getCustomDomain(), o.getBrandName(), o.getBrandColor());
     }
 
     private String gerarPalavraPasse() {

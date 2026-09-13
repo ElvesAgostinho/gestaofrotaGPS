@@ -69,6 +69,20 @@ public class Organization extends TimestampedEntity {
     @jakarta.persistence.Column(name = "maintenance_approval_limit", precision = 16, scale = 2)
     private java.math.BigDecimal maintenanceApprovalLimit;
 
+    // ---- Marca branca (gerida pelo administrador da plataforma) -----------
+
+    /** Domínio próprio pelo qual esta empresa entra (frota.empresa.ao); nulo = o domínio geral. */
+    @Column(name = "custom_domain", length = 190)
+    private String customDomain;
+
+    /** Nome que aparece no ecrã de entrada em vez de «IMBONDEIRO OS». */
+    @Column(name = "brand_name", length = 80)
+    private String brandName;
+
+    /** Cor principal (#RRGGBB). */
+    @Column(name = "brand_color", length = 9)
+    private String brandColor;
+
     // ---- Licenciamento (gerido pelo administrador da plataforma) ----------
 
     /** Quando a plataforma suspendeu a empresa; nulo = ativa. */

@@ -20,9 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppConfigController {
 
     private final AppConfigService service;
+    private final BrandingController branding;
 
-    public AppConfigController(AppConfigService service) {
+    public AppConfigController(AppConfigService service, BrandingController branding) {
         this.service = service;
+        this.branding = branding;
     }
 
     public record SetConfigRequest(
@@ -31,8 +33,11 @@ public class AppConfigController {
 
     @Operation(summary = "Configuração pública da aplicação (nome, moeda, contactos)")
     @GetMapping("/config")
-    public Map<String, Object> publicConfig() {
-        return service.publicConfig();
+    public Map<String, Object> publicConfig(jakarta.servlet.http.HttpServletRequest request) {
+        Map<String, Object> cfg = new java.util.LinkedHashMap<>(service.publicConfig());
+        // Marca branca: quem entra pelo domínio de uma empresa vê a marca dela.
+        branding.brandFor(request).ifPresent(b -> cfg.put("brand", b));
+        return cfg;
     }
 
     @Operation(summary = "[Admin] Todas as chaves de configuração")

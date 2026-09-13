@@ -16,6 +16,7 @@ import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { login, registerAccount } from '../api/client';
+import { useConfigPublica } from '../lib/marca';
 import { useAuth } from '../auth/AuthContext';
 
 export function LoginPage() {
@@ -27,13 +28,12 @@ export function LoginPage() {
   // fornecedor. Até a resposta chegar não se mostra a opção — aparecer e
   // desaparecer é pior do que aparecer um instante depois.
   const [registoAberto, setRegistoAberto] = useState<boolean>(false);
+  const cfg = useConfigPublica();
+  const marca = cfg?.brand ?? null;
 
   useEffect(() => {
-    fetch('/api/v1/config')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((cfg) => setRegistoAberto(cfg?.registrationOpen === true))
-      .catch(() => setRegistoAberto(false));
-  }, []);
+    setRegistoAberto(cfg?.registrationOpen === true);
+  }, [cfg]);
 
   const form = useForm({
     initialValues: { name: '', identifier: '', password: '', organizationName: '' },
@@ -73,31 +73,53 @@ export function LoginPage() {
         <Stack gap={4} align="center">
           {/* Chapa de identificação, como a de um equipamento: é a mesma
               marca que está no cabeçalho depois de entrar. */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              border: '2px solid var(--erp-dourado)',
-              background: '#000',
-              padding: '4px 13px',
-            }}
-          >
-            <Title
-              order={1}
+          {marca ? (
+            /* Marca branca: o cliente entrou pelo domínio dele e vê a marca dele. */
+            <Stack gap={6} align="center">
+              {marca.logoUrl && (
+                <img src={marca.logoUrl} alt={marca.name} style={{ maxHeight: 64, maxWidth: 220, objectFit: 'contain' }} />
+              )}
+              <Title
+                order={1}
+                style={{
+                  fontFamily: '"Barlow Condensed", Barlow, sans-serif',
+                  fontSize: 28,
+                  letterSpacing: '0.04em',
+                  color: marca.color ?? '#18181b',
+                  margin: 0,
+                  textAlign: 'center',
+                }}
+              >
+                {marca.name}
+              </Title>
+            </Stack>
+          ) : (
+            <div
               style={{
-                fontFamily: '"Barlow Condensed", Barlow, sans-serif',
-                fontSize: 30,
-                letterSpacing: '0.06em',
-                color: '#fff',
-                margin: 0,
-                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                border: '2px solid var(--erp-dourado)',
+                background: '#000',
+                padding: '4px 13px',
               }}
             >
-              IMBONDEIRO<span style={{ color: 'var(--erp-dourado)' }}> OS</span>
-            </Title>
-          </div>
+              <Title
+                order={1}
+                style={{
+                  fontFamily: '"Barlow Condensed", Barlow, sans-serif',
+                  fontSize: 30,
+                  letterSpacing: '0.06em',
+                  color: '#fff',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                IMBONDEIRO<span style={{ color: 'var(--erp-dourado)' }}> OS</span>
+              </Title>
+            </div>
+          )}
           <Text c="dimmed" size="sm" ta="center">
-            Gestão de frota, manutenção e rastreamento
+            {marca ? 'Gestão de frota e manutenção' : 'Gestão de frota, manutenção e rastreamento'}
           </Text>
         </Stack>
 

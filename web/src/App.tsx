@@ -2,6 +2,7 @@ import { Center, Loader } from '@mantine/core';
 import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import { useConfigPublica } from './lib/marca';
 import { Shell } from './layout/Shell';
 import { AlertsPage } from './pages/AlertsPage';
 import { AssetDetailPage } from './pages/AssetDetailPage';
@@ -49,6 +50,8 @@ export function App() {
 
 function Router() {
   const { user, org, loading } = useAuth();
+  const cfg = useConfigPublica();
+  const marcaBranca = !!cfg?.brand;
 
   // Enquanto não se sabe se há sessão, não se decide nada: mostrar o ecrã de
   // entrada e logo a seguir o painel faria a página piscar a cada recarga.
@@ -66,7 +69,9 @@ function Router() {
         {/* Quem chega sem sessão vê primeiro o que o sistema é. Mandar um
             visitante directo para o formulário de entrada é pedir a palavra-passe
             a quem ainda nem sabe o que está a comprar. */}
-        <Route path="/" element={<LandingPage />} />
+        {/* Com marca branca, a raiz é o ecrã de entrada do cliente — a página
+            pública é a do IMBONDEIRO OS, não a dele. */}
+        <Route path="/" element={marcaBranca ? <LoginPage /> : <LandingPage />} />
         <Route path="/entrar" element={<LoginPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

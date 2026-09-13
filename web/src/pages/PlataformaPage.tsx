@@ -54,6 +54,9 @@ interface Empresa {
   lastActivityAt?: string | null;
   traccarConfigured: boolean;
   traccarUrl?: string | null;
+  customDomain?: string | null;
+  brandName?: string | null;
+  brandColor?: string | null;
 }
 
 interface Resumo {
@@ -303,6 +306,7 @@ export function PlataformaPage() {
                   </Text>
                 ),
             },
+            { id: 'dominio', titulo: 'Domínio próprio', largura: 160, escondida: true, valor: (e) => e.customDomain ?? null },
             { id: 'utilizadores', titulo: 'Utiliz.', largura: 80, alinhar: 'right', valor: (e) => e.memberCount },
             { id: 'ativos', titulo: 'Ativos', largura: 80, alinhar: 'right', valor: (e) => e.assetCount },
             { id: 'ordens', titulo: 'Ordens', largura: 80, alinhar: 'right', valor: (e) => e.workOrderCount },
@@ -584,6 +588,9 @@ function EditarLicencaModal({
   const [name, setName] = useState(empresa.name);
   const [licenseUntil, setLicenseUntil] = useState<Date | null>(deIso(empresa.licenseUntil));
   const [notas, setNotas] = useState(empresa.platformNotes ?? '');
+  const [customDomain, setCustomDomain] = useState(empresa.customDomain ?? '');
+  const [brandName, setBrandName] = useState(empresa.brandName ?? '');
+  const [brandColor, setBrandColor] = useState(empresa.brandColor ?? '');
 
   const guardar = useMutation({
     mutationFn: () =>
@@ -594,6 +601,9 @@ function EditarLicencaModal({
           licenseUntil: paraIso(licenseUntil),
           clearLicense: licenseUntil === null,
           platformNotes: notas,
+          customDomain: customDomain.trim(),
+          brandName: brandName.trim(),
+          brandColor: brandColor.trim(),
         },
       }),
     onSuccess: () => {
@@ -616,6 +626,20 @@ function EditarLicencaModal({
         <TextInput label="Nome da empresa" value={name} onChange={(e) => setName(e.currentTarget.value)} />
         <DateInput label="Licença válida até" value={licenseUntil} onChange={setLicenseUntil} valueFormat="DD/MM/YYYY" clearable placeholder="sem prazo" description="Limpar o campo deixa a licença sem fim." />
         <Textarea label="Notas internas" value={notas} onChange={(e) => setNotas(e.currentTarget.value)} autosize minRows={2} />
+        <Text size="xs" fw={700} tt="uppercase" c="dimmed" mt="xs">
+          Marca branca (opcional)
+        </Text>
+        <TextInput
+          label="Domínio próprio"
+          placeholder="frota.empresa.ao"
+          description="A empresa entra por este endereço e vê o nome, o logótipo (o do timbre) e a cor dela no ecrã de entrada. Na Hostinger: registo CNAME desse domínio → frota.topconsultores.pt; no Easypanel: acrescentar o domínio ao serviço web."
+          value={customDomain}
+          onChange={(e) => setCustomDomain(e.currentTarget.value)}
+        />
+        <Group grow>
+          <TextInput label="Nome a mostrar" placeholder={empresa.name} value={brandName} onChange={(e) => setBrandName(e.currentTarget.value)} />
+          <TextInput label="Cor (#RRGGBB)" placeholder="#B08D3C" value={brandColor} onChange={(e) => setBrandColor(e.currentTarget.value)} />
+        </Group>
         <Group gap="xl">
           <Text size="xs" c="dimmed">
             Dono: {empresa.ownerEmail ?? '—'}
