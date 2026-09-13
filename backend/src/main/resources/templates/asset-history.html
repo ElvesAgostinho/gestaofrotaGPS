@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Histórico de manutenção — ' + ${h.tag}">Histórico de manutenção</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h1 { font-size: 15pt; margin: 8px 0 0; }
+    h2 { font-size: 9.5pt; margin: 14px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase; letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .grid td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+    .grid .lbl { width: 18%; color: #71717a; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .resumo td { padding: 4px 10px 4px 0; }
+    .resumo .n { font-size: 14pt; font-weight: bold; }
+    .ordem { border: 1px solid #d4d4d8; margin-top: 8px; page-break-inside: avoid; }
+    .ordem .cab { background: #f4f4f5; padding: 4px 6px; border-bottom: 1px solid #d4d4d8; }
+    .ordem .cab .num { font-weight: bold; font-size: 10pt; }
+    .ordem .corpo { padding: 4px 6px; }
+    .ordem .meta td { padding: 1.5px 8px 1.5px 0; color: #3f3f46; }
+    .ordem .meta .lbl { color: #71717a; font-size: 7.5pt; text-transform: uppercase; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+                color: #71717a; border-bottom: 1px solid #d4d4d8; padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3px 4px; vertical-align: top; }
+    .num-col { text-align: right; white-space: nowrap; }
+    .muted { color: #71717a; }
+    .bloco { margin-top: 4px; }
+    .bloco .t { font-size: 7.5pt; text-transform: uppercase; color: #71717a; letter-spacing: 0.3pt; }
+    ul { margin: 2px 0 2px 14px; padding: 0; }
+    li { margin: 1px 0; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${h.tag}, 'Histórico de manutenção')}"></div>
+
+<h1 th:text="${h.name}">Nome</h1>
+<div class="muted" th:text="${h.type}"></div>
+
+<h2>Equipamento</h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Matrícula</td><td th:text="${h.plate} ?: '—'"></td>
+    <td class="lbl">Nº de série</td><td th:text="${h.serialNumber} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Fabricante</td><td th:text="${h.manufacturer} ?: '—'"></td>
+    <td class="lbl">Modelo</td><td th:text="${h.model} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Contador atual</td><td th:text="${h.meter} ?: '—'"></td>
+    <td class="lbl">Local</td><td th:text="${h.location} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Resumo</h2>
+<table class="resumo">
+  <tr>
+    <td><div class="n" th:text="${h.orderCount}">0</div><div class="muted">ordens de manutenção</div></td>
+    <td><div class="n" th:text="${h.totalDowntime} + ' h'">0</div><div class="muted">horas parado em oficina</div></td>
+    <td th:if="${h.showMoney}"><div class="n" th:text="${h.totalCost}">0</div><div class="muted">custo total de manutenção</div></td>
+  </tr>
+</table>
+
+<h2>Ordens de manutenção</h2>
+<p class="muted" th:if="${h.orders.isEmpty()}">Ainda não há ordens de manutenção registadas para este equipamento.</p>
+
+<div class="ordem" th:each="o : ${h.orders}">
+  <div class="cab">
+    <span class="num" th:text="${o.number}"></span>
+    <span th:text="' · ' + ${o.title}"></span>
+    <span class="muted" th:text="' · ' + ${o.type} + ' · ' + ${o.status}"></span>
+  </div>
+  <div class="corpo">
+    <table class="meta">
+      <tr>
+        <td class="lbl">Aberta</td><td th:text="${o.openedAt} ?: '—'"></td>
+        <td class="lbl">Concluída</td><td th:text="${o.completedAt} ?: '—'"></td>
+        <td class="lbl">Contador</td><td th:text="${o.meterAt} ?: '—'"></td>
+        <td class="lbl">Responsável</td><td th:text="${o.assignedTo} ?: '—'"></td>
+      </tr>
+      <tr>
+        <td class="lbl">Mão de obra</td><td th:text="${o.laborHours} != null ? ${o.laborHours} + ' h' : '—'"></td>
+        <td class="lbl">Parado</td><td th:text="${o.downtimeHours} != null ? ${o.downtimeHours} + ' h' : '—'"></td>
+        <td class="lbl">Contador ao fechar</td><td th:text="${o.closingMeter} ?: '—'"></td>
+        <td class="lbl" th:if="${h.showMoney}">Custo</td><td th:if="${h.showMoney}" th:text="${o.totalCost} ?: '—'"></td>
+      </tr>
+    </table>
+
+    <div class="bloco" th:if="${o.description}"><span class="t">Pedido: </span><span th:text="${o.description}"></span></div>
+    <div class="bloco" th:if="${o.rootCause}"><span class="t">Causa: </span><span th:text="${o.rootCause}"></span></div>
+    <div class="bloco" th:if="${o.resolution}"><span class="t">Resolução: </span><span th:text="${o.resolution}"></span></div>
+
+    <div class="bloco" th:if="${!o.tasks.isEmpty()}">
+      <span class="t">Tarefas</span>
+      <ul><li th:each="t : ${o.tasks}" th:text="${t}"></li></ul>
+    </div>
+
+    <table class="lines" th:if="${!o.parts.isEmpty()}" style="margin-top:4px;">
+      <thead><tr><th>Peça</th><th class="num-col" style="width:12%;">Qtd.</th><th class="num-col" style="width:16%;" th:if="${h.showMoney}">Custo</th></tr></thead>
+      <tbody>
+        <tr th:each="p : ${o.parts}">
+          <td th:text="${p.description}"></td>
+          <td class="num-col" th:text="${p.quantity} ?: '—'"></td>
+          <td class="num-col" th:if="${h.showMoney}" th:text="${p.cost} ?: '—'"></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table class="lines" th:if="${!o.services.isEmpty()}" style="margin-top:4px;">
+      <thead><tr><th>Serviço externo</th><th class="num-col" style="width:16%;" th:if="${h.showMoney}">Custo</th></tr></thead>
+      <tbody>
+        <tr th:each="s : ${o.services}">
+          <td th:text="${s.description}"></td>
+          <td class="num-col" th:if="${h.showMoney}" th:text="${s.cost} ?: '—'"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2 th:if="${!h.completions.isEmpty()}">Tarefas de plano executadas</h2>
+<table class="lines" th:if="${!h.completions.isEmpty()}">
+  <thead>
+    <tr><th style="width:14%;">Data</th><th>Tarefa</th><th style="width:14%;">Contador</th><th style="width:18%;">Por</th><th style="width:22%;">Notas</th></tr>
+  </thead>
+  <tbody>
+    <tr th:each="c : ${h.completions}">
+      <td th:text="${c.completedAt}"></td>
+      <td th:text="${c.title}"></td>
+      <td th:text="${c.meterValue} ?: '—'"></td>
+      <td th:text="${c.performedBy} ?: '—'"></td>
+      <td th:text="${c.notes} ?: ''"></td>
+    </tr>
+  </tbody>
+</table>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+</body>
+</html>

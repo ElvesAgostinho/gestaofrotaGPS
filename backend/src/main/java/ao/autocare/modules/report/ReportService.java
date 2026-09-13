@@ -86,7 +86,7 @@ public class ReportService {
     }
 
     @Transactional(readOnly = true)
-    public String assets(String orgId) {
+    public CsvWriter assets(String orgId) {
         CsvWriter csv = new CsvWriter("Etiqueta", "Nome", "Tipo", "Local", "Estado",
                 "Criticidade", "Fabricante", "Modelo", "Nº de série", "Ano", "Matrícula",
                 "Responsável", "Arquivado");
@@ -103,11 +103,11 @@ public class ReportService {
                     a.getPlate(), a.getResponsibleLabel(),
                     a.isArchived() ? "Sim" : "Não");
         }
-        return csv.build();
+        return csv;
     }
 
     @Transactional(readOnly = true)
-    public String workOrders(String orgId) {
+    public CsvWriter workOrders(String orgId) {
         CsvWriter csv = new CsvWriter("Número", "Ativo", "Tipo", "Estado", "Prioridade",
                 "Título", "Sistema", "Responsável", "Oficina", "Execução",
                 "Aberta em", "Prazo", "Iniciada em", "Concluída em", "Fechada em",
@@ -134,7 +134,7 @@ public class ReportService {
                     w.getDowntimeHours(), w.getDowntimeCost(), w.getCurrency(),
                     w.getRootCause(), w.getResolution());
         }
-        return csv.build();
+        return csv;
     }
 
     /**
@@ -145,7 +145,7 @@ public class ReportService {
      * e os dias parada, e nao apenas o total gasto.
      */
     @Transactional(readOnly = true)
-    public String maintenanceByAsset(String orgId) {
+    public CsvWriter maintenanceByAsset(String orgId) {
         CsvWriter csv = new CsvWriter("Ativo", "Nome", "Local", "Ordens",
                 "Corretivas", "Preventivas", "Custo de mao de obra", "Custo de pecas",
                 "Custo externo", "Custo total", "Moeda", "Horas paradas",
@@ -203,12 +203,12 @@ public class ReportService {
                     mao, pecas, externo, total, moeda,
                     horasParado, custoParagem, medidor, porUnidade);
         }
-        return csv.build();
+        return csv;
     }
 
     /** Quanto se gastou em cada oficina, e quanto tempo elas demoram. */
     @Transactional(readOnly = true)
-    public String maintenanceBySupplier(String orgId) {
+    public CsvWriter maintenanceBySupplier(String orgId) {
         CsvWriter csv = new CsvWriter("Oficina", "NIF", "Cidade", "Ordens",
                 "Custo externo total", "Moeda", "Media de dias por ordem");
 
@@ -243,12 +243,12 @@ public class ReportService {
                             .divide(BigDecimal.valueOf(comDatas), 1, RoundingMode.HALF_UP)
                             : null);
         }
-        return csv.build();
+        return csv;
     }
 
     /** Quanto tempo cada viatura esteve parada, e o que isso custou. */
     @Transactional(readOnly = true)
-    public String maintenanceDowntime(String orgId) {
+    public CsvWriter maintenanceDowntime(String orgId) {
         CsvWriter csv = new CsvWriter("Ordem", "Ativo", "Tipo", "Parou em", "Voltou em",
                 "Horas paradas", "Custo da paragem", "Moeda", "Motivo");
 
@@ -264,7 +264,7 @@ public class ReportService {
                     w.getDowntimeHours(), w.getDowntimeCost(), w.getCurrency(),
                     w.getTitle());
         }
-        return csv.build();
+        return csv;
     }
 
     private static BigDecimal orZero(BigDecimal v) {
@@ -279,7 +279,7 @@ public class ReportService {
      * do normal e quanto disso e dinheiro.
      */
     @Transactional(readOnly = true)
-    public String fuel(String orgId) {
+    public CsvWriter fuel(String orgId) {
         CsvWriter csv = new CsvWriter("Data", "Ativo", "Nome", "Matricula", "Motorista",
                 "Filial", "Posto", "Litros", "Preco por litro", "Total", "Moeda",
                 "Contador", "Deposito cheio", "Distancia ou horas", "Consumo",
@@ -314,11 +314,11 @@ public class ReportService {
                     anomalias > 0 ? anomalias : null,
                     porExplicar.signum() > 0 ? porExplicar : null);
         }
-        return csv.build();
+        return csv;
     }
 
     @Transactional(readOnly = true)
-    public String stock(String orgId) {
+    public CsvWriter stock(String orgId) {
         CsvWriter csv = new CsvWriter("Peça", "Nº de peça", "Sistema", "Categoria", "Armazém",
                 "Quantidade", "Unidade", "Stock mínimo", "Custo médio", "Moeda", "Abaixo do mínimo");
 
@@ -337,11 +337,11 @@ public class ReportService {
                     item.getPart().getAverageCost(), item.getPart().getCurrency(),
                     low ? "Sim" : "Não");
         }
-        return csv.build();
+        return csv;
     }
 
     @Transactional(readOnly = true)
-    public String trips(String orgId, Instant from, Instant to) {
+    public CsvWriter trips(String orgId, Instant from, Instant to) {
         CsvWriter csv = new CsvWriter("Ativo", "Início", "Fim", "Duração (min)",
                 "Distância (km)", "Velocidade máxima (km/h)", "Posições", "Em curso");
 
@@ -357,11 +357,11 @@ public class ReportService {
                     t.getDurationMinutes(), t.getDistanceKm(), t.getMaxSpeedKph(),
                     t.getPositionCount(), t.isOpen() ? "Sim" : "Não");
         }
-        return csv.build();
+        return csv;
     }
 
     @Transactional(readOnly = true)
-    public String documents(String orgId) {
+    public CsvWriter documents(String orgId) {
         CsvWriter csv = new CsvWriter("Ativo", "Tipo", "Título", "Referência", "Emissor",
                 "Emitido em", "Válido até", "Dias restantes", "Estado");
 
@@ -375,11 +375,11 @@ public class ReportService {
                     status != null ? status.daysRemaining() : null,
                     status != null ? status.label() : "Sem validade");
         }
-        return csv.build();
+        return csv;
     }
 
     @Transactional(readOnly = true)
-    public String predictive(String orgId) {
+    public CsvWriter predictive(String orgId) {
         CsvWriter csv = new CsvWriter("Ativo", "Técnica", "Periodicidade", "Componentes",
                 "Objetivo", "Responsável", "Última medição", "Próxima medição",
                 "Dias restantes", "Estado");
@@ -393,7 +393,7 @@ public class ReportService {
                     p.getLastDoneAt(), p.getNextDueAt(), p.remainingDays(now),
                     p.statusAt(now).name());
         }
-        return csv.build();
+        return csv;
     }
 
     /**
@@ -401,7 +401,7 @@ public class ReportService {
      * por indicador, com meta e se está a ser cumprida.
      */
     @Transactional(readOnly = true)
-    public String kpis(String orgId, String assetId, Instant from, Instant to) {
+    public CsvWriter kpis(String orgId, String assetId, Instant from, Instant to) {
         KpiReport report = kpis.report(orgId, assetId, from, to);
 
         CsvWriter csv = new CsvWriter("Indicador", "Valor", "Unidade", "Meta", "Sentido",
@@ -430,7 +430,7 @@ public class ReportService {
         csv.row("Horas de reparação", java.math.BigDecimal.valueOf(report.totalRepairHours()));
         csv.row("Ordens planeadas", report.plannedOrders());
         csv.row("Ordens executadas", report.executedOrders());
-        return csv.build();
+        return csv;
     }
 
     /** Nome de ficheiro com a data, para não ficarem cinco "relatorio.csv" na pasta. */
@@ -438,6 +438,6 @@ public class ReportService {
         if (prefix == null || prefix.isBlank()) {
             throw ApiException.badRequest("Relatório desconhecido.");
         }
-        return prefix + "-" + java.time.LocalDate.now(java.time.ZoneId.of("Africa/Luanda")) + ".csv";
+        return prefix + "-" + java.time.LocalDate.now(java.time.ZoneId.of("Africa/Luanda"));
     }
 }

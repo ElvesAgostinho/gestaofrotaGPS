@@ -4,34 +4,70 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Escrita de CSV para abrir no Excel português.
+ * Uma tabela de relatório: cabeçalhos e linhas com os valores ainda tipados.
  *
- * <p>Duas escolhas que decidem se o ficheiro abre bem ou sai todo numa coluna:
- * o separador é <b>ponto e vírgula</b> e os decimais levam <b>vírgula</b>, que é
- * o que o Excel configurado em português espera. Vai também o marcador BOM, sem
- * o qual o Excel lê UTF-8 como ANSI e estraga todos os acentos.
+ * <p>Chama-se {@code CsvWriter} por história; hoje é a tabela de onde saem os
+ * três formatos — CSV ({@link #build()}), Excel ({@link XlsxWriter}) e PDF
+ * ({@link TablePdf}). Guardar os valores tipados (e não já formatados) é o que
+ * permite ao Excel receber números como números e datas como datas.
  */
 public final class CsvWriter {
 
     /** Sem isto o Excel abre o ficheiro com os acentos trocados. */
     public static final String BOM = "﻿";
 
-    private static final DateTimeFormatter DATE_TIME =
+    static final DateTimeFormatter DATE_TIME =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     /** Fuso de Angola (WAT, UTC+1, sem horário de verão). */
-    private static final ZoneId ZONE = ZoneId.of("Africa/Luanda");
+    static final ZoneId ZONE = ZoneId.of("Africa/Luanda");
 
-    private final StringBuilder out = new StringBuilder(BOM);
+    private final String[] headers;
+    private final List<Object[]> rows = new ArrayList<>();
+    private String title;
 
     public CsvWriter(String... headers) {
-        row((Object[]) headers);
+        this.headers = headers;
     }
 
     public CsvWriter row(Object... cells) {
+        rows.add(cells);
+        return this;
+    }
+
+    /** Título do documento (só o PDF e a folha Excel o usam). */
+    public CsvWriter titulo(String title) {
+        this.title = title;
+        return this;
+    }
+
+    public String[] headers() {
+        return headers;
+    }
+
+    public List<Object[]> rows() {
+        return rows;
+    }
+
+    public String title() {
+        return title;
+    }
+
+    /** O CSV: ponto e vírgula, decimais com vírgula, BOM — como o Excel em português espera. */
+    public String build() {
+        StringBuilder out = new StringBuilder(BOM);
+        linha(out, headers);
+        for (Object[] r : rows) {
+            linha(out, r);
+        }
+        return out.toString();
+    }
+
+    private static void linha(StringBuilder out, Object[] cells) {
         for (int i = 0; i < cells.length; i++) {
             if (i > 0) {
                 out.append(';');
@@ -39,15 +75,10 @@ public final class CsvWriter {
             out.append(escape(format(cells[i])));
         }
         out.append('\n');
-        return this;
-    }
-
-    public String build() {
-        return out.toString();
     }
 
     /** Datas no fuso local e decimais com vírgula — é assim que se lê aqui. */
-    private static String format(Object cell) {
+    static String format(Object cell) {
         if (cell == null) {
             return "";
         }

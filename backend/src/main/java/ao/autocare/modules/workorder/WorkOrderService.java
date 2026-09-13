@@ -77,6 +77,7 @@ public class WorkOrderService {
     private final NotificationService notifications;
     private final AuditService audit;
     private final WorkOrderIntelligence intelligence;
+    private final ao.autocare.modules.meter.MeterService meterService;
     private final WorkOrderWorkflow workflow;
     private final ao.autocare.repo.SupplierRepository suppliers;
     private final ao.autocare.repo.LocationRepository locations;
@@ -100,7 +101,8 @@ public class WorkOrderService {
             ao.autocare.repo.LocationRepository locations,
             ao.autocare.repo.DriverRepository drivers,
             WorkOrderWorkflow workflow,
-            ao.autocare.repo.SupplierRepository suppliers) {
+            ao.autocare.repo.SupplierRepository suppliers,
+            ao.autocare.modules.meter.MeterService meterService) {
         this.workOrders = workOrders;
         this.assets = assets;
         this.assetPlanTasks = assetPlanTasks;
@@ -115,6 +117,7 @@ public class WorkOrderService {
         this.notifications = notifications;
         this.audit = audit;
         this.intelligence = intelligence;
+        this.meterService = meterService;
         this.workflow = workflow;
         this.suppliers = suppliers;
         this.locations = locations;
@@ -365,7 +368,13 @@ public class WorkOrderService {
         transition(w, WorkOrderStatus.DONE, userId, null);
         w.setCompletedAt(when);
         w.setResolution(blankToNull(req.resolution()));
-        if (req.meterValue() != null) w.setMeterValue(req.meterValue());
+        if (req.meterValue() != null) {
+            w.setMeterValue(req.meterValue());
+            // O contador lido ao fechar é uma leitura a sério: atualiza a ficha
+            // e faz andar os intervalos de manutenção.
+            meterService.recordFromWorkOrder(w.getAsset(), req.meterValue(), when, userId,
+                    "Leitura ao concluir a OM " + w.getNumber());
+        }
 
         if (w.getDowntimeStart() != null && w.getDowntimeEnd() == null) {
             w.setDowntimeEnd(req.downtimeEnd() != null ? req.downtimeEnd() : when);

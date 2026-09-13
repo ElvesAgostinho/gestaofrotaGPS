@@ -43,10 +43,13 @@ public class AssetController {
     private final AssetService service;
     private final OrgContext orgContext;
     private final AssetSheetPdfService sheetPdf;
+    private final AssetHistoryPdfService historyPdf;
 
     public AssetController(AssetService service, OrgContext orgContext,
-            AssetSheetPdfService sheetPdf) {
+            AssetSheetPdfService sheetPdf,
+            AssetHistoryPdfService historyPdf) {
         this.sheetPdf = sheetPdf;
+        this.historyPdf = historyPdf;
         this.service = service;
         this.orgContext = orgContext;
     }
@@ -73,6 +76,22 @@ public class AssetController {
         return org.springframework.http.ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"ficha-equipamento.pdf\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    @Operation(summary = "Histórico de manutenção em PDF (a «pasta da viatura»)",
+            description = "Todas as ordens feitas — o quê, quando, aos quantos km, por quem, "
+                    + "com que peças — e as tarefas de plano executadas. Com o timbre da "
+                    + "empresa. Sem valores para quem não os pode ver.")
+    @GetMapping(value = "/{id}/history.pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public org.springframework.http.ResponseEntity<byte[]> history(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        byte[] pdf = historyPdf.render(orgContext.requireOrganizationId(principal), id,
+                canSeeCosts(principal));
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"historico-manutencao.pdf\"")
                 .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
                 .body(pdf);
     }

@@ -169,6 +169,48 @@ public class MeterService {
         assetPlans.recomputeForAsset(asset.getId());
     }
 
+    /**
+     * A leitura escrita ao fechar uma ordem de manutenção («concluída aos
+     * 1 245 h»). É uma leitura a sério — o mecânico olhou para o contador —
+     * e por isso atualiza o contador do ativo, como uma leitura manual faria.
+     * Sem isto, a ficha ficava com o valor antigo e o próximo intervalo de
+     * manutenção contava a partir de um número que já não era verdade.
+     * Um valor abaixo do contador atual não recua nada: fica só na ordem.
+     */
+    @Transactional
+    public void recordFromWorkOrder(Asset asset, BigDecimal value, Instant at, String userId,
+            String referencia) {
+        if (asset == null || value == null || value.signum() < 0) {
+            return;
+        }
+        AssetMeter meter = meters.findByAssetId(asset.getId()).stream()
+                .filter(AssetMeter::isPrimary).findFirst()
+                .orElse(meters.findByAssetId(asset.getId()).stream().findFirst().orElse(null));
+        if (meter == null) {
+            return;
+        }
+        BigDecimal atual = meter.getCurrentValue() != null ? meter.getCurrentValue() : BigDecimal.ZERO;
+        if (value.compareTo(atual) <= 0) {
+            return;
+        }
+        MeterReading reading = new MeterReading();
+        reading.setMeter(meter);
+        reading.setValue(value);
+        reading.setReadingAt(at != null ? at : Instant.now());
+        reading.setSource(MeterReadingSource.WORK_ORDER);
+        reading.setDelta(value.subtract(atual));
+        reading.setNote(referencia);
+        if (userId != null) {
+            reading.setRecordedBy(users.getReferenceById(userId));
+        }
+        readings.save(reading);
+
+        meter.setCurrentValue(value);
+        meter.setLastReadingAt(reading.getReadingAt());
+        meter.setDailyAverage(recomputeDailyAverage(meter.getId()));
+        assetPlans.recomputeForAsset(asset.getId());
+    }
+
     // ------------------------------------------------------------------
     private String detectInconsistency(
             MeterKind kind, BigDecimal value, Instant readingAt,

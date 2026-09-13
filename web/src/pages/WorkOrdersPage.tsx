@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Grelha } from '../components/Grelha';
-import { api, downloadFile } from '../api/client';
+import { api, downloadFile, openFile } from '../api/client';
 import {
   BarraEstado,
   BotaoBarra,
@@ -86,14 +86,22 @@ export function WorkOrdersPage() {
             <SeparadorBarra />
             <BotaoBarra
               icone={<IconFileExport size={13} />}
-              onClick={() => descarregar('work-orders.csv')}
+              onClick={() => descarregar('work-orders.xlsx')}
+              titulo="Todas as ordens em Excel"
             >
-              Exportar
+              Excel
             </BotaoBarra>
             <BotaoBarra
               icone={<IconPrinter size={13} />}
-              onClick={() => descarregar('maintenance-by-asset.csv')}
-              titulo="Custo de manutenção por ativo"
+              onClick={() => openFile('/reports/work-orders.pdf').catch(() => undefined)}
+              titulo="Todas as ordens em PDF, com o timbre da empresa"
+            >
+              PDF
+            </BotaoBarra>
+            <BotaoBarra
+              icone={<IconPrinter size={13} />}
+              onClick={() => openFile('/reports/maintenance-by-asset.pdf').catch(() => undefined)}
+              titulo="Custo de manutenção por ativo (PDF)"
             >
               Custo por viatura
             </BotaoBarra>

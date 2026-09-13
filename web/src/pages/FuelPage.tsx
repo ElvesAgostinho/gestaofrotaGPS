@@ -165,7 +165,7 @@ export function FuelPage() {
         </BotaoBarra>
         <BotaoBarra
           icone={<IconFileExport size={13} />}
-          onClick={() => descarregarFicheiro('/reports/fuel.csv', 'abastecimentos.csv')}
+          onClick={() => descarregarFicheiro('/reports/fuel.xlsx', 'abastecimentos.xlsx')}
         >
           Exportar
         </BotaoBarra>

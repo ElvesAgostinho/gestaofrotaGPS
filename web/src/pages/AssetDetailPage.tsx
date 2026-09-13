@@ -175,6 +175,18 @@ export function AssetDetailPage() {
               Imprimir ficha
             </BotaoBarra>
             <BotaoBarra
+              icone={<IconHistory size={13} />}
+              destaque={false}
+              titulo="Todas as ordens feitas nesta viatura, com peças e custos — a pasta física, em PDF"
+              onClick={() =>
+                openFile(`/assets/${id}/history.pdf`).catch((e: Error) =>
+                  notifications.show({ title: 'Não foi possível abrir', message: e.message, color: 'red' }),
+                )
+              }
+            >
+              Histórico (PDF)
+            </BotaoBarra>
+            <BotaoBarra
               icone={<IconFileText size={13} />}
               onClick={() =>
                 openFile(`/assets/${id}/maintenance-plan.pdf`).catch((e: Error) =>

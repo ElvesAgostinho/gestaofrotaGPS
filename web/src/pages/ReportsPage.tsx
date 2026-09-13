@@ -1,4 +1,4 @@
-import { Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
+import { Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
   IconBuildingStore,
@@ -13,7 +13,7 @@ import {
   IconTruck,
   IconWaveSine,
 } from '@tabler/icons-react';
-import { downloadFile } from '../api/client';
+import { downloadFile, openFile } from '../api/client';
 
 interface Report {
   path: string;
@@ -24,63 +24,63 @@ interface Report {
 
 const REPORTS: Report[] = [
   {
-    path: 'assets.csv',
+    path: 'assets',
     label: 'Inventário de ativos',
     description: 'Todos os ativos com tipo, local, estado e criticidade.',
     icon: IconTruck,
   },
   {
-    path: 'work-orders.csv',
+    path: 'work-orders',
     label: 'Ordens de manutenção',
     description: 'Ordens com datas, mão de obra, custo de peças e resolução.',
     icon: IconClipboardList,
   },
   {
-    path: 'maintenance-by-asset.csv',
+    path: 'maintenance-by-asset',
     label: 'Custo de manutenção por ativo',
     description:
       'Responde à pergunta que decide o destino de uma viatura: vale a pena continuar a repará-la? Leva o custo por km e os dias parada.',
     icon: IconCoin,
   },
   {
-    path: 'maintenance-by-supplier.csv',
+    path: 'maintenance-by-supplier',
     label: 'Manutenção por oficina',
     description: 'Quanto se gastou em cada oficina, com NIF, e quanto tempo demoraram.',
     icon: IconBuildingStore,
   },
   {
-    path: 'maintenance-downtime.csv',
+    path: 'maintenance-downtime',
     label: 'Imobilização de viaturas',
     description:
       'Quanto tempo cada viatura esteve parada e o que isso custou — números que não estão em fatura nenhuma.',
     icon: IconClockPause,
   },
   {
-    path: 'kpis.csv',
+    path: 'kpis',
     label: 'Indicadores',
     description: 'Disponibilidade, MTBF, MTTR e cumprimento, com os números que os produzem.',
     icon: IconTrendingUp,
   },
   {
-    path: 'stock.csv',
+    path: 'stock',
     label: 'Stock por armazém',
     description: 'Quantidades, mínimos e o que está abaixo do mínimo.',
     icon: IconPackage,
   },
   {
-    path: 'documents.csv',
+    path: 'documents',
     label: 'Documentos e validades',
     description: 'Seguros, inspeções e licenças com dias restantes.',
     icon: IconFileText,
   },
   {
-    path: 'predictive.csv',
+    path: 'predictive',
     label: 'Manutenção preditiva',
     description: 'Programas de monitorização e datas previstas.',
     icon: IconWaveSine,
   },
   {
-    path: 'trips.csv',
+    path: 'trips',
     label: 'Viagens',
     description: 'Deslocações dos últimos 30 dias com distância e velocidade máxima.',
     icon: IconMap2,
@@ -94,9 +94,16 @@ const REPORTS: Report[] = [
  * vai no cabeçalho, o browser abria a ligação sem autenticação e o servidor
  * respondia 401: nenhum dos relatórios descarregava.
  */
-async function descarregar(path: string) {
+type Formato = 'csv' | 'xlsx' | 'pdf';
+
+/** CSV e Excel descarregam-se; o PDF abre-se noutro separador, pronto a imprimir. */
+async function descarregar(path: string, formato: Formato) {
   try {
-    await downloadFile(`/reports/${path}`, path);
+    if (formato === 'pdf') {
+      await openFile(`/reports/${path}.pdf`);
+    } else {
+      await downloadFile(`/reports/${path}.${formato}`, `${path}.${formato}`);
+    }
   } catch (e) {
     notifications.show({
       title: 'Não foi possível descarregar',
@@ -126,18 +133,13 @@ export function ReportsPage() {
           </Text>
         </div>
         <Text c="dimmed" size="sm">
-          Ficheiros CSV preparados para abrir directamente no Excel em português.
+          Cada relatório sai em Excel (para filtrar), CSV (para outros sistemas) ou PDF com o timbre da empresa (para imprimir e arquivar).
         </Text>
       </div>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }}>
         {REPORTS.map((r) => (
-          <Card
-            key={r.path}
-            p="md"
-            onClick={() => descarregar(r.path)}
-            style={{ textDecoration: 'none', cursor: 'pointer' }}
-          >
+          <Card key={r.path} p="md">
             <Group gap="sm" mb="xs">
               <r.icon size={20} stroke={1.6} />
               <Text fw={700}>{r.label}</Text>
@@ -145,11 +147,16 @@ export function ReportsPage() {
             <Text size="sm" c="dimmed">
               {r.description}
             </Text>
-            <Group gap={4} mt="sm">
-              <IconDownload size={14} />
-              <Text size="xs" fw={600}>
-                Descarregar CSV
-              </Text>
+            <Group gap={6} mt="sm">
+              <Button size="compact-xs" variant="filled" leftSection={<IconDownload size={13} />} onClick={() => descarregar(r.path, 'xlsx')}>
+                Excel
+              </Button>
+              <Button size="compact-xs" variant="default" onClick={() => descarregar(r.path, 'pdf')}>
+                PDF
+              </Button>
+              <Button size="compact-xs" variant="subtle" color="gray" onClick={() => descarregar(r.path, 'csv')}>
+                CSV
+              </Button>
             </Group>
           </Card>
         ))}
