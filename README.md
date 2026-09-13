@@ -2,8 +2,13 @@
 
 Gestão de frotas e manutenção (CMMS/EAM) para empresas em Angola: viaturas,
 máquinas pesadas e geradores. Ordens de serviço, planos de manutenção,
-combustível com controlo por sensor, GPS via Traccar, guias de transporte,
-impressos com o timbre da empresa, permissões por módulo.
+combustível com controlo por sensor e cartões, GPS via Traccar, guias de
+transporte, pneus, motoristas (cartas, infrações, escalas), orçamento anual,
+impressos com o timbre da empresa e selo de autenticidade verificável,
+avisos por WhatsApp/SMS, marca branca por cliente, permissões por módulo, e
+uma app do telemóvel (PWA instalável) para o motorista comunicar avarias com
+fotografia, fazer a inspeção diária e abastecer, e para o mecânico executar
+as suas ordens.
 
 | Pasta | O que é |
 |---|---|
@@ -11,7 +16,8 @@ impressos com o timbre da empresa, permissões por módulo.
 | `web/` | Aplicação web — React 18, Vite, TypeScript, Mantine, MapLibre |
 | `deploy/` | Instalação: `docker compose`, Easypanel, cópias de segurança, OSRM |
 | `docs/` | Guias: **[EASYPANEL.md](docs/EASYPANEL.md)** (passo a passo), DEPLOY.md, TRACCAR.md, ARCHITECTURE.md |
-| `mobile/` | App Android (pausada) |
+| `web/src/pages/mobile/` | A app do telemóvel (PWA em `/m`): instala-se a partir do browser, sem loja |
+| `mobile/` | App Android nativa (pausada; substituída pela PWA) |
 
 ## Correr em desenvolvimento
 

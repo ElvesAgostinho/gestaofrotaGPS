@@ -252,7 +252,6 @@ export function NotificationsPage() {
                 <Table.Td>
                   <Switch
                     checked={p.phone}
-                    disabled={!channels?.phoneConfigured}
                     aria-label={`Telemóvel: ${p.label}`}
                     onChange={(e) =>
                       setPreference.mutate({
