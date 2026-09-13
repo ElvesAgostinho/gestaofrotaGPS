@@ -51,7 +51,7 @@ public abstract class AbstractIntegrationTest {
                 // CMMS (V3) + ficheiros (V4)
                 // Telemetria (V10)
                 // Frota (V21), conducao (V22) e controlo de combustivel (V23)
-                "fuel_anomalies", "asset_consumption_baselines",
+                "fuel_card_transactions", "fuel_anomalies", "asset_consumption_baselines",
                 "driver_scores", "driving_events",
                 "route_waypoints", "routes", "driver_assignments", "driver_infractions", "driver_shifts", "drivers",
                 "tyre_readings", "tyres",

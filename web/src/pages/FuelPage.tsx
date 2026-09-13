@@ -29,6 +29,7 @@ import { api, checkUploadSize, downloadFile } from '../api/client';
 import { BotaoBarra, SeparadorBarra } from '../components/erp';
 import { Kpi, MagnitudeBar, PageHeader } from '../components/Kpi';
 import { NovoAbastecimento } from './fuel/NovoAbastecimento';
+import { CartoesCombustivel } from './fuel/CartoesCombustivel';
 import { fmtDateTime, fmtNumber } from '../lib/format';
 
 interface Anomaly {
@@ -234,6 +235,8 @@ export function FuelPage() {
           {data.reading}
         </Alert>
       )}
+
+      <CartoesCombustivel />
 
       {/* Anomalias antes dos totais: é o que exige ação. */}
       <Card p={0}>

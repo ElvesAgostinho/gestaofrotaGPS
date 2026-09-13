@@ -495,7 +495,9 @@ public final class Enums {
         REFUEL_WITHOUT_MOVEMENT("Abasteceu sem ter andado"),
         MISSING_ODOMETER("Sem leitura de medidor: consumo por calcular"),
         SENSOR_DRAIN("Nível do depósito caiu com a viatura parada"),
-        SENSOR_MISMATCH("O sensor não confirma os litros declarados");
+        SENSOR_MISMATCH("O sensor não confirma os litros declarados"),
+        CARD_WITHOUT_RECORD("O cartão pagou um abastecimento que ninguém registou"),
+        RECORD_WITHOUT_CARD("Abastecimento registado que o cartão não pagou");
 
         private final String label;
 
