@@ -38,15 +38,31 @@ import org.springframework.web.bind.annotation.RestController;
 public class PredictiveController {
 
     private final PredictiveService predictive;
+    private final FailureForecastService forecasts;
     private final OrgContext orgContext;
 
-    public PredictiveController(PredictiveService predictive, OrgContext orgContext) {
+    public PredictiveController(PredictiveService predictive, OrgContext orgContext,
+            FailureForecastService forecasts) {
         this.predictive = predictive;
         this.orgContext = orgContext;
+        this.forecasts = forecasts;
     }
 
     private String org(AuthPrincipal p) {
         return orgContext.requireOrganizationId(p);
+    }
+
+    @Operation(summary = "Próximas avarias prováveis por sistema (avarias repetidas + ritmo de uso + consumo)")
+    @GetMapping("/api/v1/predictive/forecast")
+    public java.util.List<FailureForecastService.Forecast> forecast(@AuthenticationPrincipal AuthPrincipal principal) {
+        return forecasts.forOrganization(orgContext.requireOrganizationId(principal));
+    }
+
+    @Operation(summary = "Próximas avarias prováveis de um ativo")
+    @GetMapping("/api/v1/assets/{assetId}/predictive/forecast")
+    public java.util.List<FailureForecastService.Forecast> forecastForAsset(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String assetId) {
+        return forecasts.forAsset(orgContext.requireOrganizationId(principal), assetId);
     }
 
     @Operation(summary = "Técnicas disponíveis e periodicidade habitual")

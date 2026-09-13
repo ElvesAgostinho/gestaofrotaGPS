@@ -31,6 +31,7 @@ public class MaintenanceScheduler {
     private final WorkOrderService workOrders;
     private final NotificationService notifications;
     private final PredictiveService predictive;
+    private final ao.autocare.modules.predictive.FailureForecastService forecasts;
     private final DocumentService documents;
     private final ao.autocare.modules.fleet.DriverRecordsService driverRecords;
     private final ao.autocare.modules.budget.BudgetService budgets;
@@ -43,12 +44,14 @@ public class MaintenanceScheduler {
             PredictiveService predictive,
             DocumentService documents,
             ao.autocare.modules.fleet.DriverRecordsService driverRecords,
-            ao.autocare.modules.budget.BudgetService budgets) {
+            ao.autocare.modules.budget.BudgetService budgets,
+            ao.autocare.modules.predictive.FailureForecastService forecasts) {
         this.planTasks = planTasks;
         this.assetPlans = assetPlans;
         this.workOrders = workOrders;
         this.notifications = notifications;
         this.predictive = predictive;
+        this.forecasts = forecasts;
         this.documents = documents;
         this.driverRecords = driverRecords;
         this.budgets = budgets;
@@ -161,6 +164,10 @@ public class MaintenanceScheduler {
             int sent = predictive.notifyDue();
             if (sent > 0) {
                 log.info("{} aviso(s) de análise preditiva vencida", sent);
+            }
+            int previstas = forecasts.notifyImminent();
+            if (previstas > 0) {
+                log.info("{} aviso(s) de avaria provável a 14 dias", previstas);
             }
         } catch (Exception e) {
             log.warn("Falha ao avisar de análises preditivas: {}", e.toString());

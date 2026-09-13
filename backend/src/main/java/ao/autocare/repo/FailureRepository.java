@@ -24,4 +24,9 @@ public interface FailureRepository extends JpaRepository<Failure, String> {
     @Query("select count(f) from Failure f where f.organization.id = :orgId "
             + "and f.detectedAt >= :from and f.detectedAt < :to")
     long countForOrgBetween(String orgId, Instant from, Instant to);
+
+    /** As avarias da empresa desde uma data, com o ativo carregado — para prever a próxima por sistema. */
+    @Query("select f from Failure f join fetch f.asset a where f.organization.id = :orgId "
+            + "and f.detectedAt >= :since order by a.id, f.detectedAt")
+    java.util.List<Failure> forOrgSince(String orgId, Instant since);
 }

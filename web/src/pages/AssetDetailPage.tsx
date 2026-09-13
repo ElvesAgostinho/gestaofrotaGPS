@@ -49,6 +49,7 @@ import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
 import { PneusTab } from './assets/PneusTab';
 import { InspecoesTab } from './assets/InspecoesTab';
+import { PrevisaoAvarias } from '../components/PrevisaoAvarias';
 import { EstadoTarefa, LimiteManutencaoModal, PainelProximaManutencao, unidade } from './assets/LimiteManutencao';
 import type { AssetView } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -356,7 +357,10 @@ export function AssetDetailPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="preditiva" pt="md">
-          <PredictiveTab assetId={id} />
+          <Stack gap="md">
+            <PrevisaoAvarias assetId={id} />
+            <PredictiveTab assetId={id} />
+          </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="combustivel" pt="md">
           <FuelTab assetId={id} />

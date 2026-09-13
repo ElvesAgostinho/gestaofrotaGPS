@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { Painel } from '../components/erp';
+import { PrevisaoAvarias } from '../components/PrevisaoAvarias';
 import { fmtDate } from '../lib/format';
 
 interface Program {
@@ -35,6 +36,7 @@ export function PredictivePage() {
 
   return (
     <Stack gap="lg">
+      <PrevisaoAvarias />
 
       <Painel
         titulo="Manutenção preditiva"
