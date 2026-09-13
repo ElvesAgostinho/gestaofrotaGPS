@@ -2,6 +2,7 @@ import { Button, Card, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
   IconBuildingStore,
+  IconWheel,
   IconClipboardList,
   IconClockPause,
   IconCoin,
@@ -72,6 +73,12 @@ const REPORTS: Report[] = [
     label: 'Documentos e validades',
     description: 'Seguros, inspeções e licenças com dias restantes.',
     icon: IconFileText,
+  },
+  {
+    path: 'tyres',
+    label: 'Pneus',
+    description: 'Cada pneu com os km feitos, o custo por km e os alertas de sulco e pressão.',
+    icon: IconWheel,
   },
   {
     path: 'predictive',

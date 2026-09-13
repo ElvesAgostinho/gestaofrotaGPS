@@ -25,6 +25,7 @@ import {
   IconPencil,
   IconPrinter,
   IconDroplet,
+  IconWheel,
   IconFileText,
   IconGauge,
   IconInfoCircle,
@@ -45,6 +46,7 @@ import { IconeAtivo } from '../components/Equipamento';
 import { FotografiasPorParte, type Foto } from './assets/FotografiasPorParte';
 import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
+import { PneusTab } from './assets/PneusTab';
 import { EstadoTarefa, LimiteManutencaoModal, PainelProximaManutencao, unidade } from './assets/LimiteManutencao';
 import type { AssetView } from '../api/types';
 import { useAuth } from '../auth/AuthContext';
@@ -298,6 +300,9 @@ export function AssetDetailPage() {
           <Tabs.Tab value="plano" leftSection={<IconTool size={16} />}>
             Plano
           </Tabs.Tab>
+          <Tabs.Tab value="pneus" leftSection={<IconWheel size={16} />}>
+            Pneus
+          </Tabs.Tab>
           <Tabs.Tab value="pontos" leftSection={<IconDroplet size={16} />}>
             Pontos de serviço
           </Tabs.Tab>
@@ -331,6 +336,9 @@ export function AssetDetailPage() {
         </Tabs.Panel>
         <Tabs.Panel value="plano" pt="md">
           <PlanTab assetId={id} asset={asset} />
+        </Tabs.Panel>
+        <Tabs.Panel value="pneus" pt="md">
+          <PneusTab assetId={id} unidade={meter?.kind === 'HOURMETER' ? 'h' : 'km'} />
         </Tabs.Panel>
         <Tabs.Panel value="pontos" pt="md">
           <PontosDeServico tipo={asset.assetTypeName} />

@@ -173,6 +173,9 @@ public class DriverService {
         d.setLicenseIssuedAt(req.licenseIssuedAt());
         d.setLicenseExpiresAt(req.licenseExpiresAt());
         d.setLicenseCountry(trim(req.licenseCountry()));
+        d.setCardNumber(trim(req.cardNumber()));
+        d.setCardExpiresAt(req.cardExpiresAt());
+        d.setMedicalExpiresAt(req.medicalExpiresAt());
         d.setNotes(trim(req.notes()));
         if (req.status() != null) {
             d.setStatus(req.status());

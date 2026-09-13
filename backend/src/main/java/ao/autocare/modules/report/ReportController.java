@@ -104,6 +104,12 @@ public class ReportController {
         return exportar(p, ext, reports.documents(org(p)), "documentos", "Documentos e validades");
     }
 
+    @Operation(summary = "Pneus: vida, custo por km e alertas")
+    @GetMapping("/tyres.{ext:csv|xlsx|pdf}")
+    public ResponseEntity<byte[]> tyres(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String ext) {
+        return exportar(p, ext, reports.tyres(org(p)), "pneus", "Pneus");
+    }
+
     @Operation(summary = "Programas de manutenção preditiva (CSV)")
     @GetMapping("/predictive.{ext:csv|xlsx|pdf}")
     public ResponseEntity<byte[]> predictive(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String ext) {

@@ -96,6 +96,35 @@ public class Driver extends VersionedEntity {
      * empresa, não dele — por isso isto é uma pergunta que o sistema tem de
      * saber responder sem ninguém ir ver papel nenhum.
      */
+    /** Cartão de motorista (certificado de aptidão profissional). */
+    @Column(name = "card_number", length = 60)
+    private String cardNumber;
+
+    @Column(name = "card_expires_at")
+    private LocalDate cardExpiresAt;
+
+    /** Exame médico obrigatório para conduzir pesados. */
+    @Column(name = "medical_expires_at")
+    private LocalDate medicalExpiresAt;
+
+    public Long daysUntilCardExpiry() {
+        return cardExpiresAt == null ? null : ChronoUnit.DAYS.between(LocalDate.now(), cardExpiresAt);
+    }
+
+    public Long daysUntilMedicalExpiry() {
+        return medicalExpiresAt == null ? null : ChronoUnit.DAYS.between(LocalDate.now(), medicalExpiresAt);
+    }
+
+    public boolean isCardExpired() {
+        Long d = daysUntilCardExpiry();
+        return d != null && d < 0;
+    }
+
+    public boolean isMedicalExpired() {
+        Long d = daysUntilMedicalExpiry();
+        return d != null && d < 0;
+    }
+
     public Long daysUntilLicenseExpiry() {
         if (licenseExpiresAt == null) {
             return null;
@@ -108,8 +137,27 @@ public class Driver extends VersionedEntity {
         return days != null && days < 0;
     }
 
-    /** Pode conduzir agora: ativo e com carta válida (ou sem carta registada). */
+    /**
+     * Pode conduzir agora: ativo e sem nada caducado — carta, cartão de
+     * motorista ou exame médico (os que estiverem registados).
+     */
     public boolean canDrive() {
-        return status == DriverStatus.ACTIVE && !isLicenseExpired();
+        return status == DriverStatus.ACTIVE && !isLicenseExpired() && !isCardExpired()
+                && !isMedicalExpired();
+    }
+
+    /** O que está caducado ou a caducar em 30 dias, para o ecrã dizer porquê. */
+    public java.util.List<String> avisos() {
+        java.util.List<String> a = new java.util.ArrayList<>();
+        aviso(a, "Carta de condução", daysUntilLicenseExpiry());
+        aviso(a, "Cartão de motorista", daysUntilCardExpiry());
+        aviso(a, "Exame médico", daysUntilMedicalExpiry());
+        return a;
+    }
+
+    private static void aviso(java.util.List<String> a, String nome, Long dias) {
+        if (dias == null) return;
+        if (dias < 0) a.add(nome + " caducado há " + (-dias) + " dia(s)");
+        else if (dias <= 30) a.add(nome + " caduca em " + dias + " dia(s)");
     }
 }

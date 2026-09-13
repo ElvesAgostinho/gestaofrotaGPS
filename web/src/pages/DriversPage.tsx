@@ -9,7 +9,8 @@ import { Grelha } from '../components/Grelha';
 import { CampoProcura, filtrar } from '../components/Procura';
 import { useAuth } from '../auth/AuthContext';
 import { Kpi } from '../components/Kpi';
-import { fmtDate } from '../lib/format';
+import { FichaMotorista } from './drivers/FichaMotorista';
+import { fmtDate, fmtDateTime } from '../lib/format';
 
 interface Assignment {
   id: string;
@@ -38,6 +39,9 @@ interface Driver {
   status: string;
   statusLabel: string;
   currentAssets: Assignment[];
+  cardExpiresAt?: string | null;
+  medicalExpiresAt?: string | null;
+  warnings?: string[];
 }
 
 interface Summary {
@@ -68,6 +72,7 @@ export function DriversPage() {
   const [applied, setApplied] = useState('');
   const [novo, setNovo] = useState(false);
   const [assign, setAssign] = useState<Driver | null>(null);
+  const [ficha, setFicha] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['drivers', applied],
@@ -154,6 +159,7 @@ export function DriversPage() {
           linhas={rows}
           chave={(d) => d.id}
           carregando={isLoading}
+          aoAbrir={(d) => setFicha(d.id)}
           vazio="Ainda não há motoristas registados."
           colunas={[
             {
@@ -199,6 +205,22 @@ export function DriversPage() {
               render: (d) => <LicenceBadge driver={d} />,
             },
             {
+              id: 'documentos',
+              titulo: 'Cartão / exame médico',
+              largura: 190,
+              valor: (d) => (d.warnings ?? []).length,
+              render: (d) =>
+                (d.warnings ?? []).length > 0 ? (
+                  <Text size="xs" c={d.canDrive ? 'orange' : 'red'}>
+                    {(d.warnings ?? []).join(' · ')}
+                  </Text>
+                ) : (
+                  <Text size="xs" c="dimmed">
+                    {d.cardExpiresAt ? `cartão até ${fmtDate(d.cardExpiresAt)}` : 'sem cartão registado'}
+                  </Text>
+                ),
+            },
+            {
               id: 'conduz',
               titulo: 'Conduz',
               valor: (d) => d.currentAssets.map((a) => a.assetTag).join(', ') || null,
@@ -239,9 +261,14 @@ export function DriversPage() {
                     titulo: '',
                     largura: 100,
                     render: (d: Driver) => (
-                      <Button size="xs" variant="default" disabled={!d.canDrive} onClick={() => setAssign(d)}>
-                        Atribuir
-                      </Button>
+                      <Group gap={4} wrap="nowrap">
+                        <Button size="xs" variant="default" onClick={() => setFicha(d.id)}>
+                          Ficha
+                        </Button>
+                        <Button size="xs" variant="default" disabled={!d.canDrive} onClick={() => setAssign(d)}>
+                          Atribuir
+                        </Button>
+                      </Group>
                     ),
                   },
                 ]
@@ -250,8 +277,11 @@ export function DriversPage() {
         />
       </Card>
 
+      <EscalaDaEmpresa />
+
       <NewDriverModal opened={novo} onClose={() => setNovo(false)} />
       <AssignModal driver={assign} onClose={() => setAssign(null)} />
+      {ficha && <FichaMotorista motoristaId={ficha} fechar={() => setFicha(null)} />}
     </Stack>
   );
 }
@@ -303,6 +333,9 @@ function NewDriverModal({ opened, onClose }: { opened: boolean; onClose: () => v
           licenseNumber: form.licenseNumber || null,
           licenseCategories: form.licenseCategories || null,
           licenseExpiresAt: form.licenseExpiresAt || null,
+          cardNumber: form.cardNumber || null,
+          cardExpiresAt: form.cardExpiresAt || null,
+          medicalExpiresAt: form.medicalExpiresAt || null,
         },
       }),
     onSuccess: () => {
@@ -347,6 +380,11 @@ function NewDriverModal({ opened, onClose }: { opened: boolean; onClose: () => v
           value={form.licenseExpiresAt ?? ''}
           onChange={set('licenseExpiresAt')}
         />
+        <Group grow>
+          <TextInput label="Nº do cartão de motorista" value={form.cardNumber ?? ''} onChange={set('cardNumber')} />
+          <TextInput label="Validade do cartão" type="date" value={form.cardExpiresAt ?? ''} onChange={set('cardExpiresAt')} />
+          <TextInput label="Exame médico até" type="date" value={form.medicalExpiresAt ?? ''} onChange={set('medicalExpiresAt')} />
+        </Group>
         <Text size="xs" c="dimmed">
           Um motorista não precisa de conta no IMBONDEIRO OS. Se também usar o sistema, associe a
           conta depois na ficha.
@@ -447,5 +485,44 @@ function AssignModal({ driver, onClose }: { driver: Driver | null; onClose: () =
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+/**
+ * A escala da empresa nos próximos 7 dias: quem está com que viatura e
+ * quando. Os turnos escalam-se na ficha de cada motorista.
+ */
+function EscalaDaEmpresa() {
+  const { data } = useQuery({
+    queryKey: ['roster'],
+    queryFn: () => api<{ id: string; driverName: string; assetTag?: string | null; startsAt: string; endsAt: string; kindLabel: string; notes?: string | null }[]>('/drivers/roster'),
+  });
+  const turnos = data ?? [];
+  return (
+    <Painel titulo="Escala dos próximos 7 dias">
+      {turnos.length === 0 ? (
+        <Text size="sm" c="dimmed">
+          Sem turnos escalados. Abra a ficha de um motorista (duplo clique) → Escala → Escalar turno.
+        </Text>
+      ) : (
+        <Group gap="xs" wrap="wrap">
+          {turnos.map((t) => (
+            <Card key={t.id} p="xs" withBorder style={{ minWidth: 220 }}>
+              <Text size="sm" fw={600}>
+                {t.driverName}
+              </Text>
+              <Text size="xs">
+                {fmtDateTime(t.startsAt)} → {fmtDateTime(t.endsAt)}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {t.kindLabel}
+                {t.assetTag ? ` · ${t.assetTag}` : ''}
+                {t.notes ? ` · ${t.notes}` : ''}
+              </Text>
+            </Card>
+          ))}
+        </Group>
+      )}
+    </Painel>
   );
 }

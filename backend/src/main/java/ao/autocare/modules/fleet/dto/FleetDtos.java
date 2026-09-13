@@ -40,7 +40,10 @@ public final class FleetDtos {
             DriverStatus status,
             @Size(max = 2000) String notes,
             /** A versão que o ecrã leu. Ausente: não se verifica. */
-            Long version) {}
+            Long version,
+            @Size(max = 60) String cardNumber,
+            LocalDate cardExpiresAt,
+            LocalDate medicalExpiresAt) {}
 
     /**
      * Um motorista, como aparece numa lista.
@@ -73,7 +76,12 @@ public final class FleetDtos {
             String statusLabel,
             String notes,
             List<AssignmentView> currentAssets,
-            Long version) {
+            Long version,
+            String cardNumber,
+            LocalDate cardExpiresAt,
+            LocalDate medicalExpiresAt,
+            /** «Carta caduca em 12 dias», «Exame médico caducado há 3 dias»… */
+            List<String> warnings) {
 
         public static DriverView of(Driver d, List<AssignmentView> assets) {
             Location branch = d.getBranch();
@@ -87,7 +95,8 @@ public final class FleetDtos {
                     d.getLicenseIssuedAt(), d.getLicenseExpiresAt(), d.getLicenseCountry(),
                     d.daysUntilLicenseExpiry(), d.isLicenseExpired(), d.canDrive(),
                     d.getStatus(), statusLabel(d.getStatus()), d.getNotes(), assets,
-                    d.getVersion());
+                    d.getVersion(),
+                    d.getCardNumber(), d.getCardExpiresAt(), d.getMedicalExpiresAt(), d.avisos());
         }
 
         public static String statusLabel(DriverStatus status) {
@@ -96,6 +105,49 @@ public final class FleetDtos {
                 case SUSPENDED -> "Suspenso";
                 case INACTIVE -> "Inativo";
             };
+        }
+    }
+
+    // ===== Infrações e escala ===============================================
+    public record SaveInfractionRequest(
+            @NotNull ao.autocare.domain.DriverInfraction.Kind kind,
+            Instant occurredAt,
+            String assetId,
+            @Size(max = 1000) String description,
+            Integer points,
+            BigDecimal fineAmount,
+            Boolean paid,
+            @Size(max = 80) String reference) {}
+
+    public record InfractionView(String id, String driverId, String driverName, String assetId, String assetTag,
+                                 Instant occurredAt, String kind, String kindLabel, String description, int points,
+                                 BigDecimal fineAmount, String currency, boolean paid, String reference) {
+
+        public static InfractionView of(ao.autocare.domain.DriverInfraction i, boolean showMoney) {
+            return new InfractionView(i.getId(), i.getDriver().getId(), i.getDriver().getName(),
+                    i.getAsset() != null ? i.getAsset().getId() : null,
+                    i.getAsset() != null ? i.getAsset().getTag() : null,
+                    i.getOccurredAt(), i.getKind().name(), i.getKind().label(), i.getDescription(),
+                    i.getPoints(), showMoney ? i.getFineAmount() : null, i.getCurrency(), i.isPaid(),
+                    i.getReference());
+        }
+    }
+
+    public record SaveShiftRequest(
+            @NotNull Instant startsAt,
+            @NotNull Instant endsAt,
+            String assetId,
+            ao.autocare.domain.DriverShift.Kind kind,
+            @Size(max = 500) String notes) {}
+
+    public record ShiftView(String id, String driverId, String driverName, String assetId, String assetTag,
+                            Instant startsAt, Instant endsAt, String kind, String kindLabel, String notes) {
+
+        public static ShiftView of(ao.autocare.domain.DriverShift s) {
+            return new ShiftView(s.getId(), s.getDriver().getId(), s.getDriver().getName(),
+                    s.getAsset() != null ? s.getAsset().getId() : null,
+                    s.getAsset() != null ? s.getAsset().getTag() : null,
+                    s.getStartsAt(), s.getEndsAt(), s.getKind().name(), s.getKind().label(), s.getNotes());
         }
     }
 

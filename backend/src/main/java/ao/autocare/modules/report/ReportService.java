@@ -59,6 +59,7 @@ public class ReportService {
     private final ao.autocare.repo.FuelRecordRepository fuelRecords;
     private final ao.autocare.repo.FuelAnomalyRepository fuelAnomalies;
     private final KpiService kpis;
+    private final ao.autocare.repo.TyreRepository tyres;
 
     public ReportService(
             AssetRepository assets,
@@ -71,7 +72,8 @@ public class ReportService {
             KpiService kpis,
             ao.autocare.repo.AssetMeterRepository meters,
             ao.autocare.repo.FuelRecordRepository fuelRecords,
-            ao.autocare.repo.FuelAnomalyRepository fuelAnomalies) {
+            ao.autocare.repo.FuelAnomalyRepository fuelAnomalies,
+            ao.autocare.repo.TyreRepository tyres) {
         this.assets = assets;
         this.criticalities = criticalities;
         this.workOrders = workOrders;
@@ -83,6 +85,7 @@ public class ReportService {
         this.fuelRecords = fuelRecords;
         this.fuelAnomalies = fuelAnomalies;
         this.kpis = kpis;
+        this.tyres = tyres;
     }
 
     @Transactional(readOnly = true)
@@ -374,6 +377,33 @@ public class ReportService {
                     d.getReference(), d.getIssuer(), d.getIssuedAt(), d.getExpiresAt(),
                     status != null ? status.daysRemaining() : null,
                     status != null ? status.label() : "Sem validade");
+        }
+        return csv;
+    }
+
+    /** Pneus: a pergunta da compra — que marca dura mais e a quanto sai o km. */
+    @Transactional(readOnly = true)
+    public CsvWriter tyres(String orgId) {
+        CsvWriter csv = new CsvWriter("Ativo", "Posição", "Marca", "Modelo", "Medida", "Nº de série",
+                "Estado", "Montado em", "Contador na montagem", "Desmontado em", "Contador na saída",
+                "Motivo", "Km/h percorridos", "Custo", "Custo por km/h", "Último sulco (mm)",
+                "Última pressão (bar)", "Alerta");
+        java.util.Map<String, java.math.BigDecimal> contadores = new java.util.HashMap<>();
+        for (ao.autocare.domain.Tyre t : tyres.findByOrganizationIdOrderByStatusAscUpdatedAtDesc(orgId)) {
+            java.math.BigDecimal contador = null;
+            if (t.getAsset() != null) {
+                contador = contadores.computeIfAbsent(t.getAsset().getId(), id -> meters.findByAssetId(id).stream()
+                        .filter(ao.autocare.domain.AssetMeter::isPrimary).findFirst()
+                        .map(ao.autocare.domain.AssetMeter::getCurrentValue).orElse(null));
+            }
+            csv.row(
+                    t.getAsset() != null ? t.getAsset().getTag() : null,
+                    t.getPosition(), t.getBrand(), t.getModel(), t.getSize(), t.getSerialNumber(),
+                    switch (t.getStatus()) { case INSTALLED -> "Montado"; case STOCK -> "Em stock"; case RETIRED -> "Abatido"; },
+                    t.getInstalledAt(), t.getInstalledMeter(), t.getRemovedAt(), t.getRemovedMeter(),
+                    t.getRemovalReason() != null ? t.getRemovalReason().name() : null,
+                    t.distanceRun(contador), t.getCost(), t.costPerUnit(contador),
+                    t.getLastTreadMm(), t.getLastPressure(), t.alerta());
         }
         return csv;
     }
