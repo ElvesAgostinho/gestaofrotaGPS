@@ -7,6 +7,7 @@ import ao.autocare.modules.platform.PlatformDtos.OrganizationRow;
 import ao.autocare.modules.platform.PlatformDtos.OwnerPasswordReset;
 import ao.autocare.modules.platform.PlatformDtos.Summary;
 import ao.autocare.modules.platform.PlatformDtos.SuspendRequest;
+import ao.autocare.modules.platform.PlatformDtos.TraccarProvisioned;
 import ao.autocare.modules.platform.PlatformDtos.UpdateOrganizationRequest;
 import ao.autocare.security.AuthPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -94,6 +95,17 @@ public class PlatformController {
             @AuthenticationPrincipal AuthPrincipal principal,
             @PathVariable String id) {
         return service.activate(id, principal.id());
+    }
+
+    @Operation(summary = "[Plataforma] Criar (ou renovar) a conta da empresa no Traccar da plataforma",
+            description = "Cria o utilizador no Traccar, gera um token de dez anos e guarda-o nas "
+                    + "Configurações da empresa. A partir daí os aparelhos que a empresa registar "
+                    + "aqui passam a existir também no Traccar, na conta dela.")
+    @PostMapping("/organizations/{id}/traccar")
+    public TraccarProvisioned provisionTraccar(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String id) {
+        return service.provisionTraccar(id, principal.id());
     }
 
     @Operation(summary = "[Plataforma] Nova palavra-passe temporária para o Dono da empresa")

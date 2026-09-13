@@ -217,7 +217,7 @@ class RemoteLockIntegrationTest extends AbstractIntegrationTest {
 
         JsonNode estado = send(get("/api/v1/assets/" + assetId + "/lock"), null, 200);
         assertThat(estado.get("providerConfigured").asBoolean()).isFalse();
-        assertThat(estado.get("providerName").asText()).contains("demonstração");
+        assertThat(estado.get("providerName").asText()).contains("sem servidor configurado");
 
         String id = send(post("/api/v1/assets/" + assetId + "/lock"),
                 pedido("Furto"), 201).get("id").asText();

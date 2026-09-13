@@ -56,9 +56,26 @@ public class RoutingEngine {
     private static final int VELOCIDADE_ASSUMIDA_KMH = 55;
 
     private final ObjectMapper json;
+    /** Motor da plataforma, para as empresas sem o seu próprio. Pode ser vazio. */
+    private final String motorDaPlataforma;
 
-    public RoutingEngine(ObjectMapper json) {
+    public RoutingEngine(ObjectMapper json,
+            @org.springframework.beans.factory.annotation.Value("${autocare.routing.url:}")
+            String motorDaPlataforma) {
         this.json = json;
+        this.motorDaPlataforma = motorDaPlataforma == null ? "" : motorDaPlataforma.trim();
+    }
+
+    /** O endereço a usar por esta empresa: o dela, ou o da plataforma, ou nenhum. */
+    public String motorPara(IntegrationSettings settings) {
+        if (settings != null && settings.hasRouting()) {
+            return settings.getRoutingUrl();
+        }
+        return motorDaPlataforma.isBlank() ? null : motorDaPlataforma;
+    }
+
+    public String motorDaPlataforma() {
+        return motorDaPlataforma.isBlank() ? null : motorDaPlataforma;
     }
 
     /** Um ponto do percurso. */
@@ -109,13 +126,14 @@ public class RoutingEngine {
             }
         }
 
-        if (settings != null && settings.hasRouting()) {
-            Trajeto pelaEstrada = viaMotor(settings.getRoutingUrl(), pontos);
+        String motor = motorPara(settings);
+        if (motor != null) {
+            Trajeto pelaEstrada = viaMotor(motor, pontos);
             if (pelaEstrada != null) {
                 return pelaEstrada;
             }
         }
-        return emLinhaReta(pontos, settings != null && settings.hasRouting());
+        return emLinhaReta(pontos, motor != null);
     }
 
     /**

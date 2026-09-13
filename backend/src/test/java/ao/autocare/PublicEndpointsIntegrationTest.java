@@ -22,7 +22,7 @@ class PublicEndpointsIntegrationTest extends AbstractIntegrationTest {
     void publicConfigHasProductName() throws Exception {
         mvc.perform(get("/api/v1/config"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("AutoCare"))
+                .andExpect(jsonPath("$.name").value("IMBONDEIRO OS"))
                 .andExpect(jsonPath("$.currency").value("AOA"));
     }
 

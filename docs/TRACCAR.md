@@ -81,18 +81,25 @@ não há relé. Confirme com quem fez a instalação.
 
 ## 2. No IMBONDEIRO OS
 
-No `.env`:
+Cada empresa tem o **seu** Traccar em **Configurações → Servidor Traccar**
+(endereço + token, guardados cifrados). É esse que recebe as posições e entrega
+os comandos de bloqueio — não há um Traccar «do sistema» para isso.
 
-```bash
-TRACCAR_URL=https://traccar.suaempresa.ao
-TRACCAR_TOKEN=<token gerado no passo 1.2>
-# ou, em alternativa ao token:
-# TRACCAR_USER=autocare-integracao
-# TRACCAR_PASSWORD=<palavra-passe>
-```
+Há duas formas de uma empresa ficar com o Traccar configurado:
 
-Reinicie e verifique em **Definições → Servidor de comandos → Testar ligação**,
-ou por API:
+1. **Pela plataforma (o normal quando o sistema é vendido):** o administrador
+   da plataforma define no ambiente da API o Traccar dele com credenciais de
+   administrador — `TRACCAR_URL`, `TRACCAR_USER`, `TRACCAR_PASSWORD` — e, ao
+   criar a empresa em **Plataforma → Nova empresa**, o sistema cria-lhe uma
+   conta no Traccar (`empresa-xxxxxxxx@imbondeiro.local`), gera um token de
+   dez anos e guarda-o nas Configurações da empresa. A empresa não toca em
+   nada: regista os rastreadores em **Rastreadores GPS** (IMEI) e eles passam
+   a existir no Traccar, na conta dela. Apagar aqui apaga lá.
+2. **À mão:** a empresa cola o endereço e um token do seu próprio Traccar e
+   carrega em **Guardar e testar**. O teste faz um pedido real
+   (`GET /api/devices`) com esse token: um token errado reprova.
+
+Verificar por API:
 
 ```bash
 curl -H "Authorization: Bearer <o seu token do IMBONDEIRO OS>" \

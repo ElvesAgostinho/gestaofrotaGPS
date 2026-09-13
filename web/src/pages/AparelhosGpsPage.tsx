@@ -46,8 +46,12 @@ interface Device {
   notes?: string | null;
 }
 
-interface DeviceCreated extends Device {
+interface DeviceCreated {
+  device: Device;
   ingestKey: string;
+  ingestUrl: string;
+  /** O que aconteceu no Traccar: registado, já existia, ou o que falta fazer. */
+  traccarNote?: string | null;
 }
 
 interface AssetOpcao {
@@ -352,7 +356,7 @@ function FormAparelho({
   });
 
   const gravar = useMutation({
-    mutationFn: () => {
+    mutationFn: (): Promise<Device | DeviceCreated> => {
       const body = {
         externalId: externalId.trim(),
         name: name.trim() || null,
@@ -370,8 +374,8 @@ function FormAparelho({
     },
     onSuccess: (r) => {
       queryClient.invalidateQueries({ queryKey: ['gps-devices'] });
-      if (!editando && (r as DeviceCreated).ingestKey) {
-        aoCriar(r as DeviceCreated);
+      if (!editando && 'ingestKey' in r) {
+        aoCriar(r);
       } else {
         notifications.show({ title: 'Aparelho guardado', message: '', color: 'green' });
       }
@@ -512,8 +516,20 @@ function ChaveModal({ chave, fechar }: { chave: DeviceCreated | null; fechar: ()
               só um resumo, e nem o IMBONDEIRO OS a consegue voltar a mostrar.
             </Text>
           </Alert>
+          {chave.traccarNote && (
+            <Alert
+              color={/Registado também|Já existia/.test(chave.traccarNote) ? 'green' : 'orange'}
+              variant="light"
+              p="xs"
+              mb="sm"
+            >
+              <Text size="sm">
+                <b>Traccar:</b> {chave.traccarNote}
+              </Text>
+            </Alert>
+          )}
           <Text size="xs" c="dimmed" mb={4}>
-            Aparelho {chave.externalId}
+            Aparelho {chave.device.externalId}
           </Text>
           <Code block style={{ fontSize: 13, wordBreak: 'break-all' }}>
             {chave.ingestKey}

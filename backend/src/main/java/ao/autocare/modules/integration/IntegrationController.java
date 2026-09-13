@@ -36,10 +36,19 @@ public class IntegrationController {
 
     private final IntegrationService service;
     private final OrgContext orgContext;
+    private final ao.autocare.modules.fleet.RoutingEngine routingEngine;
+    private final TraccarAccounts traccarAccounts;
 
-    public IntegrationController(IntegrationService service, OrgContext orgContext) {
+    public IntegrationController(IntegrationService service, OrgContext orgContext,
+            ao.autocare.modules.fleet.RoutingEngine routingEngine, TraccarAccounts traccarAccounts) {
         this.service = service;
         this.orgContext = orgContext;
+        this.routingEngine = routingEngine;
+        this.traccarAccounts = traccarAccounts;
+    }
+
+    private SettingsView vista(ao.autocare.domain.IntegrationSettings s) {
+        return SettingsView.of(s, routingEngine.motorDaPlataforma(), traccarAccounts.disponivel());
     }
 
     private String org(AuthPrincipal p) {
@@ -51,7 +60,7 @@ public class IntegrationController {
     @RequirePermission(Permission.SETTINGS_MANAGE)
     @GetMapping
     public SettingsView get(@AuthenticationPrincipal AuthPrincipal p) {
-        return SettingsView.of(service.forOrganization(org(p)));
+        return vista(service.forOrganization(org(p)));
     }
 
     @Operation(summary = "Guardar as credenciais do Traccar")
@@ -59,7 +68,7 @@ public class IntegrationController {
     @PutMapping("/traccar")
     public SettingsView saveTraccar(
             @AuthenticationPrincipal AuthPrincipal p, @Valid @RequestBody TraccarRequest req) {
-        return SettingsView.of(service.saveTraccar(org(p), p.id(), req));
+        return vista(service.saveTraccar(org(p), p.id(), req));
     }
 
     @Operation(summary = "Testar a ligacao ao Traccar",
@@ -76,7 +85,7 @@ public class IntegrationController {
     public SettingsView setPoll(
             @AuthenticationPrincipal AuthPrincipal p,
             @RequestBody IntegrationDtos.PollRequest req) {
-        return SettingsView.of(service.setTraccarPoll(org(p), p.id(), req.enabled()));
+        return vista(service.setTraccarPoll(org(p), p.id(), req.enabled()));
     }
 
     @Operation(summary = "Gerar o segredo do encaminhamento (forward.url do Traccar)",
@@ -98,7 +107,7 @@ public class IntegrationController {
     @PutMapping("/email")
     public SettingsView saveSmtp(
             @AuthenticationPrincipal AuthPrincipal p, @Valid @RequestBody SmtpRequest req) {
-        return SettingsView.of(service.saveSmtp(org(p), p.id(), req));
+        return vista(service.saveSmtp(org(p), p.id(), req));
     }
 
     @Operation(summary = "Enviar um email de teste",
@@ -115,7 +124,7 @@ public class IntegrationController {
     @PutMapping("/routing")
     public SettingsView saveRouting(
             @AuthenticationPrincipal AuthPrincipal p, @Valid @RequestBody RoutingRequest req) {
-        return SettingsView.of(service.saveRouting(org(p), p.id(), req.url()));
+        return vista(service.saveRouting(org(p), p.id(), req.url()));
     }
 
     @Operation(summary = "Testar o motor de rotas",

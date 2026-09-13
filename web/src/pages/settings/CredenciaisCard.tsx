@@ -54,6 +54,8 @@ interface Settings {
   smtpCheckedAt?: string | null;
   smtpLastError?: string | null;
 
+  routingPlatformUrl?: string | null;
+  traccarPlatformAvailable?: boolean;
   routingUrl?: string | null;
   routingConfigured: boolean;
   routingOk?: boolean | null;
@@ -142,8 +144,17 @@ function TraccarPainel({ s }: { s: Settings }) {
     onError: (e: Error) => notifications.show({ title: 'Não foi possível', message: e.message, color: 'red' }),
   });
 
+  // Testar guarda primeiro o que está no formulário. Antes, o teste ia ao que
+  // estava guardado: escrevia-se um token inventado, carregava-se em Testar e
+  // saía «confirmada» — o token antigo é que tinha sido testado.
   const testar = useMutation({
-    mutationFn: () => api<TestResult>('/integrations/traccar/test', { method: 'POST' }),
+    mutationFn: async () => {
+      await api<Settings>('/integrations/traccar', {
+        method: 'PUT',
+        body: { url, user, password, token },
+      });
+      return api<TestResult>('/integrations/traccar/test', { method: 'POST' });
+    },
     onSuccess: (r) => {
       notifications.show({
         title: r.ok ? 'Ligação confirmada' : 'A ligação falhou',
@@ -174,9 +185,9 @@ function TraccarPainel({ s }: { s: Settings }) {
               leftSection={<IconPlugConnected size={13} />}
               onClick={() => testar.mutate()}
               loading={testar.isPending}
-              disabled={!s.traccarConfigured}
+              disabled={!url.trim()}
             >
-              Testar ligação
+              Guardar e testar
             </Button>
             <Button size="xs" onClick={() => guardar.mutate()} loading={guardar.isPending}>
               Guardar
@@ -189,6 +200,14 @@ function TraccarPainel({ s }: { s: Settings }) {
         titulo="Endereço e credenciais"
         descricao="É por aqui que as posições entram e os comandos de bloqueio saem. Sem isto o sistema não consegue bloquear viaturas — e di-lo, em vez de fingir que enviou."
       >
+        {(s.traccarUser ?? '').endsWith('@imbondeiro.local') && (
+          <Alert color="green" variant="light" p="xs" mb="xs">
+            <Text size="sm">
+              Conta criada pelo fornecedor do sistema: os rastreadores que registar em «Rastreadores
+              GPS» passam a existir no Traccar automaticamente. Não precisa de mexer aqui.
+            </Text>
+          </Alert>
+        )}
         <Grid gutter="xs">
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <TextInput
@@ -203,15 +222,23 @@ function TraccarPainel({ s }: { s: Settings }) {
             <TextInput
               label="Utilizador"
               placeholder="admin@aminhaempresa.ao"
+              autoComplete="off"
+              name="traccar-utilizador"
               value={user}
               onChange={(e) => setUser(e.currentTarget.value)}
             />
           </Grid.Col>
           <Grid.Col span={{ base: 12, sm: 6 }}>
+            {/* autoComplete="new-password": sem isto o navegador guardava o que se
+                escrevia aqui como «a palavra-passe do site» e, no recarregar,
+                enfiava-a no primeiro campo de palavra-passe que visse — o token
+                aparecia no campo errado. */}
             <PasswordInput
               label="Palavra-passe"
               placeholder="A palavra-passe desse utilizador"
               description={s.traccarPasswordSet ? 'Já guardada. Deixe como está para a manter.' : undefined}
+              autoComplete="new-password"
+              name="traccar-palavra-passe"
               value={password}
               onChange={(e) => setPassword(e.currentTarget.value)}
             />
@@ -221,6 +248,8 @@ function TraccarPainel({ s }: { s: Settings }) {
               label="Token de acesso (alternativa)"
               placeholder="Em vez de utilizador e palavra-passe"
               description={s.traccarTokenSet ? 'Já guardado.' : 'Se usar token, o utilizador é dispensável.'}
+              autoComplete="new-password"
+              name="traccar-token"
               value={token}
               onChange={(e) => setToken(e.currentTarget.value)}
             />
@@ -527,7 +556,10 @@ function MotorRotasPainel({ s }: { s: Settings }) {
   });
 
   const testar = useMutation({
-    mutationFn: () => api<TestResult>('/integrations/routing/test', { method: 'POST' }),
+    mutationFn: async () => {
+      await api<Settings>('/integrations/routing', { method: 'PUT', body: { url: url.trim() || null } });
+      return api<TestResult>('/integrations/routing/test', { method: 'POST' });
+    },
     onSuccess: (r) => {
       notifications.show({
         title: r.ok ? 'Motor de rotas a responder' : 'O teste falhou',
@@ -546,7 +578,7 @@ function MotorRotasPainel({ s }: { s: Settings }) {
       acoes={
         <>
           <EstadoLigacao
-            configurado={s.routingConfigured}
+            configurado={s.routingConfigured || !!s.routingPlatformUrl}
             ok={s.routingOk}
             quando={s.routingCheckedAt}
           />
@@ -557,9 +589,9 @@ function MotorRotasPainel({ s }: { s: Settings }) {
               leftSection={<IconPlugConnected size={13} />}
               onClick={() => testar.mutate()}
               loading={testar.isPending}
-              disabled={!s.routingConfigured}
+              disabled={!url.trim() && !s.routingPlatformUrl}
             >
-              Testar
+              Guardar e testar
             </Button>
             <Button size="xs" onClick={() => guardar.mutate()} loading={guardar.isPending}>
               Guardar
@@ -570,8 +602,19 @@ function MotorRotasPainel({ s }: { s: Settings }) {
     >
       <SeccaoForm
         titulo="Endereço do servidor OSRM"
-        descricao="Calcula a distância e a duração de uma rota pelas estradas reais, em vez de as pedir escritas. Deixe vazio para o sistema estimar em linha reta — e dizer que foi isso que fez."
+        descricao={
+          s.routingPlatformUrl
+            ? 'O fornecedor do sistema já disponibiliza um motor de rotas com o mapa de Angola: deixe o endereço vazio para o usar. Só preencha se tiver o seu próprio.'
+            : 'Calcula a distância e a duração de uma rota pelas estradas reais, em vez de as pedir escritas. Deixe vazio para o sistema estimar em linha reta — e dizer que foi isso que fez.'
+        }
       >
+        {s.routingPlatformUrl && !s.routingConfigured && (
+          <Alert color="green" variant="light" p="xs" mb="xs">
+            <Text size="sm">
+              A usar o motor de rotas da plataforma. Carregue em «Guardar e testar» para o confirmar.
+            </Text>
+          </Alert>
+        )}
         <Grid gutter="xs">
           <Grid.Col span={{ base: 12, sm: 8 }}>
             <TextInput

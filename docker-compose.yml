@@ -66,7 +66,9 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?indique a palavra-passe inicial do administrador}
       ADMIN_NAME: ${ADMIN_NAME:-Administrador da plataforma}
       TRACCAR_URL: ${TRACCAR_URL:-}
-      TRACCAR_TOKEN: ${TRACCAR_TOKEN:-}
+      TRACCAR_USER: ${TRACCAR_USER:-}
+      TRACCAR_PASSWORD: ${TRACCAR_PASSWORD:-}
+      ROUTING_URL: ${ROUTING_URL:-}
     volumes:
       - files:/var/lib/autocare/files
     # Só a web fala com a API; não há razão para a expor ao exterior.

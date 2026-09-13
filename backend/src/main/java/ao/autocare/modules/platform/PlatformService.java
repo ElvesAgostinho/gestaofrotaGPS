@@ -13,6 +13,9 @@ import ao.autocare.modules.platform.PlatformDtos.OrganizationRow;
 import ao.autocare.modules.platform.PlatformDtos.OrganizationStatus;
 import ao.autocare.modules.platform.PlatformDtos.OwnerPasswordReset;
 import ao.autocare.modules.platform.PlatformDtos.Summary;
+import ao.autocare.modules.platform.PlatformDtos.TraccarProvisioned;
+import ao.autocare.modules.integration.TraccarAccounts;
+import ao.autocare.repo.IntegrationSettingsRepository;
 import ao.autocare.modules.platform.PlatformDtos.UpdateOrganizationRequest;
 import ao.autocare.repo.AssetRepository;
 import ao.autocare.repo.AuditLogRepository;
@@ -52,6 +55,9 @@ public class PlatformService {
     private final AuthService auth;
     private final AuditService audit;
     private final PasswordEncoder passwordEncoder;
+    private final TraccarAccounts traccar;
+    private final IntegrationSettingsRepository integrations;
+    private final String platformRoutingUrl;
     private final SecureRandom random = new SecureRandom();
 
     public PlatformService(
@@ -63,7 +69,15 @@ public class PlatformService {
             AuditLogRepository auditLogs,
             AuthService auth,
             AuditService audit,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder,
+            TraccarAccounts traccar,
+            IntegrationSettingsRepository integrations,
+            @org.springframework.beans.factory.annotation.Value("${autocare.routing.url:}")
+            String platformRoutingUrl) {
+        this.traccar = traccar;
+        this.integrations = integrations;
+        this.platformRoutingUrl = platformRoutingUrl == null || platformRoutingUrl.isBlank()
+                ? null : platformRoutingUrl.trim();
         this.organizations = organizations;
         this.memberships = memberships;
         this.users = users;
@@ -102,7 +116,8 @@ public class PlatformService {
             }
         }
         return new Summary(todas.size(), ativas, aVencer, vencidas, suspensas,
-                users.count(), assets.count());
+                users.count(), assets.count(),
+                traccar.urlPublica().orElse(null), platformRoutingUrl);
     }
 
     @Transactional(readOnly = true)
@@ -140,7 +155,31 @@ public class PlatformService {
                 org.getId(), "Empresa criada pela plataforma: " + org.getName()
                         + " · dono: " + email + (existia ? " (conta já existia)" : ""));
 
-        return new CreatedOrganization(toRow(org, LocalDate.now()), email, temporaria, existia);
+        // A conta no Traccar da plataforma: por omissão sim, se houver Traccar.
+        // Se falhar, a empresa fica criada na mesma e o erro vai no resultado —
+        // o administrador repete depois com o botão «Traccar».
+        TraccarProvisioned conta = null;
+        String erroTraccar = null;
+        boolean querTraccar = req.provisionTraccar() != null ? req.provisionTraccar() : traccar.disponivel();
+        if (querTraccar) {
+            try {
+                TraccarAccounts.Conta c = traccar.provision(org.getId(), adminId);
+                conta = new TraccarProvisioned(c.traccarUrl(), c.traccarUser(), c.jaExistia());
+            } catch (ApiException e) {
+                erroTraccar = e.getMessage();
+            }
+        }
+
+        return new CreatedOrganization(toRow(org, LocalDate.now()), email, temporaria, existia,
+                conta, erroTraccar);
+    }
+
+    /** Cria (ou renova) a conta da empresa no Traccar da plataforma. */
+    @Transactional
+    public TraccarProvisioned provisionTraccar(String id, String adminId) {
+        Organization org = require(id);
+        TraccarAccounts.Conta c = traccar.provision(org.getId(), adminId);
+        return new TraccarProvisioned(c.traccarUrl(), c.traccarUser(), c.jaExistia());
     }
 
     @Transactional
@@ -249,7 +288,11 @@ public class PlatformService {
                 equipa.stream().filter(m -> !m.isSuspended()).count(),
                 assets.countByOrganizationId(o.getId()),
                 workOrders.countByOrganizationId(o.getId()),
-                auditLogs.lastActivity(o.getId()));
+                auditLogs.lastActivity(o.getId()),
+                integrations.findByOrganizationId(o.getId())
+                        .map(ao.autocare.domain.IntegrationSettings::hasTraccar).orElse(false),
+                integrations.findByOrganizationId(o.getId())
+                        .map(ao.autocare.domain.IntegrationSettings::getTraccarUrl).orElse(null));
     }
 
     private String gerarPalavraPasse() {

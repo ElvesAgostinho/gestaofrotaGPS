@@ -46,18 +46,21 @@ public class IntegrationService {
     private final IntegrationSettingsRepository repo;
     private final OrganizationRepository organizations;
     private final SecretBox cofre;
+    private final ao.autocare.modules.fleet.RoutingEngine routingEngine;
     private final AuditService audit;
 
     public IntegrationService(
             IntegrationSettingsRepository repo,
             OrganizationRepository organizations,
             SecretBox cofre,
+            ao.autocare.modules.fleet.RoutingEngine routingEngine,
             AuditService audit,
             @org.springframework.context.annotation.Lazy ao.autocare.modules.telemetry.TraccarPositions traccarPositions) {
         this.traccarPositions = traccarPositions;
         this.repo = repo;
         this.organizations = organizations;
         this.cofre = cofre;
+        this.routingEngine = routingEngine;
         this.audit = audit;
     }
 
@@ -154,8 +157,11 @@ public class IntegrationService {
             if (r.statusCode() == 200) {
                 ok = true;
                 detalhe = "Credenciais aceites pelo servidor Traccar.";
-            } else if (r.statusCode() == 401) {
-                erro = "O servidor respondeu, mas recusou as credenciais.";
+            } else if (r.statusCode() == 401 || r.statusCode() == 403 || r.statusCode() == 400) {
+                // O Traccar 6 responde 400 a um token mal formado e 401 a um
+                // token revogado ou a uma palavra-passe errada: para quem está a
+                // configurar é a mesma coisa — as credenciais não servem.
+                erro = "O servidor respondeu, mas recusou as credenciais (token ou palavra-passe errados).";
             } else {
                 erro = "O servidor respondeu " + r.statusCode() + ".";
             }
@@ -351,7 +357,8 @@ public class IntegrationService {
     @Transactional
     public IntegrationDtos.TestResult testRouting(String orgId, String userId) {
         IntegrationSettings s = forOrganization(orgId);
-        if (!s.hasRouting()) {
+        String motor = routingEngine.motorPara(s);
+        if (motor == null) {
             throw ApiException.badRequest("Defina primeiro o endereço do motor de rotas.");
         }
 
@@ -366,7 +373,7 @@ public class IntegrationService {
                     .build()
                     .send(
                             HttpRequest.newBuilder()
-                                    .uri(URI.create(s.getRoutingUrl()
+                                    .uri(URI.create(motor
                                             + "/route/v1/driving/"
                                             + "13.2344,-8.8383;13.2600,-8.8200"
                                             + "?overview=false"))

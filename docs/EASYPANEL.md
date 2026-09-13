@@ -74,7 +74,15 @@ MAIL_FROM_NAME=IMBONDEIRO OS
 ADMIN_EMAIL=o-seu-email@dominio
 ADMIN_PASSWORD=uma-palavra-passe-forte-so-sua
 ADMIN_NAME=O seu nome
+TRACCAR_URL=https://traccar.o-seu-dominio
+TRACCAR_USER=admin@frota.local
+TRACCAR_PASSWORD=a-palavra-passe-do-admin-do-traccar
+ROUTING_URL=http://IP-DA-VPS-DO-OSRM:5000
 ```
+  `TRACCAR_*`: o **seu** Traccar (passo 5), com o administrador. É com isto que
+  o ecrã Plataforma cria uma conta no Traccar por cada empresa cliente — a
+  empresa nunca vê estas credenciais. `ROUTING_URL`: o motor de rotas (passo 9),
+  usado por todas as empresas sem configurarem nada.
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`: a **sua** conta de administrador da
   plataforma — quem vende o sistema. É criada no primeiro arranque (a
   palavra-passe só conta nesse momento; depois muda-a no Perfil). Em produção
@@ -156,16 +164,20 @@ Abra `https://traccar.o-seu-dominio`: entra com `admin` / `admin` e
 
 ---
 
-## 6. Ligar o IMBONDEIRO OS ao Traccar
+## 6. Ligar cada empresa ao Traccar
 
-No IMBONDEIRO OS, **Configurações → Servidor Traccar**:
-- Endereço: `http://traccar:8082` (ou `http://frota_traccar:8082`)
-- Token: o token do passo 5
-- **Guardar** → **Testar ligação**. Tem de dizer «Credenciais aceites».
+Com `TRACCAR_URL/USER/PASSWORD` no ambiente da API (passo 3), **não há nada a
+fazer por empresa**: ao criar a empresa em **Plataforma → Nova empresa** (com
+«Criar acesso ao Traccar da plataforma» ligado) o sistema cria-lhe uma conta
+no Traccar, gera um token e guarda-o nas Configurações dela. Para uma empresa
+já existente, o botão **Criar acesso** na lista faz o mesmo.
 
-A partir daqui a **sondagem** traz as posições de 20 em 20 s para os
-aparelhos que existirem nos dois lados com o mesmo IMEI (Rastreadores GPS no
-IMBONDEIRO OS; Aparelhos no Traccar).
+A empresa só regista os rastreadores em **Rastreadores GPS** (IMEI): cada um
+passa a existir no Traccar, na conta dela, e a **sondagem** traz as posições
+de 20 em 20 s. Uma empresa nunca vê os aparelhos de outra.
+
+(Uma empresa com o seu próprio Traccar pode, em alternativa, colar o endereço
+e o token em **Configurações → Servidor Traccar → Guardar e testar**.)
 
 ---
 

@@ -81,7 +81,7 @@ public interface CommandProvider {
     Dispatch dispatch(DeviceCommand command);
 
     /** O que o fornecedor sabe do aparelho, incluindo os comandos que aceita. */
-    Optional<DeviceInfo> describeDevice(String externalId);
+    Optional<DeviceInfo> describeDevice(String organizationId, String externalId);
 
     /**
      * Procura prova de execução de um comando já enviado. É isto que transforma
@@ -89,10 +89,17 @@ public interface CommandProvider {
      */
     Evidence confirmationFor(DeviceCommand command);
 
-    /** Testa a ligação sem enviar nada a nenhum aparelho. */
-    ProviderHealth health();
+    /**
+     * Testa a ligação sem enviar nada a nenhum aparelho.
+     *
+     * <p>Cada empresa tem o seu servidor Traccar (Configurações → Servidor
+     * Traccar); por isso tudo aqui leva a empresa. Não há um Traccar «do
+     * sistema»: o do ambiente ({@code TRACCAR_URL}) é só o valor por omissão
+     * para empresas que ainda não configuraram o seu.
+     */
+    ProviderHealth health(String organizationId);
 
-    boolean isConfigured();
+    boolean isConfigured(String organizationId);
 
-    String name();
+    String name(String organizationId);
 }

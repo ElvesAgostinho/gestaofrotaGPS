@@ -65,7 +65,14 @@ public final class TelemetryDtos {
      * Resposta ao criar um aparelho. A {@code ingestKey} é mostrada uma única
      * vez — só o seu SHA-256 fica guardado.
      */
-    public record DeviceCreated(DeviceView device, String ingestKey, String ingestUrl) {}
+    public record DeviceCreated(DeviceView device, String ingestKey, String ingestUrl,
+            /** O que aconteceu do lado do Traccar: registado, já existia, ou o que falta fazer. */
+            String traccarNote) {
+
+        public DeviceCreated(DeviceView device, String ingestKey, String ingestUrl) {
+            this(device, ingestKey, ingestUrl, null);
+        }
+    }
 
     // ---- ingestão de posições ------------------------------------------
     public record PositionInput(

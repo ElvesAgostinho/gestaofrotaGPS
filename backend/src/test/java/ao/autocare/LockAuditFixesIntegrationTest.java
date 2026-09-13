@@ -158,7 +158,7 @@ class LockAuditFixesIntegrationTest extends AbstractIntegrationTest {
         setUpFleet("fx4@teste.ao", "CAM-004");
 
         assertThat(send(post("/api/v1/gps-devices/" + deviceId + "/sync"), null, 409)
-                .get("message").asText()).contains("fornecedor");
+                .get("message").asText()).contains("Servidor Traccar");
     }
 
     // ---- 🔴 estado da ligação ao Traccar ----------------------------------
@@ -169,7 +169,7 @@ class LockAuditFixesIntegrationTest extends AbstractIntegrationTest {
         JsonNode saude = send(get("/api/v1/telemetry/traccar/status"), null, 200);
         assertThat(saude.get("configured").asBoolean()).isFalse();
         assertThat(saude.get("reachable").asBoolean()).isFalse();
-        assertThat(saude.get("failureReason").asText()).contains("TRACCAR_URL");
+        assertThat(saude.get("failureReason").asText()).contains("Configurações");
     }
 
     // ---- 🟠 categoria do motivo -------------------------------------------

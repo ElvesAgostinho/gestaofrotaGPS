@@ -23,6 +23,7 @@ import {
   IconLock,
   IconPencil,
   IconPlus,
+  IconSatellite,
 } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -51,6 +52,8 @@ interface Empresa {
   assetCount: number;
   workOrderCount: number;
   lastActivityAt?: string | null;
+  traccarConfigured: boolean;
+  traccarUrl?: string | null;
 }
 
 interface Resumo {
@@ -61,6 +64,8 @@ interface Resumo {
   suspended: number;
   users: number;
   assets: number;
+  platformTraccarUrl?: string | null;
+  platformRoutingUrl?: string | null;
 }
 
 interface Criada {
@@ -68,6 +73,8 @@ interface Criada {
   ownerEmail: string;
   temporaryPassword?: string | null;
   ownerExisted: boolean;
+  traccar?: { traccarUrl: string; traccarUser: string; existed: boolean } | null;
+  traccarError?: string | null;
 }
 
 const ESTADO: Record<Estado, { label: string; color: string }> = {
@@ -108,7 +115,7 @@ export function PlataformaPage() {
   const [nova, setNova] = useState(false);
   const [editar, setEditar] = useState<Empresa | null>(null);
   const [suspender, setSuspender] = useState<Empresa | null>(null);
-  const [credenciais, setCredenciais] = useState<{ email: string; password: string; titulo: string } | null>(null);
+  const [credenciais, setCredenciais] = useState<{ email: string; password: string; titulo: string; nota?: string; notaCor?: string } | null>(null);
   const [procura, setProcura] = useState('');
   const queryClient = useQueryClient();
 
@@ -136,6 +143,24 @@ export function PlataformaPage() {
       invalidar();
     },
     onError: (e: Error) => notifications.show({ title: 'Não foi possível reativar', message: e.message, color: 'red' }),
+  });
+
+  const provisionarTraccar = useMutation({
+    mutationFn: (e: Empresa) =>
+      api<{ traccarUrl: string; traccarUser: string; existed: boolean }>(
+        `/admin/platform/organizations/${e.id}/traccar`,
+        { method: 'POST' },
+      ),
+    onSuccess: (r, e) => {
+      notifications.show({
+        title: r.existed ? 'Acesso ao Traccar renovado' : 'Acesso ao Traccar criado',
+        message: `${e.name}: conta ${r.traccarUser} em ${r.traccarUrl}. Os rastreadores que a empresa registar passam a existir no Traccar sozinhos.`,
+        color: 'green',
+        autoClose: 10000,
+      });
+      invalidar();
+    },
+    onError: (e: Error) => notifications.show({ title: 'Não foi possível criar o acesso ao Traccar', message: e.message, color: 'red', autoClose: 12000 }),
   });
 
   const reporPassword = useMutation({
@@ -252,6 +277,32 @@ export function PlataformaPage() {
                   </Text>
                 ),
             },
+            {
+              id: 'traccar',
+              titulo: 'GPS (Traccar)',
+              largura: 130,
+              valor: (e) => (e.traccarConfigured ? 1 : 0),
+              render: (e) =>
+                e.traccarConfigured ? (
+                  <Badge variant="light" color="green" size="sm">
+                    ligado
+                  </Badge>
+                ) : resumo?.platformTraccarUrl ? (
+                  <Button
+                    size="compact-xs"
+                    variant="subtle"
+                    leftSection={<IconSatellite size={13} />}
+                    loading={provisionarTraccar.isPending && provisionarTraccar.variables?.id === e.id}
+                    onClick={() => provisionarTraccar.mutate(e)}
+                  >
+                    Criar acesso
+                  </Button>
+                ) : (
+                  <Text size="xs" c="dimmed">
+                    sem Traccar
+                  </Text>
+                ),
+            },
             { id: 'utilizadores', titulo: 'Utiliz.', largura: 80, alinhar: 'right', valor: (e) => e.memberCount },
             { id: 'ativos', titulo: 'Ativos', largura: 80, alinhar: 'right', valor: (e) => e.assetCount },
             { id: 'ordens', titulo: 'Ordens', largura: 80, alinhar: 'right', valor: (e) => e.workOrderCount },
@@ -330,11 +381,20 @@ export function PlataformaPage() {
       <NovaEmpresaModal
         opened={nova}
         onClose={() => setNova(false)}
+        plataformaTemTraccar={!!resumo?.platformTraccarUrl}
         aoCriar={(c) => {
           invalidar();
+          const nota = c.traccar
+            ? `Traccar: conta ${c.traccar.traccarUser} criada em ${c.traccar.traccarUrl}. A empresa só tem de registar os rastreadores (IMEI) em «Rastreadores GPS».`
+            : c.traccarError
+              ? `Traccar: ${c.traccarError} Pode repetir com o botão «Criar acesso» na lista.`
+              : undefined;
           if (c.temporaryPassword) {
-            setCredenciais({ email: c.ownerEmail, password: c.temporaryPassword, titulo: `Acesso do Dono — ${c.organization.name}` });
+            setCredenciais({ email: c.ownerEmail, password: c.temporaryPassword, titulo: `Acesso do Dono — ${c.organization.name}`, nota, notaCor: c.traccarError ? 'orange' : 'green' });
           } else {
+            if (nota) {
+              notifications.show({ title: 'Traccar', message: nota, color: c.traccarError ? 'orange' : 'green', autoClose: 12000 });
+            }
             notifications.show({
               title: 'Empresa criada',
               message: c.ownerExisted
@@ -377,6 +437,11 @@ export function PlataformaPage() {
             <Text size="xs" c="dimmed">
               Endereço para entrar: <Code>{window.location.origin}/entrar</Code>
             </Text>
+            {credenciais.nota && (
+              <Alert color={credenciais.notaCor ?? 'green'} variant="light" p="xs">
+                <Text size="sm">{credenciais.nota}</Text>
+              </Alert>
+            )}
           </Stack>
         )}
       </Modal>
@@ -388,11 +453,14 @@ function NovaEmpresaModal({
   opened,
   onClose,
   aoCriar,
+  plataformaTemTraccar,
 }: {
   opened: boolean;
   onClose: () => void;
   aoCriar: (c: Criada) => void;
+  plataformaTemTraccar: boolean;
 }) {
+  const [criarTraccar, setCriarTraccar] = useState(true);
   const [name, setName] = useState('');
   const [taxId, setTaxId] = useState('');
   const [city, setCity] = useState('');
@@ -431,6 +499,7 @@ function NovaEmpresaModal({
           ownerPassword: escolherPassword && ownerPassword ? ownerPassword : null,
           licenseUntil: paraIso(licenseUntil),
           platformNotes: notas.trim() || null,
+          provisionTraccar: plataformaTemTraccar && criarTraccar,
         },
       }),
     onSuccess: (c) => {
@@ -474,6 +543,16 @@ function NovaEmpresaModal({
             <PasswordInput mt="xs" label="Palavra-passe inicial" description="Pelo menos 8 caracteres." value={ownerPassword} onChange={(e) => setOwnerPassword(e.currentTarget.value)} />
           )}
         </SeccaoForm>
+
+        {plataformaTemTraccar && (
+          <SeccaoForm titulo="GPS" descricao="A empresa recebe uma conta própria no Traccar da plataforma, com token já guardado nas Configurações dela. Os rastreadores que registar ficam só na conta dela.">
+            <Switch
+              label="Criar acesso ao Traccar da plataforma"
+              checked={criarTraccar}
+              onChange={(e) => setCriarTraccar(e.currentTarget.checked)}
+            />
+          </SeccaoForm>
+        )}
 
         <SeccaoForm titulo="Licença" descricao="No dia seguinte ao prazo, os utilizadores da empresa ficam travados até renovar. Sem prazo = sem fim.">
           <DateInput label="Válida até" value={licenseUntil} onChange={setLicenseUntil} valueFormat="DD/MM/YYYY" clearable placeholder="sem prazo" />

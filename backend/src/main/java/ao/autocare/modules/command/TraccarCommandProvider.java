@@ -21,9 +21,9 @@ import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
-import org.springframework.context.annotation.Primary;
+import ao.autocare.domain.IntegrationSettings;
+import ao.autocare.repo.IntegrationSettingsRepository;
+import ao.autocare.security.SecretBox;
 import org.springframework.stereotype.Component;
 
 /**
@@ -44,17 +44,21 @@ import org.springframework.stereotype.Component;
  *   <li>{@code GET  /api/reports/events?type=commandResult} — resposta do aparelho</li>
  * </ul>
  *
- * <p><b>Nada disto foi verificado contra um Traccar real</b> — não há nenhum
- * configurado nesta instalação. O endpoint de diagnóstico
- * {@code GET /api/v1/telemetry/traccar/status} existe precisamente para isso:
- * confirmar a ligação antes de confiar no bloqueio.
+ * <p>O servidor é o de <b>cada empresa</b> (Configurações → Servidor Traccar:
+ * endereço e token, guardados cifrados; a plataforma pode criá-los por ela).
+ * Sem isso, tudo aqui recusa em vez de fingir — num bloqueio de motor,
+ * «enviado» sem ter enviado é a pior mentira possível.
  */
 @Component
-@Primary
-// Sobre o conteúdo, não a presença: TRACCAR_URL tem um valor por omissão vazio,
-// e @ConditionalOnProperty daria esta classe por ativa sem servidor nenhum.
-@ConditionalOnExpression("'${autocare.traccar.url:}' != ''")
 public class TraccarCommandProvider implements CommandProvider {
+
+    static final String NOT_CONFIGURED =
+            "Esta empresa não tem servidor Traccar configurado. "
+                    + "Vá a Configurações → Servidor Traccar, indique o endereço e o token "
+                    + "e carregue em «Testar ligação».";
+
+    /** Um servidor e a forma de lhe falar. */
+    private record Ligacao(String baseUrl, String authorization) {}
 
     private static final Logger log = LoggerFactory.getLogger(TraccarCommandProvider.class);
 
@@ -74,36 +78,66 @@ public class TraccarCommandProvider implements CommandProvider {
 
     private final HttpClient http;
     private final ObjectMapper json;
-    private final String baseUrl;
-    private final String authorization;
+    private final IntegrationSettingsRepository settings;
+    private final SecretBox cofre;
 
     public TraccarCommandProvider(
             ObjectMapper json,
-            @Value("${autocare.traccar.url}") String baseUrl,
-            @Value("${autocare.traccar.user:}") String user,
-            @Value("${autocare.traccar.password:}") String password,
-            @Value("${autocare.traccar.token:}") String token) {
-
+            IntegrationSettingsRepository settings,
+            SecretBox cofre) {
         this.json = json;
-        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.settings = settings;
+        this.cofre = cofre;
         this.http = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
+    }
 
+    private static Ligacao ligacao(String baseUrl, String user, String password, String token) {
+        String base = baseUrl.trim();
+        base = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        String auth;
         if (token != null && !token.isBlank()) {
-            this.authorization = "Bearer " + token;
+            auth = "Bearer " + token.trim();
         } else if (user != null && !user.isBlank()) {
-            this.authorization = "Basic " + Base64.getEncoder().encodeToString(
-                    (user + ":" + password).getBytes(StandardCharsets.UTF_8));
+            auth = "Basic " + Base64.getEncoder().encodeToString(
+                    (user + ":" + (password == null ? "" : password)).getBytes(StandardCharsets.UTF_8));
         } else {
-            this.authorization = null;
+            auth = null;
         }
+        return new Ligacao(base, auth);
+    }
+
+    /**
+     * O servidor desta empresa, ou vazio. De propósito sem recurso ao Traccar
+     * do ambiente: com credenciais de administrador, um comando de uma empresa
+     * podia chegar a um aparelho de outra que tivesse o mesmo IMEI.
+     */
+    private Optional<Ligacao> ligacaoDe(String organizationId) {
+        if (organizationId == null) {
+            return Optional.empty();
+        }
+        return settings.findByOrganizationId(organizationId)
+                .filter(IntegrationSettings::hasTraccar)
+                .map(s -> ligacao(s.getTraccarUrl(), s.getTraccarUser(),
+                        cofre.decrypt(s.getTraccarPasswordEnc()),
+                        cofre.decrypt(s.getTraccarTokenEnc())));
+    }
+
+    private static String orgDe(DeviceCommand command) {
+        return command.getOrganization() != null ? command.getOrganization().getId() : null;
     }
 
     // ==== Envio =========================================================
     @Override
     public Dispatch dispatch(DeviceCommand command) {
         String externalId = command.getDevice().getExternalId();
+        Ligacao lig = ligacaoDe(orgDe(command)).orElse(null);
+        if (lig == null) {
+            log.warn("Sem servidor Traccar para a empresa {}: NÃO foi enviado {} ao aparelho {}.",
+                    orgDe(command), command.getKind(), externalId);
+            return Dispatch.rejected(NOT_CONFIGURED);
+        }
         try {
-            Optional<DeviceInfo> info = describeDevice(externalId);
+            Optional<DeviceInfo> info = describeDevice(lig, externalId);
             if (info.isEmpty()) {
                 return Dispatch.rejected("O aparelho " + externalId + " não existe no Traccar.");
             }
@@ -124,7 +158,7 @@ public class TraccarCommandProvider implements CommandProvider {
                     "type", type));
 
             HttpResponse<String> response = send(
-                    request("/api/commands/send")
+                    request(lig, "/api/commands/send")
                             .header("Content-Type", "application/json")
                             .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
                             .build());
@@ -150,10 +184,14 @@ public class TraccarCommandProvider implements CommandProvider {
 
     // ==== Aparelho ======================================================
     @Override
-    public Optional<DeviceInfo> describeDevice(String externalId) {
+    public Optional<DeviceInfo> describeDevice(String organizationId, String externalId) {
+        return ligacaoDe(organizationId).flatMap(lig -> describeDevice(lig, externalId));
+    }
+
+    private Optional<DeviceInfo> describeDevice(Ligacao lig, String externalId) {
         try {
             HttpResponse<String> response = send(
-                    request("/api/devices?uniqueId=" + encode(externalId)).GET().build());
+                    request(lig, "/api/devices?uniqueId=" + encode(externalId)).GET().build());
             if (response.statusCode() / 100 != 2 || response.body().isBlank()) {
                 return Optional.empty();
             }
@@ -170,7 +208,7 @@ public class TraccarCommandProvider implements CommandProvider {
                     device.path("protocol").asText(null),
                     status,
                     "online".equalsIgnoreCase(status),
-                    supportedCommands(providerId)));
+                    supportedCommands(lig, providerId)));
 
         } catch (Exception e) {
             log.warn("Falha ao consultar o aparelho {} no Traccar: {}", externalId, e.toString());
@@ -183,10 +221,10 @@ public class TraccarCommandProvider implements CommandProvider {
      * forma de saber se "engineStop" existe neste protocolo sem o experimentar
      * numa viatura real.
      */
-    private List<String> supportedCommands(String providerDeviceId) {
+    private List<String> supportedCommands(Ligacao lig, String providerDeviceId) {
         try {
             HttpResponse<String> response = send(
-                    request("/api/commands/types?deviceId=" + encode(providerDeviceId))
+                    request(lig, "/api/commands/types?deviceId=" + encode(providerDeviceId))
                             .GET().build());
             if (response.statusCode() / 100 != 2 || response.body().isBlank()) {
                 return List.of();
@@ -223,6 +261,10 @@ public class TraccarCommandProvider implements CommandProvider {
     @Override
     public Evidence confirmationFor(DeviceCommand command) {
         String externalId = command.getDevice().getExternalId();
+        Ligacao lig = ligacaoDe(orgDe(command)).orElse(null);
+        if (lig == null) {
+            return Evidence.none();
+        }
         try {
             // O id do aparelho no fornecedor já está guardado desde a
             // sincronização. Voltar a procurá-lo em cada sondagem custava dois
@@ -230,14 +272,14 @@ public class TraccarCommandProvider implements CommandProvider {
             // comandos suportados, que aqui não serve para nada.
             String providerId = command.getDevice().getProviderDeviceId();
             if (providerId == null || providerId.isBlank()) {
-                Optional<DeviceInfo> info = describeDevice(externalId);
+                Optional<DeviceInfo> info = describeDevice(lig, externalId);
                 if (info.isEmpty()) {
                     return Evidence.none();
                 }
                 providerId = info.get().providerDeviceId();
             }
 
-            Optional<Boolean> blocked = reportedLockState(providerId);
+            Optional<Boolean> blocked = reportedLockState(lig, providerId);
             if (blocked.isPresent()) {
                 boolean expected = command.getKind() == DeviceCommandKind.ENGINE_STOP;
                 if (blocked.get() == expected) {
@@ -251,7 +293,7 @@ public class TraccarCommandProvider implements CommandProvider {
                         "O aparelho ainda reporta o estado anterior.");
             }
 
-            Optional<String> result = commandResult(providerId, command.getSentAt());
+            Optional<String> result = commandResult(lig, providerId, command.getSentAt());
             if (result.isPresent()) {
                 return new Evidence(true, Optional.empty(),
                         CommandConfirmationSource.TRACCAR_EVENT,
@@ -266,9 +308,9 @@ public class TraccarCommandProvider implements CommandProvider {
     }
 
     /** Atributo {@code blocked} da última posição, quando o protocolo o reporta. */
-    private Optional<Boolean> reportedLockState(String providerDeviceId) throws Exception {
+    private Optional<Boolean> reportedLockState(Ligacao lig, String providerDeviceId) throws Exception {
         HttpResponse<String> response = send(
-                request("/api/positions?deviceId=" + encode(providerDeviceId)).GET().build());
+                request(lig, "/api/positions?deviceId=" + encode(providerDeviceId)).GET().build());
         if (response.statusCode() / 100 != 2 || response.body().isBlank()) {
             return Optional.empty();
         }
@@ -284,7 +326,7 @@ public class TraccarCommandProvider implements CommandProvider {
     }
 
     /** Evento {@code commandResult} posterior ao envio, se o aparelho respondeu. */
-    private Optional<String> commandResult(String providerDeviceId, Instant sentAt)
+    private Optional<String> commandResult(Ligacao lig, String providerDeviceId, Instant sentAt)
             throws Exception {
 
         Instant from = sentAt != null ? sentAt : Instant.now().minus(EVENT_WINDOW);
@@ -295,7 +337,7 @@ public class TraccarCommandProvider implements CommandProvider {
                 + "&to=" + encode(DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 
         HttpResponse<String> response = send(
-                request(path).header("Accept", "application/json").GET().build());
+                request(lig, path).header("Accept", "application/json").GET().build());
         if (response.statusCode() / 100 != 2 || response.body().isBlank()) {
             return Optional.empty();
         }
@@ -309,27 +351,45 @@ public class TraccarCommandProvider implements CommandProvider {
 
     // ==== Diagnóstico ===================================================
     @Override
-    public ProviderHealth health() {
-        if (authorization == null) {
-            return new ProviderHealth(true, false, name(), null,
-                    "Faltam as credenciais: defina TRACCAR_TOKEN ou "
-                            + "TRACCAR_USER e TRACCAR_PASSWORD.");
+    public ProviderHealth health(String organizationId) {
+        Ligacao lig = ligacaoDe(organizationId).orElse(null);
+        String nome = name(organizationId);
+        if (lig == null) {
+            return new ProviderHealth(false, false, nome, null, NOT_CONFIGURED);
+        }
+        if (lig.authorization() == null) {
+            return new ProviderHealth(true, false, nome, null,
+                    "Faltam as credenciais: indique o token de acesso (ou utilizador e "
+                            + "palavra-passe) em Configurações → Servidor Traccar.");
         }
         try {
-            HttpResponse<String> response = send(request("/api/server").GET().build());
-            if (response.statusCode() == 401 || response.statusCode() == 403) {
-                return new ProviderHealth(true, false, name(), null,
-                        "O Traccar recusou as credenciais (HTTP " + response.statusCode() + ").");
+            // /api/devices e não /api/session: o Traccar 6 responde 404 à sessão
+            // quando a autenticação é por token, e /api/server nem sempre exige
+            // credenciais — só a lista de aparelhos prova que o token serve.
+            HttpResponse<String> response = send(request(lig, "/api/devices").GET().build());
+            if (response.statusCode() == 401 || response.statusCode() == 403
+                    || response.statusCode() == 400) {
+                return new ProviderHealth(true, false, nome, null,
+                        "O Traccar recusou as credenciais (HTTP " + response.statusCode()
+                                + "): token ou palavra-passe errados.");
             }
             if (response.statusCode() / 100 != 2) {
-                return new ProviderHealth(true, false, name(), null,
+                return new ProviderHealth(true, false, nome, null,
                         "O Traccar respondeu HTTP " + response.statusCode() + ".");
             }
-            String version = json.readTree(response.body()).path("version").asText(null);
-            return new ProviderHealth(true, true, name(), version, null);
+            String version = null;
+            try {
+                HttpResponse<String> servidor = send(request(lig, "/api/server").GET().build());
+                if (servidor.statusCode() / 100 == 2) {
+                    version = json.readTree(servidor.body()).path("version").asText(null);
+                }
+            } catch (Exception ignorada) {
+                // a versão é cosmética
+            }
+            return new ProviderHealth(true, true, nome, version, null);
 
         } catch (Exception e) {
-            return new ProviderHealth(true, false, name(), null,
+            return new ProviderHealth(true, false, nome, null,
                     "Não foi possível contactar o Traccar: " + e.getMessage());
         }
     }
@@ -346,12 +406,12 @@ public class TraccarCommandProvider implements CommandProvider {
         return node.hasNonNull("id") ? node.get("id").asText() : null;
     }
 
-    private HttpRequest.Builder request(String path) {
+    private HttpRequest.Builder request(Ligacao lig, String path) {
         HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .uri(URI.create(baseUrl + path))
+                .uri(URI.create(lig.baseUrl() + path))
                 .timeout(TIMEOUT);
-        if (authorization != null) {
-            builder.header("Authorization", authorization);
+        if (lig.authorization() != null) {
+            builder.header("Authorization", lig.authorization());
         }
         return builder;
     }
@@ -372,12 +432,14 @@ public class TraccarCommandProvider implements CommandProvider {
     }
 
     @Override
-    public boolean isConfigured() {
-        return true;
+    public boolean isConfigured(String organizationId) {
+        return ligacaoDe(organizationId).isPresent();
     }
 
     @Override
-    public String name() {
-        return "Traccar (" + baseUrl + ")";
+    public String name(String organizationId) {
+        return ligacaoDe(organizationId)
+                .map(l -> "Traccar (" + l.baseUrl() + ")")
+                .orElse("Traccar (sem servidor configurado)");
     }
 }

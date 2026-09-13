@@ -278,10 +278,11 @@ function ProviderWarning({ status }: { status: LockStatus }) {
   if (!status.providerConfigured) {
     return (
       <Alert color="orange" variant="light" icon={<IconAlertTriangle size={18} />}>
-        <b>Não é possível bloquear viaturas.</b> Não há servidor de comandos configurado
-        ({status.providerName}). O IMBONDEIRO OS recebe posições mas não mantém ligação aos
-        aparelhos — o bloqueio é entregue por um servidor Traccar, que tem de ser
-        configurado. Ver <code>docs/TRACCAR.md</code>.
+        <b>Não é possível bloquear viaturas.</b> Esta empresa não tem servidor Traccar
+        configurado. O IMBONDEIRO OS recebe posições mas não mantém ligação aos aparelhos — o
+        bloqueio é entregue pelo Traccar da empresa. Configure-o em{' '}
+        <b>Configurações → Servidor Traccar</b> (endereço e token) e carregue em «Guardar e
+        testar».
       </Alert>
     );
   }

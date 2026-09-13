@@ -101,6 +101,7 @@ public class TelemetryService {
     private final SpeedWatch speedWatch;
     private final CommsWatch commsWatch;
     private final AuditService audit;
+    private final ao.autocare.modules.integration.TraccarAccounts traccarAccounts;
 
     public TelemetryService(
             GpsDeviceRepository devices,
@@ -117,7 +118,8 @@ public class TelemetryService {
             CommsWatch commsWatch,
             AuditService audit,
             ao.autocare.modules.fuel.FuelSensorWatch fuelSensor,
-            @org.springframework.context.annotation.Lazy ao.autocare.modules.meter.MeterService meterService) {
+            @org.springframework.context.annotation.Lazy ao.autocare.modules.meter.MeterService meterService,
+            ao.autocare.modules.integration.TraccarAccounts traccarAccounts) {
         this.meterService = meterService;
         this.fuelSensor = fuelSensor;
         this.devices = devices;
@@ -133,6 +135,7 @@ public class TelemetryService {
         this.speedWatch = speedWatch;
         this.commsWatch = commsWatch;
         this.audit = audit;
+        this.traccarAccounts = traccarAccounts;
     }
 
     // ==== Aparelhos =====================================================
@@ -162,7 +165,13 @@ public class TelemetryService {
         devices.save(d);
 
         audit.record(orgId, userId, "gps_device.create", "GpsDevice", d.getId(), externalId);
-        return new DeviceCreated(DeviceView.of(d), key, "/api/v1/telemetry/positions");
+
+        // Registar também no Traccar da empresa, para que ninguém tenha de o
+        // cadastrar duas vezes. A frase diz o que aconteceu — e o que falta, se falhou.
+        String nota = traccarAccounts.registarAparelho(orgId, externalId,
+                d.getName() != null ? d.getName()
+                        : (d.getAsset() != null ? d.getAsset().getTag() : externalId));
+        return new DeviceCreated(DeviceView.of(d), key, "/api/v1/telemetry/positions", nota);
     }
 
     @Transactional
@@ -195,6 +204,7 @@ public class TelemetryService {
         GpsDevice d = requireDevice(orgId, id);
         String externalId = d.getExternalId();
         devices.delete(d);
+        traccarAccounts.apagarAparelho(orgId, externalId);
         audit.record(orgId, userId, "gps_device.delete", "GpsDevice", id, externalId);
     }
 

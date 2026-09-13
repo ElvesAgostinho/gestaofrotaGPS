@@ -80,9 +80,18 @@ public final class IntegrationDtos {
             boolean routingConfigured,
             Boolean routingOk,
             Instant routingCheckedAt,
-            String routingLastError) {
+            String routingLastError,
+            /** Motor de rotas da plataforma, usado quando a empresa não tem o seu. */
+            String routingPlatformUrl,
+            /** Traccar da plataforma: a empresa pode pedir uma conta lá em vez de trazer a sua. */
+            boolean traccarPlatformAvailable) {
 
         public static SettingsView of(IntegrationSettings s) {
+            return of(s, null, false);
+        }
+
+        public static SettingsView of(IntegrationSettings s, String routingPlatformUrl,
+                boolean traccarPlatformAvailable) {
             return new SettingsView(
                     s.getTraccarUrl(),
                     s.getTraccarUser(),
@@ -114,7 +123,9 @@ public final class IntegrationDtos {
                     s.hasRouting(),
                     s.getRoutingOk(),
                     s.getRoutingCheckedAt(),
-                    s.getRoutingLastError());
+                    s.getRoutingLastError(),
+                    routingPlatformUrl,
+                    traccarPlatformAvailable);
         }
     }
 }

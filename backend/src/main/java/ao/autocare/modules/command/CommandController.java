@@ -61,8 +61,7 @@ public class CommandController {
     @RequireRole(MembershipRole.MANAGER)
     @GetMapping("/api/v1/telemetry/traccar/status")
     public ProviderHealthView providerHealth(@AuthenticationPrincipal AuthPrincipal p) {
-        org(p);
-        return service.providerHealth();
+        return service.providerHealth(org(p));
     }
 
     @Operation(summary = "Sincronizar um aparelho com o fornecedor",

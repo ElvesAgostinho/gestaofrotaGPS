@@ -94,13 +94,18 @@ autocare:
     from: ${MAIL_FROM:}
     from-name: ${MAIL_FROM_NAME:IMBONDEIRO OS}
   traccar:
-    # Servidor que mantem a ligacao aos aparelhos e entrega os comandos de
-    # bloqueio. Sem TRACCAR_URL o sistema NAO consegue bloquear viaturas, e
-    # di-lo claramente em vez de fingir que enviou.
+    # O Traccar DA PLATAFORMA (de quem vende o sistema), com credenciais de
+    # administrador. Serve para o ecra «Plataforma» criar a conta de cada
+    # empresa cliente e guardar-lhe o token nas Configuracoes dela. Cada
+    # empresa fala com o Traccar pela sua propria conta; estas credenciais
+    # nunca sao usadas para posicoes nem para comandos.
     url: ${TRACCAR_URL:}
     user: ${TRACCAR_USER:}
     password: ${TRACCAR_PASSWORD:}
-    token: ${TRACCAR_TOKEN:}
+  routing:
+    # Motor de rotas (OSRM) da plataforma: usado por todas as empresas que nao
+    # tenham o seu proprio em Configuracoes -> Motor de rotas.
+    url: ${ROUTING_URL:}
   storage:
     local-path: ${STORAGE_PATH:./data/files}
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:}

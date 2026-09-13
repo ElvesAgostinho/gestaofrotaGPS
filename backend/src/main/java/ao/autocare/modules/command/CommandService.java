@@ -286,7 +286,7 @@ public class CommandService {
                 notifyManagers(c, "Bloqueio substituído — " + c.getAsset().getTag(),
                         "Foi pedido o desbloqueio desta viatura enquanto um bloqueio estava "
                                 + "por confirmar. O bloqueio já tinha sido entregue ao "
-                                + provider.name() + " e não pode ser recolhido daqui. Se o "
+                                + provider.name(c.getOrganization().getId()) + " e não pode ser recolhido daqui. Se o "
                                 + "aparelho estava offline, confirme no local que a viatura "
                                 + "arranca.");
             }
@@ -357,9 +357,9 @@ public class CommandService {
                         : "Desbloqueio enviado — ") + c.getAsset().getTag(),
                 dispatch.queued()
                         ? "O aparelho está offline: o comando ficou em fila no "
-                                + provider.name() + " e será executado quando ele ligar. "
+                                + provider.name(c.getOrganization().getId()) + " e será executado quando ele ligar. "
                                 + "A viatura NÃO está bloqueada."
-                        : "Entregue a " + provider.name() + ". Aguarda confirmação do aparelho.");
+                        : "Entregue a " + provider.name(c.getOrganization().getId()) + ". Aguarda confirmação do aparelho.");
     }
 
     /**
@@ -448,7 +448,7 @@ public class CommandService {
         notifyManagers(c,
                 (bloqueio ? "Bloqueio por confirmar — " : "Desbloqueio por confirmar — ")
                         + c.getAsset().getTag(),
-                "O comando foi entregue a " + provider.name() + " mas o aparelho nunca "
+                "O comando foi entregue a " + provider.name(c.getOrganization().getId()) + " mas o aparelho nunca "
                         + "confirmou a execução em " + CONFIRMATION_DEADLINE.toMinutes()
                         + " minutos. NÃO se sabe se a viatura está "
                         + (bloqueio ? "bloqueada" : "a poder arrancar")
@@ -551,7 +551,8 @@ public class CommandService {
                         ? CommandView.confirmationLabel(lastConfirmed.getConfirmationSource())
                         : null,
                 pending.isEmpty() ? null : view(pending.get(0)),
-                provider.isConfigured(), provider.name(),
+                provider.isConfigured(asset.getOrganization().getId()),
+                provider.name(asset.getOrganization().getId()),
                 device != null ? device.getExternalId() : null,
                 device != null ? device.getProtocol() : null,
                 immobiliser,
@@ -563,8 +564,8 @@ public class CommandService {
 
     /** Estado da ligação ao fornecedor, sem enviar nada a nenhum aparelho. */
     @Transactional(readOnly = true)
-    public ProviderHealthView providerHealth() {
-        CommandProvider.ProviderHealth health = provider.health();
+    public ProviderHealthView providerHealth(String orgId) {
+        CommandProvider.ProviderHealth health = provider.health(orgId);
         return new ProviderHealthView(health.configured(), health.reachable(),
                 health.name(), health.version(), health.failureReason());
     }
@@ -581,14 +582,13 @@ public class CommandService {
         GpsDevice device = devices.findByIdAndOrganizationId(deviceId, orgId)
                 .orElseThrow(() -> ApiException.notFound("Aparelho não encontrado."));
 
-        if (!provider.isConfigured()) {
-            throw ApiException.conflict(
-                    "Não há fornecedor de comandos configurado; não há a quem perguntar.");
+        if (!provider.isConfigured(orgId)) {
+            throw ApiException.conflict(TraccarCommandProvider.NOT_CONFIGURED);
         }
-        CommandProvider.DeviceInfo info = provider.describeDevice(device.getExternalId())
+        CommandProvider.DeviceInfo info = provider.describeDevice(orgId, device.getExternalId())
                 .orElseThrow(() -> ApiException.notFound(
                         "O aparelho " + device.getExternalId() + " não existe no "
-                                + provider.name() + ". Verifique o identificador único."));
+                                + provider.name(orgId) + ". Verifique o identificador único (IMEI)."));
 
         device.setProviderDeviceId(info.providerDeviceId());
         device.setProtocol(info.protocol());

@@ -40,7 +40,10 @@ public final class PlatformDtos {
             long memberCount,
             long assetCount,
             long workOrderCount,
-            Instant lastActivityAt) {}
+            Instant lastActivityAt,
+            /** A empresa já tem servidor Traccar nas Configurações (dela ou da plataforma). */
+            boolean traccarConfigured,
+            String traccarUrl) {}
 
     public record Summary(
             long organizations,
@@ -49,7 +52,11 @@ public final class PlatformDtos {
             long expired,
             long suspended,
             long users,
-            long assets) {}
+            long assets,
+            /** Traccar da plataforma (nulo se o ambiente não o tiver). */
+            String platformTraccarUrl,
+            /** Motor de rotas da plataforma (nulo se o ambiente não o tiver). */
+            String platformRoutingUrl) {}
 
     public record CreateOrganizationRequest(
             @NotBlank @Size(max = 160) String name,
@@ -60,7 +67,9 @@ public final class PlatformDtos {
             /** Vazio = o sistema gera uma e devolve-a uma única vez. */
             @Size(min = 8, max = 100) String ownerPassword,
             LocalDate licenseUntil,
-            @Size(max = 1000) String platformNotes) {}
+            @Size(max = 1000) String platformNotes,
+            /** Criar já a conta da empresa no Traccar da plataforma (por omissão sim, se houver). */
+            Boolean provisionTraccar) {}
 
     public record UpdateOrganizationRequest(
             @Size(max = 160) String name,
@@ -78,7 +87,13 @@ public final class PlatformDtos {
             /** Só vem preenchida quando o sistema a gerou. Mostra-se uma vez e não se guarda. */
             String temporaryPassword,
             /** O email já tinha conta: foi associado como Dono sem mexer na palavra-passe. */
-            boolean ownerExisted) {}
+            boolean ownerExisted,
+            /** Conta criada no Traccar da plataforma, ou nulo. */
+            TraccarProvisioned traccar,
+            /** Por que não se criou a conta no Traccar, quando foi pedida e falhou. */
+            String traccarError) {}
+
+    public record TraccarProvisioned(String traccarUrl, String traccarUser, boolean existed) {}
 
     public record OwnerPasswordReset(String ownerEmail, String temporaryPassword) {}
 

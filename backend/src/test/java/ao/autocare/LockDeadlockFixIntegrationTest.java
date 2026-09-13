@@ -52,7 +52,7 @@ class LockDeadlockFixIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Override
-        public Optional<DeviceInfo> describeDevice(String externalId) {
+        public Optional<DeviceInfo> describeDevice(String organizationId, String externalId) {
             return Optional.of(new DeviceInfo("42", "gt06", "online", true, supported));
         }
 
@@ -62,17 +62,17 @@ class LockDeadlockFixIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Override
-        public ProviderHealth health() {
-            return new ProviderHealth(true, true, name(), "6.5", null);
+        public ProviderHealth health(String organizationId) {
+            return new ProviderHealth(true, true, name(organizationId), "6.5", null);
         }
 
         @Override
-        public boolean isConfigured() {
+        public boolean isConfigured(String organizationId) {
             return true;
         }
 
         @Override
-        public String name() {
+        public String name(String organizationId) {
             return "Fornecedor de teste";
         }
     }
