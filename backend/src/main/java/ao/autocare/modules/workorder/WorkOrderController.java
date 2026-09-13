@@ -52,15 +52,18 @@ public class WorkOrderController {
     private final SupplierService supplierService;
     private final WorkOrderAttachmentService attachments;
     private final WorkOrderPdfService pdfService;
+    private final ao.autocare.modules.org.DocumentSealService seals;
     private final OrgContext orgContext;
 
     public WorkOrderController(WorkOrderService service, OrgContext orgContext, SupplierService supplierService,
             WorkOrderAttachmentService attachments,
-            WorkOrderPdfService pdfService) {
+            WorkOrderPdfService pdfService,
+            ao.autocare.modules.org.DocumentSealService seals) {
         this.service = service;
         this.supplierService = supplierService;
         this.attachments = attachments;
         this.pdfService = pdfService;
+        this.seals = seals;
         this.orgContext = orgContext;
     }
 
@@ -338,7 +341,9 @@ public class WorkOrderController {
     public ResponseEntity<byte[]> print(
             @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
 
-        byte[] pdf = pdfService.render(org(p), id, canSeeCosts(p));
+        WorkOrderView ordem = service.get(org(p), id);
+        byte[] pdf = seals.emitir(org(p), p.id(), "WORK_ORDER", id, ordem.number(),
+                selo -> pdfService.render(org(p), id, canSeeCosts(p), selo));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"ordem-manutencao.pdf\"")

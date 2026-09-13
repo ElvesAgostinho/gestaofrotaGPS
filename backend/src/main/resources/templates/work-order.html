@@ -224,6 +224,10 @@
   <span th:text="${org}"></span> ·
   Emitido em <span th:text="${generatedAt}"></span>
   <span th:if="${!w.showMoney}"> · Documento sem valores financeiros</span>
+  <span th:if="${selo != null}" style="display:block; margin-top:2px; color:#52525b;">
+    Código de verificação <b th:text="${selo.code()}" style="letter-spacing:0.6pt;">XXXX-XXXX-XXXX</b>
+    · confirme em <span th:text="${selo.verifyUrl()}"></span>
+  </span>
 </div>
 
 </body>

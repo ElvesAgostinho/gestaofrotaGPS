@@ -29,9 +29,13 @@
 
 <!-- O rodapé: a marca do software, pequena, e quando foi gerado. -->
 <div th:fragment="rodape(geradoEm)" class="foot"
-     style="margin-top:16px; padding-top:5px; border-top:1px solid #d4d4d8; font-size:7pt; color:#a1a1aa;"
-     th:text="'Gerado por IMBONDEIRO OS em ' + ${geradoEm} + '. Documento emitido pelo sistema; a assinatura confere-lhe validade.'">
-  Rodapé
+     style="margin-top:16px; padding-top:5px; border-top:1px solid #d4d4d8; font-size:7pt; color:#a1a1aa;">
+  <span th:text="'Gerado por IMBONDEIRO OS em ' + ${geradoEm} + '. Documento emitido pelo sistema; a assinatura confere-lhe validade.'">Rodapé</span>
+  <!-- O selo: quem recebe o papel verifica que foi emitido por esta empresa e que não foi alterado. -->
+  <span th:if="${selo != null}" style="display:block; margin-top:2px; color:#52525b;">
+    Código de verificação <b th:text="${selo.code()}" style="letter-spacing:0.6pt;">XXXX-XXXX-XXXX</b>
+    · confirme em <span th:text="${selo.verifyUrl()}"></span>
+  </span>
 </div>
 </body>
 </html>

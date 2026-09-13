@@ -77,6 +77,12 @@ public class AssetHistoryPdfService {
 
     @Transactional(readOnly = true)
     public byte[] render(String orgId, String assetId, boolean showMoney) {
+        return render(orgId, assetId, showMoney, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] render(String orgId, String assetId, boolean showMoney,
+            ao.autocare.modules.org.DocumentSealService.Selo selo) {
         Asset a = assets.findByIdAndOrganizationId(assetId, orgId)
                 .orElseThrow(() -> ApiException.notFound("Ativo não encontrado."));
 
@@ -150,6 +156,6 @@ public class AssetHistoryPdfService {
                 numero(paragemTotal, 1),
                 ordens, execucoes);
 
-        return renderer.render("asset-history", letterhead.of(a.getOrganization()), "h", doc);
+        return renderer.render("asset-history", letterhead.of(a.getOrganization()), "h", doc, selo);
     }
 }

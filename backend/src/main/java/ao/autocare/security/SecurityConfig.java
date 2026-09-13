@@ -57,6 +57,8 @@ public class SecurityConfig {
         // Ingestão de GPS: quem publica é o aparelho, autenticado pela sua chave
         "/api/v1/telemetry/positions",
         "/api/v1/telemetry/traccar/forward",
+        // Verificar um documento carregando o ficheiro: publico, sem conta
+        "/api/v1/public/verify/*",
     };
 
     private final JwtAuthenticationFilter jwtFilter;

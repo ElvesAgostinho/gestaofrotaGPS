@@ -93,10 +93,17 @@ public class WorkOrderPdfService {
 
     @Transactional(readOnly = true)
     public byte[] render(String orgId, String workOrderId, boolean showMoney) {
+        return render(orgId, workOrderId, showMoney, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] render(String orgId, String workOrderId, boolean showMoney,
+            ao.autocare.modules.org.DocumentSealService.Selo selo) {
         WorkOrder w = workOrders.findByIdAndOrganizationId(workOrderId, orgId)
                 .orElseThrow(() -> ApiException.notFound("Ordem não encontrada."));
 
         Context ctx = new Context(Locale.forLanguageTag("pt"));
+        ctx.setVariable("selo", selo);
         ctx.setVariable("w", build(w, showMoney));
         ctx.setVariable("org", w.getOrganization().getName());
         ctx.setVariable("timbre", letterhead.of(w.getOrganization()));

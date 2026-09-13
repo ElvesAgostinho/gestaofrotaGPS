@@ -60,6 +60,8 @@ public class ReportService {
     private final ao.autocare.repo.FuelAnomalyRepository fuelAnomalies;
     private final KpiService kpis;
     private final ao.autocare.repo.TyreRepository tyres;
+    private final ao.autocare.repo.AuditLogRepository auditLogs;
+    private final ao.autocare.repo.UserRepository usersRepo;
 
     public ReportService(
             AssetRepository assets,
@@ -73,7 +75,9 @@ public class ReportService {
             ao.autocare.repo.AssetMeterRepository meters,
             ao.autocare.repo.FuelRecordRepository fuelRecords,
             ao.autocare.repo.FuelAnomalyRepository fuelAnomalies,
-            ao.autocare.repo.TyreRepository tyres) {
+            ao.autocare.repo.TyreRepository tyres,
+            ao.autocare.repo.AuditLogRepository auditLogs,
+            ao.autocare.repo.UserRepository usersRepo) {
         this.assets = assets;
         this.criticalities = criticalities;
         this.workOrders = workOrders;
@@ -86,6 +90,8 @@ public class ReportService {
         this.fuelAnomalies = fuelAnomalies;
         this.kpis = kpis;
         this.tyres = tyres;
+        this.auditLogs = auditLogs;
+        this.usersRepo = usersRepo;
     }
 
     @Transactional(readOnly = true)
@@ -404,6 +410,32 @@ public class ReportService {
                     t.getRemovalReason() != null ? t.getRemovalReason().name() : null,
                     t.distanceRun(contador), t.getCost(), t.costPerUnit(contador),
                     t.getLastTreadMm(), t.getLastPressure(), t.alerta());
+        }
+        return csv;
+    }
+
+    /**
+     * O registo de auditoria exportável: quem fez o quê e quando. É o que um
+     * auditor externo pede — e o que uma certificação ISO exige que exista.
+     */
+    @Transactional(readOnly = true)
+    public CsvWriter audit(String orgId, Instant from, Instant to) {
+        Instant fim = to != null ? to : Instant.now();
+        Instant inicio = from != null ? from : fim.minus(90, java.time.temporal.ChronoUnit.DAYS);
+        CsvWriter csv = new CsvWriter("Data e hora", "Utilizador", "Ação", "Entidade", "Identificador",
+                "Resumo", "Endereço IP");
+        java.util.Map<String, String> nomes = new java.util.HashMap<>();
+        org.springframework.data.jpa.domain.Specification<ao.autocare.domain.AuditLog> spec =
+                (root, q, cb) -> cb.and(
+                        cb.equal(root.get("organizationId"), orgId),
+                        cb.greaterThanOrEqualTo(root.get("createdAt"), inicio),
+                        cb.lessThan(root.get("createdAt"), fim));
+        for (ao.autocare.domain.AuditLog a : auditLogs.findAll(spec,
+                org.springframework.data.domain.PageRequest.of(0, MAX_ROWS,
+                        org.springframework.data.domain.Sort.by("createdAt").descending()))) {
+            String quem = a.getUserId() == null ? "sistema" : nomes.computeIfAbsent(a.getUserId(),
+                    id -> usersRepo.findById(id).map(ao.autocare.domain.User::getName).orElse("(utilizador removido)"));
+            csv.row(a.getCreatedAt(), quem, a.getAction(), a.getEntityType(), a.getEntityId(), a.getSummary(), a.getIp());
         }
         return csv;
     }

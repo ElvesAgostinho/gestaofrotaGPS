@@ -44,12 +44,15 @@ public class AssetController {
     private final OrgContext orgContext;
     private final AssetSheetPdfService sheetPdf;
     private final AssetHistoryPdfService historyPdf;
+    private final ao.autocare.modules.org.DocumentSealService seals;
 
     public AssetController(AssetService service, OrgContext orgContext,
             AssetSheetPdfService sheetPdf,
-            AssetHistoryPdfService historyPdf) {
+            AssetHistoryPdfService historyPdf,
+            ao.autocare.modules.org.DocumentSealService seals) {
         this.sheetPdf = sheetPdf;
         this.historyPdf = historyPdf;
+        this.seals = seals;
         this.service = service;
         this.orgContext = orgContext;
     }
@@ -87,8 +90,10 @@ public class AssetController {
     @GetMapping(value = "/{id}/history.pdf", produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
     public org.springframework.http.ResponseEntity<byte[]> history(
             @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
-        byte[] pdf = historyPdf.render(orgContext.requireOrganizationId(principal), id,
-                canSeeCosts(principal));
+        String orgId = orgContext.requireOrganizationId(principal);
+        AssetView ativo = service.get(orgId, id);
+        byte[] pdf = seals.emitir(orgId, principal.id(), "ASSET_HISTORY", id, ativo.tag(),
+                selo -> historyPdf.render(orgId, id, canSeeCosts(principal), selo));
         return org.springframework.http.ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"historico-manutencao.pdf\"")

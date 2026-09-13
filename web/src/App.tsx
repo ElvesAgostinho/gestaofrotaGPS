@@ -21,6 +21,7 @@ import { RoutesPage } from './pages/RoutesPage';
 import { LocationsPage } from './pages/LocationsPage';
 import { LandingPage } from './pages/publico/LandingPage';
 import { LoginPage } from './pages/LoginPage';
+import { VerificarPage } from './pages/publico/VerificarPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { PartsPage } from './pages/PartsPage';
@@ -73,6 +74,8 @@ function Router() {
             pública é a do IMBONDEIRO OS, não a dele. */}
         <Route path="/" element={marcaBranca ? <LoginPage /> : <LandingPage />} />
         <Route path="/entrar" element={<LoginPage />} />
+        <Route path="/verificar" element={<VerificarPage />} />
+        <Route path="/verificar/:code" element={<VerificarPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
@@ -100,6 +103,8 @@ function Router() {
   return (
     <Routes>
       <Route path="/entrar" element={<Navigate to="/" replace />} />
+      <Route path="/verificar" element={<VerificarPage />} />
+      <Route path="/verificar/:code" element={<VerificarPage />} />
       <Route element={<Shell />}>
         <Route path="/" element={<DashboardPage />} />
         {user.admin && <Route path="/plataforma" element={<PlataformaPage />} />}

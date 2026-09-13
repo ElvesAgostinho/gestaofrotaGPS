@@ -67,7 +67,7 @@ public abstract class AbstractIntegrationTest {
                 // Fase 1
                 "audit_logs", "notification_preferences", "notifications", "payments",
                 "subscriptions", "password_reset_tokens", "refresh_tokens", "verification_codes",
-                "invitations", "memberships", "organizations", "users"
+                "document_seals", "invitations", "memberships", "organizations", "users"
         }) {
             jdbc.execute("TRUNCATE TABLE " + table);
         }

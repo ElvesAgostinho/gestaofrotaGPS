@@ -1,9 +1,9 @@
 import { Alert, Badge, Button, Card, Group, Select, Stack, Text, TextInput } from '@mantine/core';
-import { IconSearch, IconShieldLock } from '@tabler/icons-react';
+import { IconFileExport, IconPrinter, IconSearch, IconShieldLock } from '@tabler/icons-react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { api } from '../api/client';
-import { Painel } from '../components/erp';
+import { api, downloadFile, openFile } from '../api/client';
+import { BotaoBarra, Painel } from '../components/erp';
 import { Grelha } from '../components/Grelha';
 import { fmtDateTime } from '../lib/format';
 
@@ -88,7 +88,20 @@ export function AuditPage() {
         IMBONDEIRO OS nunca aparece aqui, nem através da procura.
       </Alert>
 
-      <Painel titulo="Registo de auditoria" semPadding>
+      <Painel
+        titulo="Registo de auditoria"
+        semPadding
+        acoes={
+          <>
+            <BotaoBarra icone={<IconFileExport size={13} />} onClick={() => downloadFile('/reports/audit.xlsx', 'auditoria.xlsx').catch(() => undefined)} titulo="Os últimos 90 dias em Excel">
+              Excel
+            </BotaoBarra>
+            <BotaoBarra icone={<IconPrinter size={13} />} onClick={() => openFile('/reports/audit.pdf').catch(() => undefined)} titulo="Os últimos 90 dias em PDF, com o timbre da empresa — para o auditor">
+              PDF
+            </BotaoBarra>
+          </>
+        }
+      >
         <Group align="flex-end" gap="sm">
           <Select
             label="Ação"

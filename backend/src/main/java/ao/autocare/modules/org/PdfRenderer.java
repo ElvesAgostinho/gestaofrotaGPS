@@ -38,10 +38,17 @@ public class PdfRenderer {
      * @param modelo o modelo, já formatado
      */
     public byte[] render(String template, Letterhead.Timbre timbre, String variavel, Object modelo) {
+        return render(template, timbre, variavel, modelo, null);
+    }
+
+    /** Com selo de autenticidade: o código e o endereço de verificação vão para o rodapé. */
+    public byte[] render(String template, Letterhead.Timbre timbre, String variavel, Object modelo,
+            DocumentSealService.Selo selo) {
         Context ctx = new Context(Locale.forLanguageTag("pt"));
         ctx.setVariable("timbre", timbre);
         ctx.setVariable(variavel, modelo);
         ctx.setVariable("geradoEm", DATA_HORA.format(Instant.now()));
+        ctx.setVariable("selo", selo);
         String html = templateEngine.process(template, ctx);
         try {
             ByteArrayOutputStream out = new ByteArrayOutputStream();

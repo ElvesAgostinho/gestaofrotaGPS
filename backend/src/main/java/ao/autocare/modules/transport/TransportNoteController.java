@@ -42,9 +42,12 @@ public class TransportNoteController {
     private final TransportNoteService service;
     private final OrgContext orgContext;
 
+    private final ao.autocare.modules.org.DocumentSealService seals;
+
     public TransportNoteController(TransportNoteService service, OrgContext orgContext,
-            TransportNotePdfService pdfService) {
+            TransportNotePdfService pdfService, ao.autocare.modules.org.DocumentSealService seals) {
         this.pdfService = pdfService;
+        this.seals = seals;
         this.service = service;
         this.orgContext = orgContext;
     }
@@ -136,7 +139,9 @@ public class TransportNoteController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal
             ao.autocare.security.AuthPrincipal p,
             @org.springframework.web.bind.annotation.PathVariable String id) {
-        byte[] pdf = pdfService.render(org(p), id);
+        String numero = service.get(org(p), id).number();
+        byte[] pdf = seals.emitir(org(p), p.id(), "TRANSPORT_NOTE", id, numero,
+                selo -> pdfService.render(org(p), id, selo));
         return org.springframework.http.ResponseEntity.ok()
                 .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
                         "inline; filename=\"guia-transporte.pdf\"")

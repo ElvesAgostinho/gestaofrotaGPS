@@ -7,6 +7,7 @@ import static ao.autocare.modules.org.PdfRenderer.numero;
 import ao.autocare.common.ApiException;
 import ao.autocare.domain.TransportNote;
 import ao.autocare.domain.TransportNoteItem;
+import ao.autocare.modules.org.DocumentSealService;
 import ao.autocare.modules.org.Letterhead;
 import ao.autocare.modules.org.PdfRenderer;
 import ao.autocare.repo.TransportNoteRepository;
@@ -52,6 +53,11 @@ public class TransportNotePdfService {
 
     @Transactional(readOnly = true)
     public byte[] render(String orgId, String noteId) {
+        return render(orgId, noteId, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] render(String orgId, String noteId, DocumentSealService.Selo selo) {
         TransportNote g = notes.findByIdAndOrganizationId(noteId, orgId)
                 .orElseThrow(() -> ApiException.notFound("Guia não encontrada."));
 
@@ -83,6 +89,6 @@ public class TransportNotePdfService {
                 g.getNotes(), g.getReceivedByName(), g.getReceivedByDocument(),
                 g.getDeliveryNotes());
 
-        return renderer.render("transport-note", letterhead.of(g.getOrganization()), "g", doc);
+        return renderer.render("transport-note", letterhead.of(g.getOrganization()), "g", doc, selo);
     }
 }

@@ -104,6 +104,13 @@ public class ReportController {
         return exportar(p, ext, reports.documents(org(p)), "documentos", "Documentos e validades");
     }
 
+    @Operation(summary = "Registo de auditoria: quem fez o quê e quando (por omissão os últimos 90 dias)")
+    @GetMapping("/audit.{ext:csv|xlsx|pdf}")
+    public ResponseEntity<byte[]> audit(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String ext,
+            @RequestParam(required = false) Instant from, @RequestParam(required = false) Instant to) {
+        return exportar(p, ext, reports.audit(org(p), from, to), "auditoria", "Registo de auditoria");
+    }
+
     @Operation(summary = "Pneus: vida, custo por km e alertas")
     @GetMapping("/tyres.{ext:csv|xlsx|pdf}")
     public ResponseEntity<byte[]> tyres(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String ext) {
