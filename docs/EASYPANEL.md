@@ -98,7 +98,7 @@ arrancar com segredos de exemplo.
 ```
 API_UPSTREAM=api:8080
 ```
-  (Se a web der 502 em `/api`, troque por `frota_api:8080`.)
+  (Se a web der 502 em `/api`, troque por `frota_api:80`.)
 - **Domains** → + Domain: `frota.o-seu-dominio`, porta **80**, HTTPS ligado.
 - Deploy (3–5 minutos).
 
@@ -156,7 +156,7 @@ encaminhamento**. Copie o `forward.url` que aparece.
 
 Volte ao serviço `traccar` no Easypanel → Mounts → o ficheiro `traccar.xml`
 → substitua a linha `forward.url` pela copiada (o endereço interno é
-`http://api:8080/...` ou `http://frota_api:8080/...`) → guardar → **Restart**.
+`http://api:8080/...` ou `http://frota_api:80/...`) → guardar → **Restart**.
 
 Nas Configurações, «última posição recebida» passa a atualizar ao segundo
 quando um aparelho reportar.
@@ -235,7 +235,7 @@ sozinhas no arranque da `api`.
 |---|---|
 | `api` não arranca, log com `[CONFIGURAÇÃO]` | Variável em falta ou com valor de exemplo — o log lista quais |
 | `api` não arranca, `Connection refused` ao Postgres | `DATABASE_URL` com host errado: use o nome interno do serviço `db` |
-| Web abre mas tudo dá «sem ligação» | `API_UPSTREAM` errado; teste `frota_api:8080` |
+| Web abre mas tudo dá «sem ligação» | `API_UPSTREAM` errado; teste `frota_api:80` |
 | Testar ligação ao Traccar falha | Endereço interno errado, ou token de um utilizador sem aparelhos |
 | Aparelho no Traccar mas não no mapa | IMEI diferente nos dois lados, ou o aparelho não está registado no IMBONDEIRO OS |
 | Aparelho não chega ao Traccar | Portas 5001–5150 não publicadas no serviço **ou** fechadas na firewall da Hostinger |
