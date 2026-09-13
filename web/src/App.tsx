@@ -25,6 +25,7 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { PartsPage } from './pages/PartsPage';
 import { PlataformaPage } from './pages/PlataformaPage';
 import { PlanosPage } from './pages/PlanosPage';
+import { OrcamentosPage } from './pages/OrcamentosPage';
 import { EmpresaBloqueadaPage } from './pages/EmpresaBloqueadaPage';
 import { PredictivePage } from './pages/PredictivePage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -125,6 +126,7 @@ function Router() {
         <Route path="/alertas" element={<AlertsPage />} />
         <Route path="/comandos" element={<CommandsPage />} />
         <Route path="/relatorios" element={<ReportsPage />} />
+        <Route path="/orcamentos" element={<OrcamentosPage />} />
         <Route path="/equipa" element={<TeamPage />} />
         <Route path="/motoristas" element={<DriversPage />} />
         <Route path="/conducao" element={<DrivingPage />} />

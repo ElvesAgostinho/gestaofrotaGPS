@@ -28,6 +28,7 @@ import {
   IconUsers,
   IconWaveSine,
   IconCalendarRepeat,
+  IconReportMoney,
 } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { MARCA } from '../theme';
@@ -109,6 +110,7 @@ const NAV: NavSection[] = [
     items: [
       { to: '/combustivel', label: 'Gestão de combustível', icon: IconGasStation,
         minRole: 'MANAGER' },
+      { to: '/orcamentos', label: 'Orçamento anual', icon: IconReportMoney, permissao: 'COSTS_VIEW' },
       { to: '/relatorios', label: 'Relatórios e indicadores', icon: IconChartBar,
         permissao: 'REPORTS_VIEW' },
     ],

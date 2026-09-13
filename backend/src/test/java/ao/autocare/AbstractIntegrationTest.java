@@ -41,7 +41,7 @@ public abstract class AbstractIntegrationTest {
                 "work_order_attachments", "work_order_services",
                 "work_order_tasks", "work_orders", "org_counters",
                 // Peças e stock (V7)
-                "stock_movements", "stock_items", "warehouses", "parts",
+                "stock_movements", "stock_items", "warehouses", "parts", "budgets",
                 // Planos de manutenção (V6)
                 "plan_task_completions", "asset_plan_tasks", "asset_plans",
                 "plan_task_parts", "plan_task_triggers", "plan_tasks", "maintenance_plans",

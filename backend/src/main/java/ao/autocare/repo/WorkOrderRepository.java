@@ -50,6 +50,14 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
 
     List<WorkOrder> findByOrganizationIdAndStatusIn(String organizationId, List<WorkOrderStatus> statuses);
 
+    /** Ordens concluídas no período, com o ativo — para as contas do orçamento. */
+    @Query("""
+            select w from WorkOrder w join fetch w.asset a
+            where w.organization.id = :orgId
+              and w.completedAt is not null and w.completedAt >= :from and w.completedAt < :to
+            """)
+    List<WorkOrder> completedBetween(String orgId, Instant from, Instant to);
+
     boolean existsByAssetIdAndTypeAndStatusIn(String assetId,
             ao.autocare.domain.enums.Enums.WorkOrderType type, List<WorkOrderStatus> statuses);
 

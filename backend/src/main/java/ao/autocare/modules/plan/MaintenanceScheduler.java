@@ -33,6 +33,7 @@ public class MaintenanceScheduler {
     private final PredictiveService predictive;
     private final DocumentService documents;
     private final ao.autocare.modules.fleet.DriverRecordsService driverRecords;
+    private final ao.autocare.modules.budget.BudgetService budgets;
 
     public MaintenanceScheduler(
             AssetPlanTaskRepository planTasks,
@@ -41,7 +42,8 @@ public class MaintenanceScheduler {
             NotificationService notifications,
             PredictiveService predictive,
             DocumentService documents,
-            ao.autocare.modules.fleet.DriverRecordsService driverRecords) {
+            ao.autocare.modules.fleet.DriverRecordsService driverRecords,
+            ao.autocare.modules.budget.BudgetService budgets) {
         this.planTasks = planTasks;
         this.assetPlans = assetPlans;
         this.workOrders = workOrders;
@@ -49,6 +51,7 @@ public class MaintenanceScheduler {
         this.predictive = predictive;
         this.documents = documents;
         this.driverRecords = driverRecords;
+        this.budgets = budgets;
     }
 
     /** De hora a hora: recalcula o vencimento de todas as tarefas de plano ativas. */
@@ -142,6 +145,10 @@ public class MaintenanceScheduler {
             int motoristas = driverRecords.notifyExpiring();
             if (motoristas > 0) {
                 log.info("{} aviso(s) de documentos de motorista a caducar", motoristas);
+            }
+            int orcamentos = budgets.notifyOverruns();
+            if (orcamentos > 0) {
+                log.info("{} aviso(s) de orçamento a 80 %/100 %", orcamentos);
             }
         } catch (Exception e) {
             log.warn("Falha ao avisar de documentos: {}", e.toString());
