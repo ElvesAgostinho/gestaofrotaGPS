@@ -27,6 +27,9 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
 
     long countByOrganizationId(String organizationId);
 
+    long countByOrganizationIdAndAssignedToIdAndStatusIn(String organizationId, String userId,
+            java.util.List<WorkOrderStatus> statuses);
+
     boolean existsByOrganizationIdAndNumber(String organizationId, String number);
 
     @Query("""

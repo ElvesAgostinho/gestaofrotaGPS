@@ -38,6 +38,9 @@ public enum Permission {
             MembershipRole.OWNER, MembershipRole.MANAGER),
     STOCK_MOVE("Manutenção", "Registar entradas e saídas de stock",
             MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.TECHNICIAN),
+    BREAKDOWN_REPORT("Manutenção", "Comunicar avarias pelo telemóvel (abre uma ordem corretiva)",
+            MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.TECHNICIAN,
+            MembershipRole.DRIVER),
 
     // ---- custos ------------------------------------------------------------
     COSTS_VIEW("Custos", "Ver valores financeiros (custos, orçamentos, valor de aquisição)",

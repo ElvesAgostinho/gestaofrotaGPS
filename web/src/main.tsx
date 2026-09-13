@@ -34,3 +34,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </MantineProvider>
   </React.StrictMode>,
 );
+
+// A app instalável: só em produção, para o service worker não esconder
+// alterações durante o desenvolvimento.
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* sem service worker a app continua a funcionar, só não instala */
+    });
+  });
+}

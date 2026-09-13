@@ -14,6 +14,7 @@ import {
   IconFileText,
   IconGasStation,
   IconGauge,
+  IconDeviceMobile,
   IconLogout,
   IconMap2,
   IconPackage,
@@ -271,6 +272,19 @@ export function Shell() {
                 </UnstyledButton>
               </Menu.Target>
               <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<IconDeviceMobile size={16} />}
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('imbondeiro.modo', 'mobile');
+                    } catch {
+                      /* sem armazenamento local segue na mesma */
+                    }
+                    navigate('/m');
+                  }}
+                >
+                  Modo telemóvel
+                </Menu.Item>
                 <Menu.Item leftSection={<IconLogout size={16} />} onClick={signOut}>
                   Terminar sessão
                 </Menu.Item>

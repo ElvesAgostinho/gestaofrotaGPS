@@ -180,6 +180,22 @@ public class MeterService {
     @Transactional
     public void recordFromWorkOrder(Asset asset, BigDecimal value, Instant at, String userId,
             String referencia) {
+        recordDerived(asset, value, at, userId, MeterReadingSource.WORK_ORDER, referencia);
+    }
+
+    /**
+     * A leitura do painel numa inspeção diária: quando não há GPS, é a forma
+     * mais regular de o contador andar — e os intervalos de manutenção
+     * dependem disso.
+     */
+    @Transactional
+    public void recordFromInspection(Asset asset, BigDecimal value, Instant at, String userId,
+            String referencia) {
+        recordDerived(asset, value, at, userId, MeterReadingSource.MANUAL, referencia);
+    }
+
+    private void recordDerived(Asset asset, BigDecimal value, Instant at, String userId,
+            MeterReadingSource source, String referencia) {
         if (asset == null || value == null || value.signum() < 0) {
             return;
         }
@@ -197,7 +213,7 @@ public class MeterService {
         reading.setMeter(meter);
         reading.setValue(value);
         reading.setReadingAt(at != null ? at : Instant.now());
-        reading.setSource(MeterReadingSource.WORK_ORDER);
+        reading.setSource(source);
         reading.setDelta(value.subtract(atual));
         reading.setNote(referencia);
         if (userId != null) {

@@ -34,6 +34,8 @@ public class ChecklistExecutionService {
     private final OrganizationRepository organizations;
     private final UserRepository users;
     private final AuditService audit;
+    private final ao.autocare.modules.notification.NotificationService notifications;
+    private final ao.autocare.modules.meter.MeterService meters;
 
     public ChecklistExecutionService(
             AssetRepository assets,
@@ -41,13 +43,17 @@ public class ChecklistExecutionService {
             ChecklistTemplateRepository templates,
             OrganizationRepository organizations,
             UserRepository users,
-            AuditService audit) {
+            AuditService audit,
+            ao.autocare.modules.notification.NotificationService notifications,
+            ao.autocare.modules.meter.MeterService meters) {
         this.assets = assets;
         this.executions = executions;
         this.templates = templates;
         this.organizations = organizations;
         this.users = users;
         this.audit = audit;
+        this.notifications = notifications;
+        this.meters = meters;
     }
 
     @Transactional(readOnly = true)
@@ -100,6 +106,7 @@ public class ChecklistExecutionService {
         exec.setPerformedByLabel(blankToNull(req.performedByLabel()));
 
         boolean anyNotOk = false;
+        java.util.List<String> criticosMal = new java.util.ArrayList<>();
         int order = 1;
         for (ResultInput in : itemInputs) {
             ChecklistExecutionItem item = new ChecklistExecutionItem();
@@ -110,10 +117,33 @@ public class ChecklistExecutionService {
             item.setNote(blankToNull(in.note()));
             item.setSortOrder(order++);
             exec.addItem(item);
-            if (item.getResult() == ChecklistItemResult.NOT_OK) anyNotOk = true;
+            if (item.getResult() == ChecklistItemResult.NOT_OK) {
+                anyNotOk = true;
+                if (item.isCritical()) {
+                    criticosMal.add(item.getText());
+                }
+            }
         }
         exec.setOutcome(anyNotOk ? ChecklistOutcome.ISSUES : ChecklistOutcome.OK);
         executions.save(exec);
+
+        if (req.meterValue() != null) {
+            meters.recordFromInspection(asset, req.meterValue(), exec.getPerformedAt(), userId,
+                    "Inspeção: " + exec.getTemplateName());
+        }
+        // Um ponto crítico reprovado (travões, direção, fuga…) não pode ficar só
+        // na lista: quem gere tem de saber antes de a viatura sair.
+        if (!criticosMal.isEmpty()) {
+            String quem = exec.getPerformedByLabel() != null ? exec.getPerformedByLabel()
+                    : users.findById(userId).map(ao.autocare.domain.User::getName).orElse("alguém");
+            notifications.notifyManagers(ao.autocare.modules.notification.NotificationService.Draft.of(
+                    orgId, ao.autocare.domain.enums.Enums.AlertCategory.INSPECTION,
+                    ao.autocare.domain.enums.Enums.AlertSeverity.WARNING,
+                    "Inspeção reprovada: " + asset.getTag(),
+                    quem + " — " + exec.getTemplateName() + ". Pontos críticos reprovados: "
+                            + String.join(", ", criticosMal) + ".",
+                    "checklist_issue", exec.getId(), "/ativos/" + asset.getId()).forAsset(asset));
+        }
 
         audit.record(orgId, userId, "checklist.execute", "Asset", assetId,
                 asset.getTag() + " · " + exec.getTemplateName() + " → " + exec.getOutcome());

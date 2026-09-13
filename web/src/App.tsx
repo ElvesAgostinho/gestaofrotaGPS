@@ -35,6 +35,14 @@ import { SettingsPage } from './pages/SettingsPage';
 import { TeamPage } from './pages/TeamPage';
 import { WorkOrderDetailPage } from './pages/WorkOrderDetailPage';
 import { WorkOrdersPage } from './pages/WorkOrdersPage';
+import { MobileShell } from './pages/mobile/MobileShell';
+import { MInicioPage } from './pages/mobile/MInicioPage';
+import { MAvariaPage } from './pages/mobile/MAvariaPage';
+import { MInspecaoPage } from './pages/mobile/MInspecaoPage';
+import { MOrdensPage } from './pages/mobile/MOrdensPage';
+import { MOrdemPage } from './pages/mobile/MOrdemPage';
+import { MAbastecerPage } from './pages/mobile/MAbastecerPage';
+import { prefereTelemovel } from './pages/mobile/modo';
 
 // O MapLibre pesa mais do que todo o resto da aplicação junta e só serve uma
 // página. Carregá-lo à parte tira ~250 kB do primeiro arranque — que numa
@@ -100,13 +108,26 @@ function Router() {
     );
   }
 
+  // O motorista, e o mecânico num ecrã pequeno, caem na app do telemóvel:
+  // quatro botões grandes em vez de um painel de gestão.
+  const inicio = prefereTelemovel(org?.myRole) ? <Navigate to="/m" replace /> : <DashboardPage />;
+
   return (
     <Routes>
       <Route path="/entrar" element={<Navigate to="/" replace />} />
       <Route path="/verificar" element={<VerificarPage />} />
       <Route path="/verificar/:code" element={<VerificarPage />} />
+      <Route path="/m" element={<MobileShell />}>
+        <Route index element={<MInicioPage />} />
+        <Route path="avaria" element={<MAvariaPage />} />
+        <Route path="inspecao" element={<MInspecaoPage />} />
+        <Route path="ordens" element={<MOrdensPage />} />
+        <Route path="ordens/:id" element={<MOrdemPage />} />
+        <Route path="abastecer" element={<MAbastecerPage />} />
+        <Route path="*" element={<Navigate to="/m" replace />} />
+      </Route>
       <Route element={<Shell />}>
-        <Route path="/" element={<DashboardPage />} />
+        <Route path="/" element={inicio} />
         {user.admin && <Route path="/plataforma" element={<PlataformaPage />} />}
         <Route path="/ativos" element={<AssetsPage />} />
         <Route path="/tipos-equipamento" element={<TiposAtivoPage />} />
