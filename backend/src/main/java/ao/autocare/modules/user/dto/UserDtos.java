@@ -13,7 +13,9 @@ public final class UserDtos {
             @Size(max = 10) String locale,
             @Size(max = 3) String currency,
             UserTheme theme,
-            @Size(max = 500) String avatarUrl) {}
+            @Size(max = 500) String avatarUrl,
+            /** Telemóvel para WhatsApp/SMS, formato internacional. Vazio = retirar. */
+            @Size(max = 32) String phone) {}
 
     public record ChangePasswordRequest(
             @NotBlank String currentPassword,

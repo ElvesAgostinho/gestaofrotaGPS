@@ -22,6 +22,7 @@ public final class NotificationDtos {
             String assetId,
             String assetTag,
             EmailState emailState,
+            ao.autocare.domain.enums.Enums.PhoneState phoneState,
             boolean read,
             Instant createdAt) {
 
@@ -32,14 +33,28 @@ public final class NotificationDtos {
                     n.getSeverity(), n.getTitle(), n.getBody(), n.getLink(),
                     n.getAsset() != null ? n.getAsset().getId() : null,
                     n.getAsset() != null ? n.getAsset().getTag() : null,
-                    n.getEmailState(), n.isRead(), n.getCreatedAt());
+                    n.getEmailState(), n.getPhoneState(), n.isRead(), n.getCreatedAt());
         }
     }
 
     public record UnreadCount(long unread) {}
 
     public record PreferenceView(
-            AlertCategory category, String label, boolean inApp, boolean email) {}
+            AlertCategory category, String label, boolean inApp, boolean email, boolean phone) {}
 
-    public record UpdatePreferenceRequest(Boolean inApp, Boolean email) {}
+    public record UpdatePreferenceRequest(Boolean inApp, Boolean email, Boolean phone) {}
+
+    /**
+     * Os canais que este ambiente tem de facto — para o ecrã dizer a verdade:
+     * «email não configurado», «WhatsApp ligado», «sem número no seu perfil».
+     */
+    public record ChannelsView(
+            boolean emailConfigured,
+            boolean phoneConfigured,
+            /** «WhatsApp» ou «SMS»; nulo sem canal. */
+            String phoneChannel,
+            /** O número do utilizador, tal como está no perfil (nulo se não tiver). */
+            String myPhone) {}
+
+    public record TestMessageResult(boolean sent, String message) {}
 }

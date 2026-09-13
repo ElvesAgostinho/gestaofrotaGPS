@@ -82,6 +82,13 @@ public final class Enums {
     /** Como correu o envio por email de uma notificação. */
     public enum EmailState { NOT_REQUESTED, DEMO_MODE, SENT, FAILED }
 
+    /**
+     * O que aconteceu ao aviso no telemóvel (WhatsApp/SMS): não pedido (aviso
+     * leve ou preferência desligada), sem canal na plataforma, utilizador sem
+     * número, enviado, falhou.
+     */
+    public enum PhoneState { NOT_REQUESTED, NO_CHANNEL, NO_PHONE, SENT, FAILED }
+
     public enum MaintenanceKind { PREVENTIVE, CORRECTIVE }
 
     public enum MaintenanceCategory {

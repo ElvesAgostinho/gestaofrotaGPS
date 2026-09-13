@@ -58,6 +58,8 @@ public class PlatformService {
     private final TraccarAccounts traccar;
     private final IntegrationSettingsRepository integrations;
     private final String platformRoutingUrl;
+    private final ao.autocare.modules.messaging.PhoneMessaging phone;
+    private final ao.autocare.modules.notification.EmailSender emailSender;
     private final SecureRandom random = new SecureRandom();
 
     public PlatformService(
@@ -73,11 +75,15 @@ public class PlatformService {
             TraccarAccounts traccar,
             IntegrationSettingsRepository integrations,
             @org.springframework.beans.factory.annotation.Value("${autocare.routing.url:}")
-            String platformRoutingUrl) {
+            String platformRoutingUrl,
+            ao.autocare.modules.messaging.PhoneMessaging phone,
+            ao.autocare.modules.notification.EmailSender emailSender) {
         this.traccar = traccar;
         this.integrations = integrations;
         this.platformRoutingUrl = platformRoutingUrl == null || platformRoutingUrl.isBlank()
                 ? null : platformRoutingUrl.trim();
+        this.phone = phone;
+        this.emailSender = emailSender;
         this.organizations = organizations;
         this.memberships = memberships;
         this.users = users;
@@ -117,7 +123,7 @@ public class PlatformService {
         }
         return new Summary(todas.size(), ativas, aVencer, vencidas, suspensas,
                 users.count(), assets.count(),
-                traccar.urlPublica().orElse(null), platformRoutingUrl);
+                traccar.urlPublica().orElse(null), phone.nome(), emailSender.isConfigured(), platformRoutingUrl);
     }
 
     @Transactional(readOnly = true)

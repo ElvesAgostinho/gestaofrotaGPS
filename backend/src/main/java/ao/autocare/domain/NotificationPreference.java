@@ -38,8 +38,9 @@ public class NotificationPreference extends BaseEntity {
     @Column(nullable = false)
     private boolean email = true;
 
+    /** Telemóvel (WhatsApp ou SMS, o que a plataforma tiver). Só para avisos graves. */
     @Column(nullable = false)
-    private boolean sms = false;
+    private boolean sms = true;
 
     @Convert(converter = IntListConverter.class)
     @Column(name = "lead_days_json", columnDefinition = "text")

@@ -69,6 +69,20 @@ public class NotificationController {
         return notifications.markAllRead(p.id());
     }
 
+    @Operation(summary = "Os canais que este ambiente tem (email, WhatsApp/SMS) e o meu número")
+    @GetMapping("/channels")
+    public ao.autocare.modules.notification.dto.NotificationDtos.ChannelsView channels(
+            @AuthenticationPrincipal AuthPrincipal p) {
+        return notifications.channels(p.id(), p.organizationId());
+    }
+
+    @Operation(summary = "Enviar uma mensagem de teste para o meu telemóvel")
+    @PostMapping("/channels/test")
+    public ao.autocare.modules.notification.dto.NotificationDtos.TestMessageResult testPhone(
+            @AuthenticationPrincipal AuthPrincipal p) {
+        return notifications.sendTestToPhone(p.id());
+    }
+
     @Operation(summary = "As minhas preferências por categoria")
     @GetMapping("/preferences")
     public List<PreferenceView> preferences(@AuthenticationPrincipal AuthPrincipal p) {

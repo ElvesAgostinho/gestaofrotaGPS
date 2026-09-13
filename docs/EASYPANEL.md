@@ -78,11 +78,18 @@ TRACCAR_URL=https://traccar.o-seu-dominio
 TRACCAR_USER=admin@frota.local
 TRACCAR_PASSWORD=a-palavra-passe-do-admin-do-traccar
 ROUTING_URL=http://IP-DA-VPS-DO-OSRM:5000
+WHATSAPP_TOKEN=o-token-permanente-da-meta
+WHATSAPP_PHONE_ID=o-phone-number-id
+WHATSAPP_TEMPLATE=aviso_frota
 ```
   `TRACCAR_*`: o **seu** Traccar (passo 5), com o administrador. É com isto que
   o ecrã Plataforma cria uma conta no Traccar por cada empresa cliente — a
   empresa nunca vê estas credenciais. `ROUTING_URL`: o motor de rotas (passo 9),
   usado por todas as empresas sem configurarem nada.
+  `WHATSAPP_*`: os avisos graves chegam ao telemóvel pelo WhatsApp (API
+  oficial da Meta — ver `.env.example` para os passos; sem estas variáveis o
+  ecrã de Notificações diz honestamente «sem WhatsApp nem SMS»). Em
+  alternativa `SMS_GATEWAY_URL` com uma gateway de SMS.
   `ADMIN_EMAIL` / `ADMIN_PASSWORD`: a **sua** conta de administrador da
   plataforma — quem vende o sistema. É criada no primeiro arranque (a
   palavra-passe só conta nesse momento; depois muda-a no Perfil). Em produção

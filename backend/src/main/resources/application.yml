@@ -106,6 +106,20 @@ autocare:
     # Motor de rotas (OSRM) da plataforma: usado por todas as empresas que nao
     # tenham o seu proprio em Configuracoes -> Motor de rotas.
     url: ${ROUTING_URL:}
+  whatsapp:
+    # WhatsApp Business Cloud API (Meta): token permanente e o id do numero.
+    # WHATSAPP_TEMPLATE: nome de um modelo aprovado com um parametro {{1}};
+    # sem modelo so sai texto livre nas 24 h depois de o utilizador escrever.
+    token: ${WHATSAPP_TOKEN:}
+    phone-id: ${WHATSAPP_PHONE_ID:}
+    template: ${WHATSAPP_TEMPLATE:}
+    template-lang: ${WHATSAPP_TEMPLATE_LANG:pt_PT}
+    api-url: ${WHATSAPP_API_URL:https://graph.facebook.com/v20.0}
+  sms:
+    # Gateway HTTP de SMS: um URL com {to} e {text}. Alternativa ao WhatsApp.
+    gateway-url: ${SMS_GATEWAY_URL:}
+    gateway-method: ${SMS_GATEWAY_METHOD:GET}
+    gateway-header: ${SMS_GATEWAY_HEADER:}
   storage:
     local-path: ${STORAGE_PATH:./data/files}
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:}

@@ -69,6 +69,8 @@ interface Resumo {
   assets: number;
   platformTraccarUrl?: string | null;
   platformRoutingUrl?: string | null;
+  platformPhoneChannel?: string | null;
+  platformEmailConfigured?: boolean;
 }
 
 interface Criada {
@@ -198,6 +200,24 @@ export function PlataformaPage() {
         <Kpi label="Utilizadores" value={resumo?.users ?? '—'} />
         <Kpi label="Ativos geridos" value={resumo?.assets ?? '—'} />
       </Group>
+
+      {/* O que a plataforma tem ligado de facto — sem inventar: cada um vem do ambiente. */}
+      {resumo && (
+        <Group gap="xs" wrap="wrap">
+          <Badge variant="light" color={resumo.platformTraccarUrl ? 'green' : 'gray'}>
+            GPS (Traccar): {resumo.platformTraccarUrl ? 'ligado' : 'sem servidor'}
+          </Badge>
+          <Badge variant="light" color={resumo.platformRoutingUrl ? 'green' : 'gray'}>
+            Motor de rotas: {resumo.platformRoutingUrl ? 'ligado' : 'sem servidor'}
+          </Badge>
+          <Badge variant="light" color={resumo.platformEmailConfigured ? 'green' : 'gray'}>
+            Email da plataforma: {resumo.platformEmailConfigured ? 'ligado' : 'não configurado (MAIL_HOST)'}
+          </Badge>
+          <Badge variant="light" color={resumo.platformPhoneChannel ? 'green' : 'gray'}>
+            Telemóvel: {resumo.platformPhoneChannel ?? 'sem WhatsApp nem SMS (WHATSAPP_TOKEN / SMS_GATEWAY_URL)'}
+          </Badge>
+        </Group>
+      )}
 
       <Painel
         titulo="Empresas clientes"

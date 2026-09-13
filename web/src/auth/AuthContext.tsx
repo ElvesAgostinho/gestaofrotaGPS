@@ -6,6 +6,8 @@ export interface SessionUser {
   id: string;
   name: string;
   email?: string;
+  /** Telemóvel em formato internacional; para onde vão os avisos por WhatsApp/SMS. */
+  phone?: string | null;
   admin: boolean;
 }
 

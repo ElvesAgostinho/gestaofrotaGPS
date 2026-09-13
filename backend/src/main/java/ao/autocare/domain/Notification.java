@@ -3,6 +3,7 @@ package ao.autocare.domain;
 import ao.autocare.domain.enums.Enums.AlertCategory;
 import ao.autocare.domain.enums.Enums.AlertSeverity;
 import ao.autocare.domain.enums.Enums.EmailState;
+import ao.autocare.domain.enums.Enums.PhoneState;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -72,6 +73,13 @@ public class Notification extends BaseEntity {
 
     @Column(name = "email_at")
     private Instant emailAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "phone_state", nullable = false, length = 20)
+    private PhoneState phoneState = PhoneState.NOT_REQUESTED;
+
+    @Column(name = "phone_at")
+    private Instant phoneAt;
 
     @Column(name = "read_at")
     private Instant readAt;

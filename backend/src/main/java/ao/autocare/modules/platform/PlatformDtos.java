@@ -59,6 +59,10 @@ public final class PlatformDtos {
             long assets,
             /** Traccar da plataforma (nulo se o ambiente não o tiver). */
             String platformTraccarUrl,
+            /** Canal para o telemóvel («WhatsApp»/«SMS»; nulo se o ambiente não tiver). */
+            String platformPhoneChannel,
+            /** Email de saída configurado neste ambiente. */
+            boolean platformEmailConfigured,
             /** Motor de rotas da plataforma (nulo se o ambiente não o tiver). */
             String platformRoutingUrl) {}
 

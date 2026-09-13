@@ -16,7 +16,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -281,28 +280,7 @@ public class IntegrationService {
 
     /** Constrói o remetente a partir do que a empresa configurou. */
     public JavaMailSenderImpl build(IntegrationSettings s) {
-        JavaMailSenderImpl remetente = new JavaMailSenderImpl();
-        remetente.setHost(s.getSmtpHost());
-        remetente.setPort(s.getSmtpPort() != null ? s.getSmtpPort() : 587);
-        remetente.setUsername(s.getSmtpUsername());
-        remetente.setPassword(cofre.decrypt(s.getSmtpPasswordEnc()));
-        remetente.setDefaultEncoding("UTF-8");
-
-        Properties p = remetente.getJavaMailProperties();
-        p.put("mail.transport.protocol", "smtp");
-        p.put("mail.smtp.auth", String.valueOf(s.getSmtpUsername() != null));
-        p.put("mail.smtp.connectiontimeout", "12000");
-        p.put("mail.smtp.timeout", "12000");
-        p.put("mail.smtp.writetimeout", "12000");
-
-        String seguranca = s.getSmtpSecurity() != null ? s.getSmtpSecurity() : "STARTTLS";
-        if ("SSL".equals(seguranca)) {
-            p.put("mail.smtp.ssl.enable", "true");
-        } else if ("STARTTLS".equals(seguranca)) {
-            p.put("mail.smtp.starttls.enable", "true");
-            p.put("mail.smtp.starttls.required", "true");
-        }
-        return remetente;
+        return SmtpFactory.build(s, cofre);
     }
 
     @Transactional

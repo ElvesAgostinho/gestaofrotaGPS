@@ -1,4 +1,5 @@
 import {
+  Alert,
   Badge,
   Button,
   Card,
@@ -8,13 +9,16 @@ import {
   Switch,
   Table,
   Text,
+  TextInput,
   Title,
 } from '@mantine/core';
 import { notifications as toast } from '@mantine/notifications';
+import { IconBrandWhatsapp, IconDeviceMobile } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../auth/AuthContext';
 import { fmtDateTime } from '../lib/format';
 
 interface NotificationItem {
@@ -27,6 +31,7 @@ interface NotificationItem {
   link?: string | null;
   assetTag?: string | null;
   emailState: string;
+  phoneState?: string;
   read: boolean;
   createdAt: string;
 }
@@ -36,7 +41,23 @@ interface Preference {
   label: string;
   inApp: boolean;
   email: boolean;
+  phone: boolean;
 }
+
+/** O que este ambiente tem de facto — para não prometer canais que não existem. */
+interface Channels {
+  emailConfigured: boolean;
+  phoneConfigured: boolean;
+  phoneChannel?: string | null;
+  myPhone?: string | null;
+}
+
+const PHONE_STATE: Record<string, { label: string; color: string }> = {
+  SENT: { label: 'Enviado ao telemóvel', color: 'green' },
+  FAILED: { label: 'Falhou no telemóvel', color: 'red' },
+  NO_PHONE: { label: 'Sem número no perfil', color: 'gray' },
+  NO_CHANNEL: { label: 'Sem WhatsApp/SMS', color: 'gray' },
+};
 
 const SEVERITY: Record<string, string> = {
   INFO: 'blue',
@@ -59,6 +80,11 @@ export function NotificationsPage() {
   const { data: preferences } = useQuery({
     queryKey: ['notifications', 'preferences'],
     queryFn: () => api<Preference[]>('/notifications/preferences'),
+  });
+
+  const { data: channels } = useQuery({
+    queryKey: ['notifications', 'channels'],
+    queryFn: () => api<Channels>('/notifications/channels'),
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['notifications'] });
@@ -85,7 +111,7 @@ export function NotificationsPage() {
   const rows = data?.content ?? [];
   // Sem servidor de email configurado, nenhum aviso sai daqui — dizê-lo evita
   // que alguém fique à espera de um email que nunca vai chegar.
-  const demoMode = rows.some((n) => n.emailState === 'DEMO_MODE');
+  const demoMode = rows.some((n) => n.emailState === 'DEMO_MODE') || channels?.emailConfigured === false;
 
   return (
     <Stack gap="lg">
@@ -135,6 +161,11 @@ export function NotificationsPage() {
                             {n.assetTag}
                           </Text>
                         )}
+                        {n.phoneState && PHONE_STATE[n.phoneState] && (
+                          <Badge size="xs" variant="outline" color={PHONE_STATE[n.phoneState].color}>
+                            {PHONE_STATE[n.phoneState].label}
+                          </Badge>
+                        )}
                       </Group>
                       <Text fw={n.read ? 400 : 700} size="sm">
                         {n.link ? (
@@ -177,12 +208,19 @@ export function NotificationsPage() {
             email é enviado.
           </Text>
         )}
+        <TelemovelCard channels={channels} />
         <Table>
           <Table.Thead>
             <Table.Tr>
               <Table.Th>Categoria</Table.Th>
               <Table.Th w={140}>Na aplicação</Table.Th>
               <Table.Th w={140}>Por email</Table.Th>
+              <Table.Th w={200}>
+                Telemóvel{' '}
+                <Text span size="xs" c="dimmed">
+                  (só avisos graves)
+                </Text>
+              </Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>
@@ -211,11 +249,91 @@ export function NotificationsPage() {
                     }
                   />
                 </Table.Td>
+                <Table.Td>
+                  <Switch
+                    checked={p.phone}
+                    disabled={!channels?.phoneConfigured}
+                    aria-label={`Telemóvel: ${p.label}`}
+                    onChange={(e) =>
+                      setPreference.mutate({
+                        category: p.category,
+                        body: { phone: e.currentTarget.checked },
+                      })
+                    }
+                  />
+                </Table.Td>
               </Table.Tr>
             ))}
           </Table.Tbody>
         </Table>
       </Card>
+    </Stack>
+  );
+}
+
+/**
+ * O telemóvel para onde vão os avisos graves. Diz a verdade sobre o canal:
+ * WhatsApp, SMS, ou nenhum — e deixa mandar uma mensagem de teste, que é a
+ * única prova de que chega.
+ */
+function TelemovelCard({ channels }: { channels?: Channels }) {
+  const { user, refresh } = useAuth();
+  const queryClient = useQueryClient();
+  const [phone, setPhone] = useState(user?.phone ?? '');
+  useEffect(() => setPhone(user?.phone ?? ''), [user?.phone]);
+
+  const guardar = useMutation({
+    mutationFn: () => api('/users/me', { method: 'PATCH', body: { phone } }),
+    onSuccess: async () => {
+      toast.show({ message: 'Número guardado.', color: 'green' });
+      await refresh();
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'channels'] });
+    },
+  });
+  const testar = useMutation({
+    mutationFn: () => api<{ sent: boolean; message: string }>('/notifications/channels/test', { method: 'POST' }),
+    onSuccess: (r) => toast.show({ message: r.message, color: r.sent ? 'green' : 'red', autoClose: 8000 }),
+  });
+
+  if (!channels) return null;
+  const canal = channels.phoneChannel;
+  return (
+    <Stack gap="xs" mb="md">
+      {!channels.phoneConfigured ? (
+        <Alert color="gray" variant="light" icon={<IconDeviceMobile size={18} />}>
+          Esta plataforma ainda não tem WhatsApp nem SMS ligados: os avisos graves não chegam ao
+          telemóvel. Quando o administrador da plataforma os ligar, basta ter o seu número aqui.
+        </Alert>
+      ) : (
+        <Alert
+          color={canal === 'WhatsApp' ? 'green' : 'blue'}
+          variant="light"
+          icon={canal === 'WhatsApp' ? <IconBrandWhatsapp size={18} /> : <IconDeviceMobile size={18} />}
+        >
+          Os avisos graves (alertas e críticos) chegam por <b>{canal}</b> ao número do seu perfil.
+        </Alert>
+      )}
+      <Group align="flex-end" gap="xs">
+        <TextInput
+          label="O meu telemóvel"
+          placeholder="+244 923 000 000"
+          description="Formato internacional. Vazio = não receber no telemóvel."
+          value={phone}
+          onChange={(e) => setPhone(e.currentTarget.value)}
+          w={260}
+        />
+        <Button variant="default" loading={guardar.isPending} onClick={() => guardar.mutate()} disabled={phone === (user?.phone ?? '')}>
+          Guardar número
+        </Button>
+        <Button
+          variant="light"
+          loading={testar.isPending}
+          onClick={() => testar.mutate()}
+          disabled={!channels.phoneConfigured || !channels.myPhone}
+        >
+          Enviar mensagem de teste
+        </Button>
+      </Group>
     </Stack>
   );
 }

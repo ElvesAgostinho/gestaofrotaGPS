@@ -69,6 +69,13 @@ services:
       TRACCAR_USER: ${TRACCAR_USER:-}
       TRACCAR_PASSWORD: ${TRACCAR_PASSWORD:-}
       ROUTING_URL: ${ROUTING_URL:-}
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN:-}
+      WHATSAPP_PHONE_ID: ${WHATSAPP_PHONE_ID:-}
+      WHATSAPP_TEMPLATE: ${WHATSAPP_TEMPLATE:-}
+      WHATSAPP_TEMPLATE_LANG: ${WHATSAPP_TEMPLATE_LANG:-pt_PT}
+      SMS_GATEWAY_URL: ${SMS_GATEWAY_URL:-}
+      SMS_GATEWAY_METHOD: ${SMS_GATEWAY_METHOD:-GET}
+      SMS_GATEWAY_HEADER: ${SMS_GATEWAY_HEADER:-}
     volumes:
       - files:/var/lib/autocare/files
     # Só a web fala com a API; não há razão para a expor ao exterior.

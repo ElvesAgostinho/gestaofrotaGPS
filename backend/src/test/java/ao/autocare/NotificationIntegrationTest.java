@@ -99,6 +99,8 @@ class NotificationIntegrationTest extends AbstractIntegrationTest {
         assertThat(aviso.get("read").asBoolean()).isFalse();
         // Sem servidor de email configurado, nunca se marca como enviado.
         assertThat(aviso.get("emailState").asText()).isEqualTo("DEMO_MODE");
+        // Sem WhatsApp nem SMS na plataforma, o aviso grave fica «sem canal», nunca «enviado».
+        assertThat(aviso.get("phoneState").asText()).isEqualTo("NO_CHANNEL");
 
         assertThat(send(get("/api/v1/notifications/unread-count"), null, 200)
                 .get("unread").asInt()).isEqualTo(1);

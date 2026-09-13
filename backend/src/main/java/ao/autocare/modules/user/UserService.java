@@ -45,6 +45,24 @@ public class UserService {
         if (req.currency() != null) user.setCurrency(req.currency());
         if (req.theme() != null) user.setTheme(req.theme());
         if (req.avatarUrl() != null) user.setAvatarUrl(req.avatarUrl());
+        if (req.phone() != null) {
+            String telemovel = req.phone().replaceAll("[\\s().-]", "");
+            if (telemovel.isBlank()) {
+                user.setPhone(null);
+            } else {
+                if (!telemovel.matches("\\+?[0-9]{9,15}")) {
+                    throw ApiException.badRequest(
+                            "Número de telemóvel inválido. Use o formato internacional, ex.: +244 923 000 000.");
+                }
+                if (!telemovel.startsWith("+")) {
+                    telemovel = "+" + (telemovel.length() == 9 ? "244" : "") + telemovel;
+                }
+                if (!telemovel.equals(user.getPhone()) && users.existsByPhone(telemovel)) {
+                    throw ApiException.badRequest("Já existe outra conta com este número.");
+                }
+                user.setPhone(telemovel);
+            }
+        }
         audit.recordForUser(userId, "user.update_profile", "User", userId, null);
         return UserView.from(user);
     }
