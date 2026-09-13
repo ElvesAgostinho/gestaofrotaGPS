@@ -62,11 +62,12 @@ public class AssetController {
     public PagedResponse<AssetSummary> list(
             @AuthenticationPrincipal AuthPrincipal principal,
             @RequestParam(defaultValue = "false") boolean archived,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
         var pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200),
                 Sort.by("tag").ascending());
-        return service.list(orgContext.requireOrganizationId(principal), archived, pageable);
+        return service.list(orgContext.requireOrganizationId(principal), archived, q, pageable);
     }
 
     @Operation(summary = "Ficha de equipamento em PDF",

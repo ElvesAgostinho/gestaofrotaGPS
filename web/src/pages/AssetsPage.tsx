@@ -3,7 +3,8 @@ import { useForm } from '@mantine/form';
 import { notifications } from '@mantine/notifications';
 import { IconClipboardPlus, IconPlus } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useDebouncedValue } from '@mantine/hooks';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { IconeAtivo } from '../components/Equipamento';
@@ -16,6 +17,8 @@ import { CRITICALITY } from '../theme';
 import { fmtNumber, statusLabel } from '../lib/format';
 import { fraseRestante } from './assets/LimiteManutencao';
 
+const POR_PAGINA = 50;
+
 export function AssetsPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -23,11 +26,17 @@ export function AssetsPage() {
   const [creating, setCreating] = useState(false);
   const [ordemPara, setOrdemPara] = useState<AssetSummary | null>(null);
 
+  // Procura e paginação no servidor: uma frota de 500 viaturas não se carrega toda.
+  const [pagina, setPagina] = useState(1);
+  const [procuraServidor] = useDebouncedValue(search.trim(), 350);
+  useEffect(() => setPagina(1), [procuraServidor]);
   const { data, isLoading } = useQuery({
-    queryKey: ['assets', 'todos'],
-    // O teto do servidor. A grelha pagina e ordena por cima de tudo o que veio;
-    // acima disto o rodape avisa que ha mais.
-    queryFn: () => api<Paged<AssetSummary>>('/assets?size=200'),
+    queryKey: ['assets', 'lista', procuraServidor, pagina],
+    queryFn: () =>
+      api<Paged<AssetSummary>>(
+        `/assets?size=${POR_PAGINA}&page=${pagina - 1}${procuraServidor ? `&q=${encodeURIComponent(procuraServidor)}` : ''}`,
+      ),
+    placeholderData: (anterior) => anterior,
   });
 
   const { data: types } = useQuery({
@@ -81,7 +90,8 @@ export function AssetsPage() {
   });
 
   // Procura que ignora acentos e aceita palavras por qualquer ordem:
-  // «volvo luanda» encontra o Volvo da Filial de Luanda.
+  // O servidor já procurou por etiqueta, nome, matrícula e modelo; aqui só se
+  // afina pelo que a página tem (tipo, filial), para «volvo luanda» continuar a resultar.
   const todos = useMemo(
     () =>
       filtrar(data?.content ?? [], search, (a) => [
@@ -124,7 +134,7 @@ export function AssetsPage() {
         rodape={
           <BarraEstado
             itens={[
-              { rotulo: 'Equipamentos', valor: todos.length },
+              { rotulo: 'Equipamentos', valor: data?.totalElements ?? todos.length },
               { rotulo: 'Famílias', valor: familias },
               {
                 rotulo: 'Parados',
@@ -144,13 +154,13 @@ export function AssetsPage() {
           grupo={(a) => a.categoryLabel ?? 'Outros'}
           ordemGrupo={(a) => a.categoryOrder ?? 99}
           vazio={search ? 'Nenhum ativo corresponde à procura.' : 'Ainda não há ativos. Crie o primeiro.'}
-          rodape={
-            (data?.totalElements ?? 0) > 200 ? (
-              <Text size="xs" c="orange">
-                Só os primeiros 200 de {data?.totalElements} estão carregados — use a procura.
-              </Text>
-            ) : undefined
-          }
+          porPagina={POR_PAGINA}
+          servidor={{
+            pagina,
+            totalPaginas: data?.totalPages ?? 1,
+            total: data?.totalElements ?? 0,
+            aoMudarPagina: setPagina,
+          }}
           colunas={[
             {
               id: 'silhueta',

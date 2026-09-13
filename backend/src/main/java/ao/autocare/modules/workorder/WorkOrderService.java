@@ -134,6 +134,17 @@ public class WorkOrderService {
     @Transactional(readOnly = true)
     public PagedResponse<WorkOrderSummary> list(
             String orgId, String status, String assetId, String assignedToUserId, Pageable pageable) {
+        return list(orgId, status, assetId, assignedToUserId, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<WorkOrderSummary> list(
+            String orgId, String status, String assetId, String assignedToUserId, String q, Pageable pageable) {
+        if (q != null && !q.isBlank()) {
+            WorkOrderStatus s = status != null && !status.isBlank() ? parseStatus(status) : null;
+            return PagedResponse.of(workOrders.search(orgId, s, "%" + q.trim().toLowerCase() + "%", pageable)
+                    .map(WorkOrderSummary::of));
+        }
         if (assignedToUserId != null && !assignedToUserId.isBlank()) {
             return PagedResponse.of(workOrders
                     .findByOrganizationIdAndAssignedToIdOrderByOpenedAtDesc(

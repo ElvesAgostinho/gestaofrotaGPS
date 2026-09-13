@@ -79,10 +79,12 @@ public class WorkOrderController {
             @RequestParam(required = false) String assetId,
             @Parameter(description = "Id de um membro da equipa, ou \"me\" para as minhas ordens")
             @RequestParam(required = false) String assignedTo,
+            @Parameter(description = "Procura por número, título ou etiqueta do ativo")
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size) {
         String assignee = "me".equalsIgnoreCase(assignedTo) ? p.id() : assignedTo;
-        return service.list(org(p), status, assetId, assignee,
+        return service.list(org(p), status, assetId, assignee, q,
                 PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200)));
     }
 

@@ -9,7 +9,8 @@
 import { SegmentedControl, Stack, Text, TextInput } from '@mantine/core';
 import { IconFileExport, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useDebouncedValue } from '@mantine/hooks';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Grelha } from '../components/Grelha';
 import { api, downloadFile, openFile } from '../api/client';
@@ -52,26 +53,21 @@ export function WorkOrdersPage() {
   const [procura, setProcura] = useState('');
   const [novaAberta, setNovaAberta] = useState(false);
   const [importar, setImportar] = useState(false);
+  // Paginação e procura no servidor: com 10 000 ordens não se carrega tudo.
+  const [pagina, setPagina] = useState(1);
+  const [procuraServidor] = useDebouncedValue(procura.trim(), 350);
+  useEffect(() => setPagina(1), [filter, procuraServidor]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['work-orders', filter],
-    queryFn: () => api<{ content: WorkOrder[]; totalElements: number }>(pathFor(filter)),
+    queryKey: ['work-orders', filter, procuraServidor, pagina],
+    queryFn: () =>
+      api<{ content: WorkOrder[]; totalElements: number; totalPages: number }>(
+        pathFor(filter, procuraServidor, pagina),
+      ),
+    placeholderData: (anterior) => anterior,
   });
 
-  const todas = data?.content ?? [];
-
-  // Procura local: a lista traz até 200 linhas, e filtrar no browser responde
-  // enquanto se escreve em vez de ir ao servidor a cada tecla.
-  const rows = useMemo(() => {
-    const t = procura.trim().toLowerCase();
-    if (!t) return todas;
-    return todas.filter((w) =>
-      [w.number, w.assetTag, w.title, w.assignedTo ?? '', w.statusLabel ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(t),
-    );
-  }, [todas, procura]);
+  const rows = data?.content ?? [];
 
   const porFechar = rows.filter((r) => r.status !== 'CLOSED' && r.status !== 'CANCELLED').length;
 
@@ -174,13 +170,13 @@ export function WorkOrdersPage() {
               ? 'Nada corresponde a essa procura.'
               : 'Nenhuma ordem neste filtro. Use «Nova ordem» para abrir a primeira.'
           }
-          rodape={
-            (data?.totalElements ?? 0) > 200 ? (
-              <Text size="xs" c="orange">
-                Só as 200 mais recentes de {data?.totalElements} estão carregadas — use os filtros.
-              </Text>
-            ) : undefined
-          }
+          porPagina={POR_PAGINA}
+          servidor={{
+            pagina,
+            totalPaginas: data?.totalPages ?? 1,
+            total: data?.totalElements ?? 0,
+            aoMudarPagina: setPagina,
+          }}
           colunas={[
             {
               id: 'numero',
@@ -265,8 +261,11 @@ async function descarregar(ficheiro: string) {
   }
 }
 
-function pathFor(filter: string) {
-  if (filter === 'todas') return '/work-orders?size=200';
-  if (filter === 'minhas') return '/work-orders?assignedTo=me&size=200';
-  return `/work-orders?status=${filter}&size=200`;
+const POR_PAGINA = 50;
+
+function pathFor(filter: string, q: string, pagina: number) {
+  const base = `size=${POR_PAGINA}&page=${pagina - 1}${q ? `&q=${encodeURIComponent(q)}` : ''}`;
+  if (filter === 'todas') return `/work-orders?${base}`;
+  if (filter === 'minhas') return `/work-orders?assignedTo=me&${base}`;
+  return `/work-orders?status=${filter}&${base}`;
 }

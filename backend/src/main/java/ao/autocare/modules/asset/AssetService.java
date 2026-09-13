@@ -91,6 +91,15 @@ public class AssetService {
 
     @Transactional(readOnly = true)
     public PagedResponse<AssetSummary> list(String orgId, boolean archived, Pageable pageable) {
+        return list(orgId, archived, null, pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<AssetSummary> list(String orgId, boolean archived, String q, Pageable pageable) {
+        if (q != null && !q.isBlank()) {
+            String padrao = "%" + q.trim().toLowerCase() + "%";
+            return PagedResponse.of(assets.search(orgId, archived, padrao, pageable).map(this::toSummary));
+        }
         return PagedResponse.of(
                 assets.findByOrganizationIdAndArchived(orgId, archived, pageable)
                         .map(this::toSummary));

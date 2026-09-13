@@ -16,6 +16,16 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
 
     Page<WorkOrder> findByOrganizationIdOrderByOpenedAtDesc(String organizationId, Pageable pageable);
 
+    /** Procura por número, título ou etiqueta do ativo, com estado opcional — no servidor, para 10 000 ordens. */
+    @Query("""
+            select w from WorkOrder w join w.asset a
+            where w.organization.id = :organizationId
+              and (:status is null or w.status = :status)
+              and (lower(w.number) like :q or lower(w.title) like :q or lower(a.tag) like :q)
+            order by w.openedAt desc
+            """)
+    Page<WorkOrder> search(String organizationId, WorkOrderStatus status, String q, Pageable pageable);
+
     Page<WorkOrder> findByOrganizationIdAndStatusOrderByOpenedAtDesc(
             String organizationId, WorkOrderStatus status, Pageable pageable);
 
