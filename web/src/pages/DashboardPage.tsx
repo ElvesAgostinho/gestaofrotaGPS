@@ -11,7 +11,7 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconCircleCheck } from '@tabler/icons-react';
+import { IconAlertTriangle, IconChevronRight, IconCircleCheck } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
@@ -45,6 +45,20 @@ interface Dashboard {
     remainingMeter?: number | null;
   }[];
   kpis: { metrics: Metric[] };
+  today?: Hoje;
+}
+
+/** «O que está mal hoje» — vem do servidor já agrupado, com o link para resolver. */
+interface Hoje {
+  total: number;
+  groups: {
+    key: string;
+    label: string;
+    severity: 'CRITICAL' | 'WARNING';
+    count: number;
+    link: string;
+    items: { assetId?: string | null; assetTag?: string | null; title: string; detail: string; link: string }[];
+  }[];
 }
 
 export function DashboardPage() {
@@ -84,6 +98,8 @@ export function DashboardPage() {
           Painel
         </Text>
       </div>
+
+      <HojeBloco hoje={data.today} />
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
         <Stat label="Ativos" value={data.assetsTotal} to="/ativos" />
@@ -255,4 +271,75 @@ function remaining(t: { remainingDays?: number | null; remainingMeter?: number |
       : `${t.remainingDays} dias`;
   }
   return '—';
+}
+
+/**
+ * O painel abre com o que exige ação hoje: viaturas paradas, manutenções
+ * vencidas, documentos a caducar, anomalias, aparelhos calados. Cada linha
+ * leva ao sítio onde se resolve. Sem nada, diz-se em verde — e é bom sinal.
+ */
+function HojeBloco({ hoje }: { hoje?: Hoje }) {
+  if (!hoje) return null;
+  if (hoje.total === 0) {
+    return (
+      <Alert color="green" variant="light" icon={<IconCircleCheck size={18} />} title="Hoje não há nada a exigir ação">
+        Nenhuma viatura parada, manutenções em dia, documentos válidos, sem anomalias de combustível por analisar e
+        todos os aparelhos GPS a comunicar.
+      </Alert>
+    );
+  }
+  return (
+    <Card p="lg" style={{ borderLeft: '4px solid var(--mantine-color-red-6)' }}>
+      <Group justify="space-between" mb="md">
+        <Group gap="xs">
+          <IconAlertTriangle size={20} style={{ color: 'var(--mantine-color-red-6)' }} />
+          <Title order={2} size="h4">
+            O que está mal hoje
+          </Title>
+        </Group>
+        <Badge color="red" variant="filled">
+          {hoje.total}
+        </Badge>
+      </Group>
+      <SimpleGrid cols={{ base: 1, md: 2, xl: 3 }} spacing="md">
+        {hoje.groups.map((g) => (
+          <Card key={g.key} withBorder padding="sm" radius="md">
+            <Group justify="space-between" mb={6} wrap="nowrap">
+              <Group gap={6} wrap="nowrap">
+                <Badge size="sm" color={g.severity === 'CRITICAL' ? 'red' : 'orange'} variant="light">
+                  {g.count}
+                </Badge>
+                <Text fw={700} size="sm">
+                  {g.label}
+                </Text>
+              </Group>
+              <Text component={Link} to={g.link} size="xs" fw={700} c="var(--erp-dourado-escuro)" style={{ whiteSpace: 'nowrap' }}>
+                Ver todos <IconChevronRight size={12} style={{ verticalAlign: 'middle' }} />
+              </Text>
+            </Group>
+            <Stack gap={4}>
+              {g.items.map((i, idx) => (
+                <Link key={idx} to={i.link} style={{ textDecoration: 'none', color: 'inherit' }}>
+                  <Group justify="space-between" wrap="nowrap" gap="xs">
+                    <Text size="sm" truncate style={{ minWidth: 0 }}>
+                      {i.assetTag && <b>{i.assetTag} · </b>}
+                      {i.title}
+                    </Text>
+                    <Text size="xs" c={g.severity === 'CRITICAL' ? 'red' : 'orange'} style={{ whiteSpace: 'nowrap' }}>
+                      {i.detail}
+                    </Text>
+                  </Group>
+                </Link>
+              ))}
+              {g.count > g.items.length && (
+                <Text size="xs" c="dimmed">
+                  … e mais {g.count - g.items.length}
+                </Text>
+              )}
+            </Stack>
+          </Card>
+        ))}
+      </SimpleGrid>
+    </Card>
+  );
 }

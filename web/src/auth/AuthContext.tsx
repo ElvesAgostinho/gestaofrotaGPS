@@ -24,7 +24,10 @@ export interface Organization {
   email?: string | null;
   logoUrl?: string | null;
   assetCount: number;
+  assetTypeCount?: number;
   memberCount: number;
+  /** Falso enquanto o assistente de primeira utilização não foi concluído nem saltado. */
+  onboardingDone?: boolean;
   defaultSpeedLimitKph?: number;
   /** Último dia da licença (nulo = sem prazo). */
   licenseUntil?: string | null;

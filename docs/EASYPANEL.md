@@ -226,6 +226,14 @@ BACKUP_REMOTE=
   `BACKUP_REMOTE` vazio = as cópias ficam só na VPS. Preenchido (ex.:
   `copias:imbondeiro`, com o `rclone.conf` montado) = vão para fora todos os
   dias. **Uma cópia no mesmo disco morre com o disco** — configure o remoto.
+  Sem conta na nuvem, serve **outra VPS por SFTP** (é o que está em produção:
+  as cópias vão para a KVM1 do Traccar, utilizador `imbbackup`, pasta
+  `/srv/imbondeiro-backups/copias`, apagadas lá ao fim de 60 dias por um
+  `cron.daily`). Nesse caso, em vez do `rclone.conf`, o remoto define-se por
+  variáveis: `BACKUP_REMOTE=kvm1:copias`, `RCLONE_CONFIG_KVM1_TYPE=sftp`,
+  `RCLONE_CONFIG_KVM1_HOST=<ip>`, `RCLONE_CONFIG_KVM1_USER=imbbackup`,
+  `RCLONE_CONFIG_KVM1_KEY_FILE=/root/chave-copias` (a chave privada montada
+  como File; a pública fica em `authorized_keys` do utilizador na outra VPS).
 - Advanced → **Command**: `sh /backup.sh`
 - Deploy. Nos logs aparece «feito: N ficheiros em /backups» logo ao arrancar.
 

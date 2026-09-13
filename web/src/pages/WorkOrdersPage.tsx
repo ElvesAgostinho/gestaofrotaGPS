@@ -10,7 +10,7 @@ import { SegmentedControl, Stack, Text, TextInput } from '@mantine/core';
 import { IconFileExport, IconPlus, IconPrinter, IconSearch } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Grelha } from '../components/Grelha';
 import { api, downloadFile, openFile } from '../api/client';
 import {
@@ -46,7 +46,9 @@ interface WorkOrder {
 
 export function WorkOrdersPage() {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState('todas');
+  // O painel «Hoje» manda para cá com o estado já escolhido (?estado=AWAITING_APPROVAL).
+  const [params] = useSearchParams();
+  const [filter, setFilter] = useState(params.get('estado') ?? 'todas');
   const [procura, setProcura] = useState('');
   const [novaAberta, setNovaAberta] = useState(false);
   const [importar, setImportar] = useState(false);
@@ -136,6 +138,7 @@ export function WorkOrdersPage() {
                 { value: 'minhas', label: 'As minhas' },
                 { value: 'OPEN', label: 'Abertas' },
                 { value: 'IN_PROGRESS', label: 'Em manutenção' },
+                { value: 'AWAITING_APPROVAL', label: 'A aguardar aprovação' },
                 { value: 'DONE', label: 'Concluídas' },
               ]}
             />

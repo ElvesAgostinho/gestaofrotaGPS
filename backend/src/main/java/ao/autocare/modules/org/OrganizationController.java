@@ -78,7 +78,9 @@ public class OrganizationController {
             /** Último dia da licença (nulo = sem prazo). */
             java.time.LocalDate licenseUntil,
             /** Por que a empresa está travada (suspensa ou licença vencida); nulo = tudo bem. */
-            String blockedReason) {}
+            String blockedReason,
+            /** Falso enquanto o assistente de primeira utilização não foi concluído nem saltado. */
+            boolean onboardingDone) {}
 
     /** Alterações às definições da empresa. Cada campo é opcional. */
     public record UpdateOrganizationRequest(
@@ -110,7 +112,22 @@ public class OrganizationController {
                 principal.permissions() == null ? java.util.List.of()
                         : principal.permissions().stream().map(Enum::name).sorted().toList(),
                 org.getLicenseUntil(),
-                org.blockedReason(java.time.LocalDate.now()));
+                org.blockedReason(java.time.LocalDate.now()),
+                org.getOnboardingDoneAt() != null);
+    }
+
+    @Operation(summary = "Dar o assistente de primeira utilização por concluído (ou saltado)")
+    @RequirePermission(Permission.SETTINGS_MANAGE)
+    @org.springframework.web.bind.annotation.PostMapping("/onboarding/done")
+    @Transactional
+    public OrganizationView onboardingDone(@AuthenticationPrincipal AuthPrincipal principal) {
+        Organization org = orgContext.require(principal);
+        if (org.getOnboardingDoneAt() == null) {
+            org.setOnboardingDoneAt(java.time.Instant.now());
+            audit.record(org.getId(), principal.id(), "organization.onboarding_done", "Organization", org.getId(),
+                    "Assistente de primeira utilização concluído");
+        }
+        return current(principal);
     }
 
     @Operation(summary = "Alterar os dados da empresa (nome, limite de velocidade da frota)")

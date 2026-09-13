@@ -9,7 +9,7 @@
  * Sem rede: as páginas já visitadas abrem; a API responde 503 e a app diz
  * «sem ligação» em vez de mostrar dados velhos como se fossem de agora.
  */
-const VERSAO = 'imbondeiro-shell-v1';
+const VERSAO = 'imbondeiro-shell-v2';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -57,7 +57,11 @@ self.addEventListener('fetch', (event) => {
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request).then((resposta) => {
-        if (resposta.ok) caches.open(VERSAO).then((cache) => cache.put('/', resposta.clone()));
+        // A cópia faz-se já, antes de a página consumir o corpo da resposta.
+        if (resposta.ok) {
+          const copia = resposta.clone();
+          caches.open(VERSAO).then((cache) => cache.put('/', copia)).catch(() => {});
+        }
         return resposta;
       }).catch(() => caches.match('/')),
     );

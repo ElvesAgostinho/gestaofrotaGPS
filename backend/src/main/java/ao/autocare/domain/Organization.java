@@ -80,6 +80,10 @@ public class Organization extends TimestampedEntity {
     private String brandName;
 
     /** Cor principal (#RRGGBB). */
+    /** Quando o assistente de primeira utilização foi concluído ou saltado; nulo = ainda por fazer. */
+    @Column(name = "onboarding_done_at")
+    private java.time.Instant onboardingDoneAt;
+
     @Column(name = "brand_color", length = 9)
     private String brandColor;
 

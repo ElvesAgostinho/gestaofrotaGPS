@@ -43,6 +43,7 @@ import { MOrdensPage } from './pages/mobile/MOrdensPage';
 import { MOrdemPage } from './pages/mobile/MOrdemPage';
 import { MAbastecerPage } from './pages/mobile/MAbastecerPage';
 import { prefereTelemovel } from './pages/mobile/modo';
+import { PrimeirosPassosPage } from './pages/PrimeirosPassosPage';
 
 // O MapLibre pesa mais do que todo o resto da aplicação junta e só serve uma
 // página. Carregá-lo à parte tira ~250 kB do primeiro arranque — que numa
@@ -110,7 +111,10 @@ function Router() {
 
   // O motorista, e o mecânico num ecrã pequeno, caem na app do telemóvel:
   // quatro botões grandes em vez de um painel de gestão.
-  const inicio = prefereTelemovel(org?.myRole) ? <Navigate to="/m" replace /> : <DashboardPage />;
+  // Uma empresa nova, com o dono a entrar pela primeira vez, começa pelo assistente.
+  const primeiraVez = org && org.onboardingDone === false && org.myRole === 'OWNER' && org.assetCount === 0;
+  const inicio = primeiraVez ? <Navigate to="/primeiros-passos" replace />
+      : prefereTelemovel(org?.myRole) ? <Navigate to="/m" replace /> : <DashboardPage />;
 
   return (
     <Routes>
@@ -128,6 +132,7 @@ function Router() {
       </Route>
       <Route element={<Shell />}>
         <Route path="/" element={inicio} />
+        <Route path="/primeiros-passos" element={<PrimeirosPassosPage />} />
         {user.admin && <Route path="/plataforma" element={<PlataformaPage />} />}
         <Route path="/ativos" element={<AssetsPage />} />
         <Route path="/tipos-equipamento" element={<TiposAtivoPage />} />

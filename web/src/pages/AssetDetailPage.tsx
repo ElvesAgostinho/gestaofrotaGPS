@@ -37,7 +37,7 @@ import {
 } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, openFile } from '../api/client';
 import { BarraEstado, BotaoBarra, COR_ESTADO_OM, COR_PRIORIDADE_OM, Painel, Ponto, SeparadorBarra } from '../components/erp';
 import { CabecalhoFicha, CamposFicha } from '../components/Ficha';
@@ -58,6 +58,9 @@ import { CRITICALITY } from '../theme';
 
 export function AssetDetailPage() {
   const { id = '' } = useParams();
+  const [params] = useSearchParams();
+  // O painel «Hoje» abre a ficha já no separador certo (?tab=plano).
+  const separadorInicial = params.get('tab') ?? 'ordens';
   const { can, has } = useAuth();
   const queryClient = useQueryClient();
   const [reading, setReading] = useState<number | ''>('');
@@ -294,7 +297,7 @@ export function AssetDetailPage() {
       <PainelProximaManutencao asset={asset} />
       </div>
 
-      <Tabs defaultValue="ordens" keepMounted={false}>
+      <Tabs defaultValue={separadorInicial} keepMounted={false}>
         <Tabs.List>
           <Tabs.Tab value="ordens" leftSection={<IconClipboardList size={16} />}>
             Ordens de serviço

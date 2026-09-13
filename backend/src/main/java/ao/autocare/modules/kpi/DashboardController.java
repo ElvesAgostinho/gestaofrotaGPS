@@ -33,6 +33,7 @@ public class DashboardController {
     private final WorkOrderRepository workOrders;
     private final StockItemRepository stockItems;
     private final KpiService kpiService;
+    private final TodayService todayService;
     private final OrgContext orgContext;
 
     public DashboardController(
@@ -42,6 +43,7 @@ public class DashboardController {
             WorkOrderRepository workOrders,
             StockItemRepository stockItems,
             KpiService kpiService,
+            TodayService todayService,
             OrgContext orgContext) {
         this.assets = assets;
         this.criticalities = criticalities;
@@ -49,6 +51,7 @@ public class DashboardController {
         this.workOrders = workOrders;
         this.stockItems = stockItems;
         this.kpiService = kpiService;
+        this.todayService = todayService;
         this.orgContext = orgContext;
     }
 
@@ -70,7 +73,9 @@ public class DashboardController {
             long workOrdersOpen,
             long lowStockParts,
             List<UpcomingTask> upcoming,
-            KpiReport kpis) {}
+            KpiReport kpis,
+            /** O que está mal hoje — o painel abre com isto. */
+            TodayService.TodayView today) {}
 
     @Operation(summary = "Resumo executivo para o painel")
     @GetMapping("/api/v1/dashboard")
@@ -107,6 +112,6 @@ public class DashboardController {
         return new DashboardView(
                 allAssets.size(), critical, down,
                 overdue.size(), dueSoon.size(), open, lowStock,
-                upcoming, kpis);
+                upcoming, kpis, todayService.today(orgId));
     }
 }
