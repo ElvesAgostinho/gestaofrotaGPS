@@ -17,10 +17,23 @@ if [ -f angola-latest.osrm.mldgr ] || [ -f angola-latest.osrm.partition ]; then
     exit 0
 fi
 
+MAPA=https://download.geofabrik.de/africa/angola-latest.osm.pbf
 if [ ! -f angola-latest.osm.pbf ]; then
-    echo "A descarregar o mapa de Angola…"
-    wget -q --show-progress -O angola-latest.osm.pbf \
-        https://download.geofabrik.de/africa/angola-latest.osm.pbf
+    echo "A descarregar o mapa de Angola..."
+    # A imagem do OSRM nao traz wget nem curl; usa o que houver. Se nao houver
+    # nada, descarregue o ficheiro fora e ponha-o em /data.
+    if command -v wget >/dev/null 2>&1; then
+        wget -q -O angola-latest.osm.pbf.tmp "$MAPA"
+    elif command -v curl >/dev/null 2>&1; then
+        curl -fsSL -o angola-latest.osm.pbf.tmp "$MAPA"
+    else
+        # E o caso da imagem oficial do OSRM (Debian minimo): o mapa tem de vir
+        # de fora. No docker compose e o servico «osrm-mapa» (alpine + wget)
+        # que o descarrega para o mesmo volume antes deste correr.
+        echo "Esta imagem nao tem wget nem curl. Descarregue $MAPA e ponha-o em /data/angola-latest.osm.pbf" >&2
+        exit 1
+    fi
+    mv angola-latest.osm.pbf.tmp angola-latest.osm.pbf
 fi
 
 echo "A extrair a rede rodoviária (perfil: automóvel)…"

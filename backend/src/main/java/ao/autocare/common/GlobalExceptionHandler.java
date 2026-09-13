@@ -185,8 +185,22 @@ public class GlobalExceptionHandler {
                 .body(ErrorResponse.of(status.value(), message, req.getRequestURI()));
     }
 
+    /**
+     * O navegador fechou a ligação a meio (o mapa ao vivo fecha o fluxo de
+     * eventos a cada mudança de página). Não há a quem responder e não é um
+     * erro do sistema: fica em debug, sem pilha de chamadas a encher o log.
+     */
+    @ExceptionHandler(org.apache.catalina.connector.ClientAbortException.class)
+    public void handleClientAbort(HttpServletRequest req) {
+        log.debug("Cliente fechou a ligação em {} {}", req.getMethod(), req.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpected(Exception ex, HttpServletRequest req) {
+        if (ex instanceof java.io.IOException && String.valueOf(ex.getMessage()).contains("Broken pipe")) {
+            log.debug("Cliente fechou a ligação em {} {}", req.getMethod(), req.getRequestURI());
+            return null;
+        }
         log.error("Erro inesperado em {} {}", req.getMethod(), req.getRequestURI(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ErrorResponse.of(500,

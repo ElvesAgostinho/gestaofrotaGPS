@@ -211,7 +211,9 @@ BACKUP_REMOTE=
 - Deploy. Nos logs aparece «feito: N ficheiros em /backups» logo ao arrancar.
 
 O script usa `db` como host do Postgres; se o nome interno for outro, edite a
-variável `DATABASE_HOST` (por omissão `db`).
+variável `DATABASE_HOST` (por omissão `db`; no projeto `top_n8n` é
+`top_n8n_imbondeiro-db`). O volume `files` da API monta-se como **Bind
+Mount** de `/var/lib/docker/volumes/PROJETO_api_files/_data` → `/files`.
 
 ---
 
@@ -219,17 +221,44 @@ variável `DATABASE_HOST` (por omissão `db`).
 
 Só se quiser distâncias pelas estradas reais em vez de linha reta.
 
+**Opção A — noutra VPS, com Docker à mão** (é assim que está instalado na
+VPS do Traccar, `187.124.218.242`; o Easypanel já tem carga que chegue):
+
+```bash
+mkdir -p /opt/osrm/data && cd /opt/osrm/data
+wget -O angola-latest.osm.pbf https://download.geofabrik.de/africa/angola-latest.osm.pbf
+docker run --rm -v /opt/osrm/data:/data -v /caminho/deploy/osrm-preparar.sh:/preparar.sh:ro \
+  --entrypoint sh ghcr.io/project-osrm/osrm-backend:v5.27.1 /preparar.sh     # ~2 min, 600 MB de RAM
+docker run -d --name osrm --restart unless-stopped -p 5000:5000 -v /opt/osrm/data:/data \
+  --memory 1200m ghcr.io/project-osrm/osrm-backend:v5.27.1 \
+  osrm-routed --algorithm mld --max-table-size 100 /data/angola-latest.osrm
+ufw allow from IP_DA_VPS_DO_EASYPANEL to any port 5000 proto tcp   # só a aplicação lhe fala
+```
+O mapa descarrega-se **fora** do contentor: a imagem oficial do OSRM não
+tem `wget` nem `curl`.
+
+No IMBONDEIRO OS: Configurações → Motor de rotas → `http://IP_DA_VPS:5000`
+→ Testar.
+
+**Opção B — dentro do Easypanel** (precisa de ~1 GB de memória livre):
+
+**+ Service → App** `osrm-mapa`, image `alpine:3.20`, volume `osrm-data` →
+`/data`, Command
+`sh -c "wget -O /data/angola-latest.osm.pbf https://download.geofabrik.de/africa/angola-latest.osm.pbf"`.
+Deploy, esperar o log acabar, **Stop**.
+
 **+ Service → App** `osrm-preparar`, image `ghcr.io/project-osrm/osrm-backend:v5.27.1`,
-volume `osrm-data` → `/data`, File `/preparar.sh` = `deploy/osrm-preparar.sh`,
-Command `sh /preparar.sh`. Deploy, esperar 5–10 min até os logs dizerem
-«Pronto», e depois **Stop** (é um passo único).
+o mesmo volume `osrm-data` → `/data`, File `/preparar.sh` = `deploy/osrm-preparar.sh`,
+Command `sh /preparar.sh`. Deploy, esperar os logs dizerem «Pronto», **Stop**.
 
-**+ Service → App** `osrm`, mesma imagem, mesmo volume `osrm-data` → `/data`,
-Command `osrm-routed --algorithm mld /data/angola-latest.osrm`. Deploy.
+**+ Service → App** `osrm`, mesma imagem, mesmo volume, Command
+`osrm-routed --algorithm mld /data/angola-latest.osrm`. Deploy.
 
-No IMBONDEIRO OS: Configurações → Motor de rotas → `http://osrm:5000` →
-Testar. Um motor sem mapa **reprova** — é assim que se sabe que o passo
-anterior correu.
+Configurações → Motor de rotas → `http://osrm:5000` → Testar. Um motor sem
+mapa **reprova** — é assim que se sabe que o passo anterior correu.
+
+Para atualizar o mapa (o OpenStreetMap de Angola melhora todos os meses):
+apague `/data` e repita.
 
 ---
 

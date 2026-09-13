@@ -119,8 +119,21 @@ services:
     entrypoint: ["sh", "/backup.sh"]
 
   # ---- Motor de rotas (opcional) ------------------------------------------
+  osrm-mapa:
+    image: alpine:3.20
+    profiles: ["rotas"]
+    volumes:
+      - osrm-data:/data
+    command: >
+      sh -c "[ -f /data/angola-latest.osm.pbf ] && echo 'mapa ja descarregado' ||
+      (wget -q -O /data/angola-latest.osm.pbf.tmp https://download.geofabrik.de/africa/angola-latest.osm.pbf
+      && mv /data/angola-latest.osm.pbf.tmp /data/angola-latest.osm.pbf && echo 'mapa descarregado')"
+
   osrm-preparar:
     image: ghcr.io/project-osrm/osrm-backend:v5.27.1
+    depends_on:
+      osrm-mapa:
+        condition: service_completed_successfully
     profiles: ["rotas"]
     volumes:
       - osrm-data:/data
