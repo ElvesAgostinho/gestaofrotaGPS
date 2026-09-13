@@ -27,4 +27,6 @@ COPY --from=build /build/dist /usr/share/nginx/html
 EXPOSE 80
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost/ >/dev/null || exit 1
+    # 127.0.0.1 e não localhost: no Alpine, localhost resolve para ::1 primeiro, e um Nginx
+# só em IPv4 recusava -- o Swarm marcava a web como doente e desligava-a.
+    CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
