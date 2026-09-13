@@ -50,6 +50,7 @@ public class TelemetryController {
     private final TraccarPositions traccar;
 
     private final TelemetryService telemetry;
+    private final DayHistoryService dayHistory;
     private final TelemetryStream stream;
     private final StreamTickets tickets;
     private final OrgContext orgContext;
@@ -59,12 +60,14 @@ public class TelemetryController {
             TelemetryStream stream,
             StreamTickets tickets,
             OrgContext orgContext,
-            TraccarPositions traccar) {
+            TraccarPositions traccar,
+            DayHistoryService dayHistory) {
         this.traccar = traccar;
         this.telemetry = telemetry;
         this.stream = stream;
         this.tickets = tickets;
         this.orgContext = orgContext;
+        this.dayHistory = dayHistory;
     }
 
     private String org(AuthPrincipal p) {
@@ -128,6 +131,23 @@ public class TelemetryController {
             @Parameter(description = "Início, ISO-8601") @RequestParam(required = false) Instant from,
             @Parameter(description = "Fim, ISO-8601") @RequestParam(required = false) Instant to) {
         return telemetry.track(org(p), assetId, from, to);
+    }
+
+    @Operation(summary = "O dia de um ativo: percurso para repetir, paragens e ralenti (motor ligado parado)")
+    @GetMapping("/api/v1/assets/{assetId}/day")
+    public DayHistoryService.DayView day(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @PathVariable String assetId,
+            @Parameter(description = "Dia, AAAA-MM-DD (fuso de Luanda); por omissão hoje")
+            @RequestParam(required = false) String date) {
+        java.time.LocalDate dia;
+        try {
+            dia = date == null || date.isBlank() ? java.time.LocalDate.now(java.time.ZoneId.of("Africa/Luanda"))
+                    : java.time.LocalDate.parse(date);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw ao.autocare.common.ApiException.badRequest("Indique o dia como AAAA-MM-DD.");
+        }
+        return dayHistory.day(org(p), assetId, dia);
     }
 
     @Operation(summary = "Histórico de posições de um ativo")

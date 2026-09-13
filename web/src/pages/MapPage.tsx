@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Card, Group, SegmentedControl, Stack, Text, Title, Tooltip } from '@mantine/core';
-import { IconFocus2, IconSatellite } from '@tabler/icons-react';
+import { IconFocus2, IconHistory, IconSatellite } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
@@ -13,6 +13,7 @@ import {
 } from './map/MarcadorViatura';
 import { useLivePositions, type LivePosition } from '../lib/useLivePositions';
 import { BASEMAPS, CENTRO_OMISSAO as DEFAULT_CENTER, styleFor } from './map/basemaps';
+import { HistoricoDoDia } from './map/HistoricoDoDia';
 
 export interface LiveAsset {
   assetId: string;
@@ -44,6 +45,8 @@ export function MapPage() {
   const [seleccionado, setSeleccionado] = useState<string | null>(null);
   const animacoes = useRef<Map<string, () => void>>(new Map());
   const [ready, setReady] = useState(false);
+  // O painel «Histórico do dia»: percurso, paragens e ralenti de uma viatura num dia.
+  const [historico, setHistorico] = useState(false);
 
   // Estado inicial da frota: uma leitura, e daí em diante é o fluxo que manda.
   const { data: fleet } = useQuery({
@@ -207,12 +210,20 @@ export function MapPage() {
               <IconFocus2 size={18} />
             </ActionIcon>
           </Tooltip>
+          <Tooltip label="Histórico do dia: percurso, paragens e ralenti">
+            <ActionIcon variant={historico ? 'filled' : 'default'} size="lg" onClick={() => setHistorico((v) => !v)}>
+              <IconHistory size={18} />
+            </ActionIcon>
+          </Tooltip>
         </Group>
       </Group>
 
-      <Card p={0} style={{ flex: 1, overflow: 'hidden' }}>
-        <div ref={container} style={{ width: '100%', height: '100%' }} />
-      </Card>
+      <Group gap="sm" align="stretch" wrap="nowrap" style={{ flex: 1, minHeight: 0 }}>
+        <Card p={0} style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <div ref={container} style={{ width: '100%', height: '100%' }} />
+        </Card>
+        {historico && ready && <HistoricoDoDia map={map.current} assets={assets} fechar={() => setHistorico(false)} />}
+      </Group>
     </Stack>
   );
 }
