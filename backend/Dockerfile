@@ -35,7 +35,12 @@ EXPOSE 8080
 
 # MaxRAMPercentage em vez de -Xmx fixo: o limite passa a acompanhar o que o
 # contentor tiver, sem ter de recompilar a imagem para mudar de máquina.
-ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC"
+# TieredStopAtLevel=1: o JIT completo custa dois núcleos durante um minuto no
+# arranque; num servidor partilhado (Easypanel com vinte serviços) isso
+# afogava a máquina e a verificação de saúde desistia antes de a aplicação
+# acordar. Com o nível 1 arranca em metade do tempo e gasta um terço da CPU;
+# o que se perde em velocidade de pico não se nota numa frota.
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k"
 ENV SPRING_PROFILES_ACTIVE=prod
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
