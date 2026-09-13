@@ -69,6 +69,9 @@ export function VerificarPage() {
           Escreva o código de verificação que está no rodapé do documento (ordem de manutenção, guia de transporte,
           histórico). Para confirmar que o ficheiro não foi alterado, carregue também o PDF.
         </Text>
+        <Text size="xs" c="dimmed" ta="center" fs="italic">
+          Verify a document: enter the verification code printed in its footer; upload the PDF to confirm it was not altered.
+        </Text>
         <Card p="lg" radius="md">
           <Stack gap="sm">
             <TextInput
@@ -98,7 +101,10 @@ export function VerificarPage() {
             {resultado && resultado.found && (
               <Stack gap="xs">
                 <Alert color="green" variant="light" icon={<IconCircleCheck size={18} />}>
-                  <b>Documento emitido por {resultado.organization}.</b>
+                  <b>Documento emitido por {resultado.organization}.</b>{' '}
+                  <Text span size="xs" c="dimmed">
+                    (Document issued by this company.)
+                  </Text>
                 </Alert>
                 <Table>
                   <Table.Tbody>

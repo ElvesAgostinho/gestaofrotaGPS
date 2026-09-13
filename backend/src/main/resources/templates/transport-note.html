@@ -25,59 +25,60 @@
     .warn { border-left: 3px solid #b42318; padding-left: 7px; margin-top: 6px; }
     .estado { display: inline-block; border: 1px solid #18181b; padding: 1px 6px; font-size: 7.5pt;
               text-transform: uppercase; letter-spacing: 0.4pt; }
+    .en { color: #a1a1aa; font-weight: normal; text-transform: none; letter-spacing: 0; font-size: 6.5pt; }
   </style>
 </head>
 <body>
 
-<div th:replace="~{timbre :: cabecalho(${timbre}, ${g.number}, 'Guia de transporte')}"></div>
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${g.number}, 'Guia de transporte / Delivery note')}"></div>
 
 <table class="grid">
   <tr>
-    <td class="lbl">Estado</td><td><span class="estado" th:text="${g.statusLabel}">Emitida</span></td>
-    <td class="lbl">Emitida em</td><td th:text="${g.issuedAt} ?: '—'"></td>
+    <td class="lbl">Estado <span class="en">Status</span></td><td><span class="estado" th:text="${g.statusLabel}">Emitida</span></td>
+    <td class="lbl">Emitida em <span class="en">Issued</span></td><td th:text="${g.issuedAt} ?: '—'"></td>
   </tr>
 </table>
 
-<h2>Remetente e destinatário</h2>
+<h2>Remetente e destinatário <span class="en">Shipper and consignee</span></h2>
 <table class="grid">
   <tr>
-    <td class="lbl">Origem</td><td th:text="${g.originLabel}"></td>
-    <td class="lbl">Destino</td><td th:text="${g.destinationLabel}"></td>
+    <td class="lbl">Origem <span class="en">Origin</span></td><td th:text="${g.originLabel}"></td>
+    <td class="lbl">Destino <span class="en">Destination</span></td><td th:text="${g.destinationLabel}"></td>
   </tr>
   <tr>
-    <td class="lbl">Morada</td><td th:text="${g.originAddress} ?: '—'"></td>
-    <td class="lbl">Morada</td><td th:text="${g.destinationAddress} ?: '—'"></td>
+    <td class="lbl">Morada <span class="en">Address</span></td><td th:text="${g.originAddress} ?: '—'"></td>
+    <td class="lbl">Morada <span class="en">Address</span></td><td th:text="${g.destinationAddress} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Cliente</td><td th:text="${g.customerName} ?: '—'"></td>
-    <td class="lbl">NIF do cliente</td><td th:text="${g.customerTaxId} ?: '—'"></td>
+    <td class="lbl">Cliente <span class="en">Customer</span></td><td th:text="${g.customerName} ?: '—'"></td>
+    <td class="lbl">NIF do cliente <span class="en">Customer tax ID</span></td><td th:text="${g.customerTaxId} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Contacto</td><td colspan="3" th:text="${g.customerContact} ?: '—'"></td>
+    <td class="lbl">Contacto <span class="en">Contact</span></td><td colspan="3" th:text="${g.customerContact} ?: '—'"></td>
   </tr>
 </table>
 
-<h2>Viatura e condutor</h2>
+<h2>Viatura e condutor <span class="en">Vehicle and driver</span></h2>
 <table class="grid">
   <tr>
-    <td class="lbl">Viatura</td><td th:text="${g.assetTag} + (${g.plate} != null ? ' · ' + ${g.plate} : '')"></td>
-    <td class="lbl">Reboque</td><td th:text="${g.trailerPlate} ?: '—'"></td>
+    <td class="lbl">Viatura <span class="en">Vehicle</span></td><td th:text="${g.assetTag} + (${g.plate} != null ? ' · ' + ${g.plate} : '')"></td>
+    <td class="lbl">Reboque <span class="en">Trailer</span></td><td th:text="${g.trailerPlate} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Condutor</td><td th:text="${g.driver} ?: '—'"></td>
-    <td class="lbl">Carta</td><td th:text="${g.driverLicense} ?: '—'"></td>
+    <td class="lbl">Condutor <span class="en">Driver</span></td><td th:text="${g.driver} ?: '—'"></td>
+    <td class="lbl">Carta <span class="en">Licence</span></td><td th:text="${g.driverLicense} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Partida</td><td th:text="${g.departedAt} ?: '—'"></td>
-    <td class="lbl">Km à partida</td><td th:text="${g.departureMeter} ?: '—'"></td>
+    <td class="lbl">Partida <span class="en">Departure</span></td><td th:text="${g.departedAt} ?: '—'"></td>
+    <td class="lbl">Km à partida <span class="en">Km at departure</span></td><td th:text="${g.departureMeter} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Entrega</td><td th:text="${g.deliveredAt} ?: '—'"></td>
-    <td class="lbl">Km à chegada</td><td th:text="${g.arrivalMeter} ?: '—'"></td>
+    <td class="lbl">Entrega <span class="en">Delivery</span></td><td th:text="${g.deliveredAt} ?: '—'"></td>
+    <td class="lbl">Km à chegada <span class="en">Km at arrival</span></td><td th:text="${g.arrivalMeter} ?: '—'"></td>
   </tr>
 </table>
 
-<h2>Carga</h2>
+<h2>Carga <span class="en">Cargo</span></h2>
 <div th:if="${g.cargoDescription}" th:text="${g.cargoDescription}" style="margin-bottom:6px;"></div>
 <div th:if="${g.hazardClass}" class="warn">
   <b>Mercadoria perigosa</b> — classe <span th:text="${g.hazardClass}"></span>
@@ -86,12 +87,12 @@
   <thead>
     <tr>
       <th style="width:4%;">#</th>
-      <th>Descrição</th>
-      <th style="width:14%;">Referência</th>
-      <th class="num-col" style="width:10%;">Qtd.</th>
-      <th style="width:8%;">Un.</th>
-      <th class="num-col" style="width:11%;">Peso (kg)</th>
-      <th class="num-col" style="width:10%;">Volumes</th>
+      <th>Descrição <span class="en">Description</span></th>
+      <th style="width:14%;">Referência <span class="en">Reference</span></th>
+      <th class="num-col" style="width:10%;">Qtd. <span class="en">Qty</span></th>
+      <th style="width:8%;">Un. <span class="en">Unit</span></th>
+      <th class="num-col" style="width:11%;">Peso (kg) <span class="en">Weight (kg)</span></th>
+      <th class="num-col" style="width:10%;">Volumes <span class="en">Packages</span></th>
     </tr>
   </thead>
   <tbody>

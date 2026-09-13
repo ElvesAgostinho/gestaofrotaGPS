@@ -41,71 +41,72 @@
     .foot { margin-top: 16px; padding-top: 5px; border-top: 1px solid #d4d4d8;
             font-size: 7pt; color: #a1a1aa; }
     .warn { border-left: 3px solid #b42318; padding-left: 7px; }
+    .en { color: #a1a1aa; font-weight: normal; text-transform: none; letter-spacing: 0; font-size: 6.5pt; }
   </style>
 </head>
 <body>
 
-<div th:replace="~{timbre :: cabecalho(${timbre}, ${w.number}, 'Ordem de serviço · ' + ${w.statusLabel} + ' · ' + ${w.typeLabel})}"></div>
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${w.number}, 'Ordem de serviço / Work order · ' + ${w.statusLabel} + ' · ' + ${w.typeLabel})}"></div>
 
 <h1 th:text="${w.title}" style="margin-top: 12px;">Título</h1>
 
-<h2>Viatura</h2>
+<h2>Viatura <span class="en">Vehicle</span></h2>
 <table class="grid">
   <tr>
-    <td class="lbl">Ativo</td><td th:text="${w.assetTag} + ' — ' + ${w.assetName}"></td>
-    <td class="lbl">Matrícula</td><td th:text="${w.plate} ?: '—'"></td>
+    <td class="lbl">Ativo <span class="en">Asset</span></td><td th:text="${w.assetTag} + ' — ' + ${w.assetName}"></td>
+    <td class="lbl">Matrícula <span class="en">Plate</span></td><td th:text="${w.plate} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Marca / modelo</td><td th:text="${w.model} ?: '—'"></td>
-    <td class="lbl">Nº de série</td><td th:text="${w.serial} ?: '—'"></td>
+    <td class="lbl">Marca / modelo <span class="en">Make / model</span></td><td th:text="${w.model} ?: '—'"></td>
+    <td class="lbl">Nº de série <span class="en">Serial no.</span></td><td th:text="${w.serial} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Medidor</td><td th:text="${w.meter} ?: '—'"></td>
-    <td class="lbl">Sistema</td><td th:text="${w.systemCode} ?: '—'"></td>
+    <td class="lbl">Medidor <span class="en">Meter</span></td><td th:text="${w.meter} ?: '—'"></td>
+    <td class="lbl">Sistema <span class="en">System</span></td><td th:text="${w.systemCode} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Filial</td><td th:text="${w.branch} ?: '—'"></td>
-    <td class="lbl">Condutor</td><td th:text="${w.driver} ?: '—'"></td>
+    <td class="lbl">Filial <span class="en">Branch</span></td><td th:text="${w.branch} ?: '—'"></td>
+    <td class="lbl">Condutor <span class="en">Driver</span></td><td th:text="${w.driver} ?: '—'"></td>
   </tr>
 </table>
 
-<h2>Ordem</h2>
+<h2>Ordem <span class="en">Order</span></h2>
 <table class="grid">
   <tr>
-    <td class="lbl">Prioridade</td><td th:text="${w.priorityLabel}"></td>
-    <td class="lbl">Execução</td><td th:text="${w.executionLabel}"></td>
+    <td class="lbl">Prioridade <span class="en">Priority</span></td><td th:text="${w.priorityLabel}"></td>
+    <td class="lbl">Execução <span class="en">Execution</span></td><td th:text="${w.executionLabel}"></td>
   </tr>
   <tr>
-    <td class="lbl">Aberta em</td><td th:text="${w.openedAt}"></td>
-    <td class="lbl">Prazo</td><td th:text="${w.dueAt} ?: '—'"></td>
+    <td class="lbl">Aberta em <span class="en">Opened</span></td><td th:text="${w.openedAt}"></td>
+    <td class="lbl">Prazo <span class="en">Due</span></td><td th:text="${w.dueAt} ?: '—'"></td>
   </tr>
   <tr>
-    <td class="lbl">Iniciada</td><td th:text="${w.startedAt} ?: '—'"></td>
-    <td class="lbl">Concluída</td><td th:text="${w.completedAt} ?: '—'"></td>
+    <td class="lbl">Iniciada <span class="en">Started</span></td><td th:text="${w.startedAt} ?: '—'"></td>
+    <td class="lbl">Concluída <span class="en">Completed</span></td><td th:text="${w.completedAt} ?: '—'"></td>
   </tr>
   <tr th:if="${w.supplier != null}">
-    <td class="lbl">Oficina</td><td colspan="3" th:text="${w.supplier}"></td>
+    <td class="lbl">Oficina <span class="en">Workshop</span></td><td colspan="3" th:text="${w.supplier}"></td>
   </tr>
 </table>
 
 <div th:if="${w.requiresShutdown}" class="box warn" style="margin-top: 8px;">
-  <span class="lbl">Segurança — exige paragem do ativo</span>
+  <span class="lbl">Segurança — exige paragem do ativo <span class="en">Safety — asset must be shut down</span></span>
   <span th:text="${w.safetyNotes} ?: 'Parar o ativo antes de iniciar.'"></span>
 </div>
 
 <div th:if="${w.hasDiagnosis}">
-  <h2>Diagnóstico</h2>
+  <h2>Diagnóstico <span class="en">Diagnosis</span></h2>
   <div th:if="${w.symptom != null}" class="box">
-    <span class="lbl">Sintoma relatado</span><span th:text="${w.symptom}"></span>
+    <span class="lbl">Sintoma relatado <span class="en">Reported symptom</span></span><span th:text="${w.symptom}"></span>
   </div>
   <div th:if="${w.diagnosis != null}" class="box">
-    <span class="lbl">Diagnóstico técnico</span><span th:text="${w.diagnosis}"></span>
+    <span class="lbl">Diagnóstico técnico <span class="en">Technical diagnosis</span></span><span th:text="${w.diagnosis}"></span>
   </div>
   <div th:if="${w.probableCause != null}" class="box">
-    <span class="lbl">Causa provável</span><span th:text="${w.probableCause}"></span>
+    <span class="lbl">Causa provável <span class="en">Probable cause</span></span><span th:text="${w.probableCause}"></span>
   </div>
   <div th:if="${w.recommendedAction != null}" class="box">
-    <span class="lbl">Solução recomendada</span><span th:text="${w.recommendedAction}"></span>
+    <span class="lbl">Solução recomendada <span class="en">Recommended action</span></span><span th:text="${w.recommendedAction}"></span>
   </div>
   <div th:if="${w.diagnosedBy != null}" class="muted" style="font-size: 7.5pt;">
     Por <span th:text="${w.diagnosedBy}"></span>, <span th:text="${w.diagnosedAt}"></span>
@@ -113,7 +114,7 @@
 </div>
 
 <div th:if="${!w.tasks.isEmpty()}">
-  <h2>Trabalho a executar</h2>
+  <h2>Trabalho a executar <span class="en">Work to perform</span></h2>
   <table class="lines">
     <tr th:each="t : ${w.tasks}">
       <td style="width: 16px;" th:text="${t.done} ? '[X]' : '[  ]'"></td>
@@ -124,11 +125,11 @@
 </div>
 
 <div th:if="${!w.labor.isEmpty()}">
-  <h2>Mão de obra</h2>
+  <h2>Mão de obra <span class="en">Labour</span></h2>
   <table class="lines">
-    <tr><th>Técnico</th><th class="num-col">Horas</th>
-        <th th:if="${w.showMoney}" class="num-col">Valor/hora</th>
-        <th th:if="${w.showMoney}" class="num-col">Total</th></tr>
+    <tr><th>Técnico <span class="en">Technician</span></th><th class="num-col">Horas <span class="en">Hours</span></th>
+        <th th:if="${w.showMoney}" class="num-col">Valor/hora <span class="en">Rate/h</span></th>
+        <th th:if="${w.showMoney}" class="num-col">Total <span class="en">Total</span></th></tr>
     <tr th:each="l : ${w.labor}">
       <td th:text="${l.who} ?: '—'"></td>
       <td class="num-col" th:text="${l.hours}"></td>
@@ -139,11 +140,11 @@
 </div>
 
 <div th:if="${!w.parts.isEmpty()}">
-  <h2>Peças e materiais</h2>
+  <h2>Peças e materiais <span class="en">Parts and materials</span></h2>
   <table class="lines">
-    <tr><th>Descrição</th><th class="num-col">Qtd.</th>
-        <th th:if="${w.showMoney}" class="num-col">Unitário</th>
-        <th th:if="${w.showMoney}" class="num-col">Total</th></tr>
+    <tr><th>Descrição <span class="en">Description</span></th><th class="num-col">Qtd. <span class="en">Qty</span></th>
+        <th th:if="${w.showMoney}" class="num-col">Unitário <span class="en">Unit</span></th>
+        <th th:if="${w.showMoney}" class="num-col">Total <span class="en">Total</span></th></tr>
     <tr th:each="p : ${w.parts}">
       <td th:text="${p.name}"></td>
       <td class="num-col" th:text="${p.quantity}"></td>
@@ -154,10 +155,10 @@
 </div>
 
 <div th:if="${!w.services.isEmpty()}">
-  <h2>Serviços de oficina externa</h2>
+  <h2>Serviços de oficina externa <span class="en">External workshop services</span></h2>
   <table class="lines">
-    <tr><th>Fornecedor</th><th>Serviço</th><th>Fatura</th>
-        <th th:if="${w.showMoney}" class="num-col">Valor</th></tr>
+    <tr><th>Fornecedor <span class="en">Supplier</span></th><th>Serviço <span class="en">Service</span></th><th>Fatura <span class="en">Invoice</span></th>
+        <th th:if="${w.showMoney}" class="num-col">Valor <span class="en">Amount</span></th></tr>
     <tr th:each="s : ${w.services}">
       <td th:text="${s.supplier}"></td>
       <td th:text="${s.description}"></td>
@@ -168,7 +169,7 @@
 </div>
 
 <div th:if="${w.showMoney}">
-  <h2>Custos</h2>
+  <h2>Custos <span class="en">Costs</span></h2>
   <table class="lines">
     <tr><td>Mão de obra</td><td class="num-col" th:text="${w.laborCost}"></td></tr>
     <tr><td>Peças</td><td class="num-col" th:text="${w.partsCost}"></td></tr>
@@ -183,20 +184,20 @@
 
   <table class="grid" style="margin-top: 6px;">
     <tr th:if="${w.approvedAmount != null}">
-      <td class="lbl">Aprovado</td>
+      <td class="lbl">Aprovado <span class="en">Approved</span></td>
       <td th:text="${w.approvedAmount} + ' ' + ${w.currency} + ' · ' + (${w.approvedBy} ?: '') + ' · ' + (${w.approvedAt} ?: '')"></td>
     </tr>
     <tr th:if="${w.downtimeHours != null}">
-      <td class="lbl">Imobilização</td>
+      <td class="lbl">Imobilização <span class="en">Downtime</span></td>
       <td th:text="${w.downtimeHours} + ' h' + (${w.downtimeCost} != null ? ' · ' + ${w.downtimeCost} + ' ' + ${w.currency} : '')"></td>
     </tr>
   </table>
 </div>
 
 <div th:if="${w.resolution != null or w.rootCause != null}">
-  <h2>Resultado</h2>
+  <h2>Resultado <span class="en">Result</span></h2>
   <div th:if="${w.resolution != null}" class="box">
-    <span class="lbl">O que foi feito</span><span th:text="${w.resolution}"></span>
+    <span class="lbl">O que foi feito <span class="en">Work done</span></span><span th:text="${w.resolution}"></span>
   </div>
   <div th:if="${w.rootCause != null}" class="box">
     <span class="lbl">Causa raiz</span><span th:text="${w.rootCause}"></span>
@@ -225,8 +226,8 @@
   Emitido em <span th:text="${generatedAt}"></span>
   <span th:if="${!w.showMoney}"> · Documento sem valores financeiros</span>
   <span th:if="${selo != null}" style="display:block; margin-top:2px; color:#52525b;">
-    Código de verificação <b th:text="${selo.code()}" style="letter-spacing:0.6pt;">XXXX-XXXX-XXXX</b>
-    · confirme em <span th:text="${selo.verifyUrl()}"></span>
+    Código de verificação / Verification code <b th:text="${selo.code()}" style="letter-spacing:0.6pt;">XXXX-XXXX-XXXX</b>
+    · confirme em / verify at <span th:text="${selo.verifyUrl()}"></span>
   </span>
 </div>
 
