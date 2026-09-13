@@ -69,6 +69,10 @@ public class Organization extends TimestampedEntity {
     @jakarta.persistence.Column(name = "maintenance_approval_limit", precision = 16, scale = 2)
     private java.math.BigDecimal maintenanceApprovalLimit;
 
+    /** Só se conclui uma ordem com pelo menos uma fotografia do «depois». */
+    @jakarta.persistence.Column(name = "close_requires_after_photo", nullable = false)
+    private boolean closeRequiresAfterPhoto = false;
+
     // ---- Marca branca (gerida pelo administrador da plataforma) -----------
 
     /** Domínio próprio pelo qual esta empresa entra (frota.empresa.ao); nulo = o domínio geral. */

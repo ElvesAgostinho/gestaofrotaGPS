@@ -36,7 +36,7 @@ public abstract class AbstractIntegrationTest {
         jdbc.execute("SET REFERENTIAL_INTEGRITY FALSE");
         for (String table : new String[] {
                 // Ordens de manutenção (V8)
-                "repairs", "failures", "work_order_parts", "work_order_labor",
+                "repairs", "failures", "work_order_timers", "work_order_parts", "work_order_labor",
                 "work_order_status_history", "work_order_quotes",
                 "work_order_attachments", "work_order_services",
                 "work_order_tasks", "work_orders", "org_counters",

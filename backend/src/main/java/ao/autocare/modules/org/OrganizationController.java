@@ -80,7 +80,11 @@ public class OrganizationController {
             /** Por que a empresa está travada (suspensa ou licença vencida); nulo = tudo bem. */
             String blockedReason,
             /** Falso enquanto o assistente de primeira utilização não foi concluído nem saltado. */
-            boolean onboardingDone) {}
+            boolean onboardingDone,
+            /** Orçamentos até este valor aprovam-se sozinhos; acima, o dono decide. Nulo = tudo passa pelo dono. */
+            java.math.BigDecimal maintenanceApprovalLimit,
+            /** Só se conclui uma ordem com fotografia do «depois». */
+            boolean closeRequiresAfterPhoto) {}
 
     /** Alterações às definições da empresa. Cada campo é opcional. */
     public record UpdateOrganizationRequest(
@@ -91,7 +95,10 @@ public class OrganizationController {
             @Size(max = 40) String phone,
             @Size(max = 190) String email,
             /** Limite de velocidade por omissão da frota, km/h. Zero remove a vigilância. */
-            java.math.BigDecimal defaultSpeedLimitKph) {}
+            java.math.BigDecimal defaultSpeedLimitKph,
+            /** Limite de aprovação automática de orçamentos; zero ou negativo = sem limite (tudo pelo dono). */
+            java.math.BigDecimal maintenanceApprovalLimit,
+            Boolean closeRequiresAfterPhoto) {}
 
     @Operation(summary = "Dados da empresa atual")
     @GetMapping
@@ -113,7 +120,9 @@ public class OrganizationController {
                         : principal.permissions().stream().map(Enum::name).sorted().toList(),
                 org.getLicenseUntil(),
                 org.blockedReason(java.time.LocalDate.now()),
-                org.getOnboardingDoneAt() != null);
+                org.getOnboardingDoneAt() != null,
+                org.getMaintenanceApprovalLimit(),
+                org.isCloseRequiresAfterPhoto());
     }
 
     @Operation(summary = "Dar o assistente de primeira utilização por concluído (ou saltado)")
@@ -145,6 +154,13 @@ public class OrganizationController {
             org.setName(req.name().trim());
         }
         if (req.taxId() != null) org.setTaxId(limpar(req.taxId()));
+        if (req.maintenanceApprovalLimit() != null) {
+            org.setMaintenanceApprovalLimit(req.maintenanceApprovalLimit().signum() > 0
+                    ? req.maintenanceApprovalLimit() : null);
+        }
+        if (req.closeRequiresAfterPhoto() != null) {
+            org.setCloseRequiresAfterPhoto(req.closeRequiresAfterPhoto());
+        }
         if (req.address() != null) org.setAddress(limpar(req.address()));
         if (req.city() != null) org.setCity(limpar(req.city()));
         if (req.phone() != null) org.setPhone(limpar(req.phone()));

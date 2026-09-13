@@ -23,6 +23,8 @@ import {
   IconBulb,
   IconCheck,
   IconInfoCircle,
+  IconPlayerPause,
+  IconPlayerPlay,
   IconPlus,
   IconPrinter,
 } from '@tabler/icons-react';
@@ -181,6 +183,8 @@ interface WorkOrder extends ChaoOficinaCampos {
   parts: Part[];
   externalServices: ExternalService[];
   insights: Insight[];
+  /** Cronómetros a correr: quem está nesta ordem agora e há quantos minutos. */
+  timers?: { userId: string; userName: string; startedAt: string; minutes: number }[];
 
   statusLabel: string;
   typeLabel: string;
@@ -247,7 +251,7 @@ const PRIORITY: Record<string, { label: string; color: string }> = {
  */
 export function WorkOrderDetailPage() {
   const { id } = useParams();
-  const { can, has } = useAuth();
+  const { can, has, user } = useAuth();
   const [complete, setComplete] = useState(false);
   const [cancel, setCancel] = useState(false);
   const [external, setExternal] = useState(false);
@@ -313,6 +317,8 @@ export function WorkOrderDetailPage() {
   const medicoesAAgir = (w?.measurements ?? []).filter((x) => x.needsAction).length;
   const emCurso = w.status === 'IN_PROGRESS';
   const porIniciar = w.status === 'OPEN' || w.status === 'PLANNED';
+  const meuCronometro = (w.timers ?? []).find((t) => t.userId === user?.id);
+  const podeCronometrar = has('WORKORDERS_MANAGE') && (w.nextStatuses?.length ?? 0) > 0 && w.status !== 'DONE';
 
   return (
     <Stack gap="sm">
@@ -405,6 +411,17 @@ export function WorkOrderDetailPage() {
               <Button size="sm" onClick={() => setComplete(true)}>
                 Concluir
               </Button>
+            )}
+            {podeCronometrar && (
+              meuCronometro ? (
+                <Button size="sm" variant="light" color="orange" leftSection={<IconPlayerPause size={15} />} onClick={() => act.mutate('timer/stop')} loading={act.isPending}>
+                  Parar o meu tempo ({meuCronometro.minutes} min)
+                </Button>
+              ) : (
+                <Button size="sm" variant="light" leftSection={<IconPlayerPlay size={15} />} onClick={() => act.mutate('timer/start')} loading={act.isPending}>
+                  Iniciar o meu tempo
+                </Button>
+              )
             )}
             {w.status === 'DONE' && (
               <Button
@@ -511,6 +528,14 @@ export function WorkOrderDetailPage() {
           }
         />
       </Group>
+
+      {(w.timers ?? []).length > 0 && (
+        <Alert color="blue" variant="light" icon={<IconPlayerPlay size={18} />}>
+          A trabalhar agora:{' '}
+          {(w.timers ?? []).map((t) => `${t.userName} (${t.minutes} min)`).join(', ')}. As horas ficam na mão de obra
+          quando cada um parar o seu tempo.
+        </Alert>
+      )}
 
       {w.requiresShutdown && w.safetyNotes && (
         <Alert color="red" variant="light" icon={<IconAlertTriangle size={18} />} title="Segurança">

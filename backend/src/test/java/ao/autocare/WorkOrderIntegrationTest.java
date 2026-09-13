@@ -81,10 +81,15 @@ class WorkOrderIntegrationTest extends AbstractIntegrationTest {
         postJson("/api/v1/stock/movements", Map.of(
                 "partId", partId, "warehouseId", whId, "type", "IN", "quantity", 5, "unitCost", 10000), 201);
 
-        String woId = postJson("/api/v1/work-orders/from-due", Map.of("assetId", assetId), 201)
-                .get("id").asText();
+        JsonNode aberta = postJson("/api/v1/work-orders/from-due", Map.of("assetId", assetId), 201);
+        String woId = aberta.get("id").asText();
 
         postJson("/api/v1/work-orders/" + woId + "/start", Map.of("stopAsset", true), 200);
+        // A lista de verificação é obrigatória: sem confirmar a tarefa não se conclui.
+        postJson("/api/v1/work-orders/" + woId + "/complete", Map.of("resolution", "x"), 409);
+        for (JsonNode tarefa : aberta.get("tasks")) {
+            postJson("/api/v1/work-orders/" + woId + "/tasks/" + tarefa.get("id").asText(), Map.of("done", true), 200);
+        }
         postJson("/api/v1/work-orders/" + woId + "/labor",
                 Map.of("technicianLabel", "José", "hours", 2.5), 200);
         postJson("/api/v1/work-orders/" + woId + "/parts",

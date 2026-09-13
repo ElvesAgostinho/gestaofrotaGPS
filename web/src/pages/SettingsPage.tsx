@@ -1,4 +1,4 @@
-import { Alert, Button, FileButton, FileInput, Group, NumberInput, Stack, Table, Text, TextInput } from '@mantine/core';
+import { Alert, Button, FileButton, FileInput, Group, NumberInput, Stack, Switch, Table, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconDownload, IconInfoCircle, IconUpload } from '@tabler/icons-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -25,6 +25,8 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState(org?.name ?? '');
   const [speedLimit, setSpeedLimit] = useState<number | ''>(org?.defaultSpeedLimitKph ?? '');
+  const [limiteAprovacao, setLimiteAprovacao] = useState<number | ''>(org?.maintenanceApprovalLimit ?? '');
+  const [fotoDepois, setFotoDepois] = useState(org?.closeRequiresAfterPhoto ?? false);
   const [taxId, setTaxId] = useState(org?.taxId ?? '');
   const [address, setAddress] = useState(org?.address ?? '');
   const [city, setCity] = useState(org?.city ?? '');
@@ -59,6 +61,9 @@ export function SettingsPage() {
         body: {
           name: name.trim() || undefined,
           defaultSpeedLimitKph: speedLimit === '' ? undefined : speedLimit,
+          // Zero = sem limite: todos os orçamentos passam pelo dono.
+          maintenanceApprovalLimit: limiteAprovacao === '' ? 0 : limiteAprovacao,
+          closeRequiresAfterPhoto: fotoDepois,
           // Vazio apaga; é assim que se tira um NIF escrito por engano.
           taxId,
           address,
@@ -155,6 +160,25 @@ export function SettingsPage() {
             value={speedLimit}
             onChange={(v) => setSpeedLimit(typeof v === 'number' ? v : '')}
           />
+          <SeccaoForm titulo="Regras das ordens de serviço">
+            <Group grow align="flex-start">
+              <NumberInput
+                label="Aprovação automática de orçamentos até"
+                description="Em Kz. Orçamentos até este valor aprovam-se sozinhos; acima, o dono decide e é avisado. Vazio = tudo passa pelo dono."
+                min={0}
+                thousandSeparator=" "
+                value={limiteAprovacao}
+                onChange={(v) => setLimiteAprovacao(typeof v === 'number' ? v : '')}
+              />
+              <Switch
+                mt={28}
+                label="Exigir fotografia do «depois» para concluir uma ordem"
+                description="A lista de tarefas é sempre obrigatória; isto acrescenta a prova fotográfica."
+                checked={fotoDepois}
+                onChange={(e) => setFotoDepois(e.currentTarget.checked)}
+              />
+            </Group>
+          </SeccaoForm>
           <Group>
             <Button onClick={() => save.mutate()} loading={save.isPending}>
               Guardar

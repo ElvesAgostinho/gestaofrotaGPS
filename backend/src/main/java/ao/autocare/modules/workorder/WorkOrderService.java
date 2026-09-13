@@ -82,6 +82,8 @@ public class WorkOrderService {
     private final ao.autocare.repo.SupplierRepository suppliers;
     private final ao.autocare.repo.LocationRepository locations;
     private final ao.autocare.repo.DriverRepository drivers;
+    private final ao.autocare.repo.WorkOrderTimerRepository timers;
+    private final ao.autocare.modules.workorder.WorkOrderAttachmentService attachmentsService;
 
     public WorkOrderService(
             WorkOrderRepository workOrders,
@@ -102,7 +104,9 @@ public class WorkOrderService {
             ao.autocare.repo.DriverRepository drivers,
             WorkOrderWorkflow workflow,
             ao.autocare.repo.SupplierRepository suppliers,
-            ao.autocare.modules.meter.MeterService meterService) {
+            ao.autocare.modules.meter.MeterService meterService,
+            ao.autocare.repo.WorkOrderTimerRepository timers,
+            @org.springframework.context.annotation.Lazy ao.autocare.modules.workorder.WorkOrderAttachmentService attachmentsService) {
         this.workOrders = workOrders;
         this.assets = assets;
         this.assetPlanTasks = assetPlanTasks;
@@ -122,6 +126,8 @@ public class WorkOrderService {
         this.suppliers = suppliers;
         this.locations = locations;
         this.drivers = drivers;
+        this.timers = timers;
+        this.attachmentsService = attachmentsService;
     }
 
     // ==== Consultas =================================================
@@ -165,8 +171,73 @@ public class WorkOrderService {
     private WorkOrderView view(WorkOrder w) {
         return WorkOrderView.of(w, insights(w),
                 workflow.nextFrom(w.getStatus()).stream()
-                        .map(java.lang.Enum::name).toList());
+                        .map(java.lang.Enum::name).toList(),
+                timers.running(w.getId()).stream().map(ao.autocare.modules.workorder.dto.WorkOrderDtos.TimerView::of).toList());
     }
+
+    // ==== Cronómetro por técnico ==========================================
+    /**
+     * «Estou a começar»: um cronómetro por pessoa e por ordem. Se a pessoa
+     * tinha outro a correr noutra ordem, esse pára — ninguém trabalha em duas
+     * ao mesmo tempo, e horas duplicadas seriam custo inventado.
+     */
+    @Transactional
+    public WorkOrderView startTimer(String orgId, String userId, String id) {
+        WorkOrder w = require(orgId, id);
+        if (FECHADAS_PARA_TRABALHO.contains(w.getStatus())) {
+            throw ApiException.conflict("A ordem já está fechada; não se regista mais tempo.");
+        }
+        for (ao.autocare.domain.WorkOrderTimer aberto : timers.runningForUser(userId)) {
+            fecharCronometro(aberto, userId);
+        }
+        if (w.getStatus() == WorkOrderStatus.OPEN || w.getStatus() == WorkOrderStatus.PLANNED
+                || w.getStatus() == WorkOrderStatus.APPROVED) {
+            transition(w, WorkOrderStatus.IN_PROGRESS, userId, "Cronómetro iniciado");
+            if (w.getStartedAt() == null) w.setStartedAt(Instant.now());
+        }
+        ao.autocare.domain.WorkOrderTimer t = new ao.autocare.domain.WorkOrderTimer();
+        t.setWorkOrder(w);
+        t.setUser(users.getReferenceById(userId));
+        t.setStartedAt(Instant.now());
+        timers.save(t);
+        audit.record(orgId, userId, "work_order.timer_start", "WorkOrder", w.getId(), w.getNumber());
+        return view(w);
+    }
+
+    /** «Parei»: o tempo decorrido vira uma linha de mão de obra desta pessoa. */
+    @Transactional
+    public WorkOrderView stopTimer(String orgId, String userId, String id) {
+        WorkOrder w = require(orgId, id);
+        ao.autocare.domain.WorkOrderTimer t = timers.findFirstByWorkOrderIdAndUserIdAndEndedAtIsNull(w.getId(), userId)
+                .orElseThrow(() -> ApiException.conflict("Não tem nenhum cronómetro a correr nesta ordem."));
+        fecharCronometro(t, userId);
+        intelligence.recalculate(w);
+        return view(w);
+    }
+
+    private void fecharCronometro(ao.autocare.domain.WorkOrderTimer t, String userId) {
+        Instant fim = Instant.now();
+        t.setEndedAt(fim);
+        long minutos = Math.max(1, java.time.Duration.between(t.getStartedAt(), fim).toMinutes());
+        // Décimas de hora, com mínimo de 0,1 h: menos do que isso não é trabalho, é um clique.
+        BigDecimal horas = BigDecimal.valueOf(minutos).divide(BigDecimal.valueOf(60), 1, java.math.RoundingMode.HALF_UP)
+                .max(new BigDecimal("0.1"));
+        WorkOrder w = t.getWorkOrder();
+        ao.autocare.domain.User tecnico = users.findById(t.getUser().getId()).orElse(null);
+        WorkOrderLabor l = new WorkOrderLabor();
+        l.setTechnician(tecnico);
+        l.setTechnicianLabel(tecnico != null ? tecnico.getName() : null);
+        l.setHours(horas);
+        l.setWorkedOn(t.getStartedAt());
+        l.setNotes("Cronómetro: " + minutos + " min");
+        w.addLabor(l);
+        audit.record(w.getOrganization().getId(), userId, "work_order.timer_stop", "WorkOrder", w.getId(),
+                w.getNumber() + " · " + horas + " h de " + l.getTechnicianLabel());
+    }
+
+    private static final java.util.Set<WorkOrderStatus> FECHADAS_PARA_TRABALHO = java.util.EnumSet.of(
+            WorkOrderStatus.DONE, WorkOrderStatus.VERIFIED, WorkOrderStatus.CLOSED,
+            WorkOrderStatus.CANCELLED, WorkOrderStatus.REJECTED);
 
     private List<InsightView> insights(WorkOrder w) {
         return intelligence.insights(w).stream()
@@ -361,6 +432,22 @@ public class WorkOrderService {
         if (w.getStatus() == WorkOrderStatus.DONE || w.getStatus() == WorkOrderStatus.VERIFIED
                 || w.getStatus() == WorkOrderStatus.CANCELLED) {
             throw ApiException.conflict("A ordem já está fechada.");
+        }
+        // A lista de verificação não é decoração: cada tarefa tem de ser
+        // confirmada (ou retirada) por quem fez o trabalho antes de concluir.
+        List<String> porFazer = w.getTasks().stream().filter(x -> !x.isDone()).map(WorkOrderTask::getTitle).toList();
+        if (!porFazer.isEmpty()) {
+            throw ApiException.conflict("Ainda há " + porFazer.size() + " tarefa(s) por confirmar: "
+                    + String.join(", ", porFazer.size() > 4 ? porFazer.subList(0, 4) : porFazer)
+                    + (porFazer.size() > 4 ? "…" : "") + ". Marque cada uma como feita antes de concluir.");
+        }
+        if (w.getOrganization().isCloseRequiresAfterPhoto()
+                && w.getAttachments().stream().noneMatch(a -> a.getKind() == ao.autocare.domain.enums.Enums.WorkOrderAttachmentKind.AFTER)) {
+            throw ApiException.conflict("A empresa exige uma fotografia do «depois» para concluir. Anexe-a primeiro.");
+        }
+        // Cronómetros esquecidos a correr fecham-se agora, com as horas reais.
+        for (ao.autocare.domain.WorkOrderTimer aberto : timers.running(w.getId())) {
+            fecharCronometro(aberto, userId);
         }
         Instant when = req.completedAt() != null ? req.completedAt() : Instant.now();
         if (w.getStartedAt() == null) w.setStartedAt(when);
@@ -829,6 +916,7 @@ public class WorkOrderService {
         w.setApprovedAmount(valor);
         w.setApprovalNote(req != null ? blankToNull(req.note()) : null);
 
+        avisarDecisao(w, true, w.getApprovalNote());
         audit.record(orgId, userId, "work_order.approve", "WorkOrder", w.getId(),
                 w.getNumber() + " - aprovado " + valor + " " + w.getCurrency());
         return view(w);
@@ -847,6 +935,7 @@ public class WorkOrderService {
         w.setRejectedAt(Instant.now());
         w.setRejectionReason(req.note().trim());
 
+        avisarDecisao(w, false, w.getRejectionReason());
         audit.record(orgId, userId, "work_order.reject", "WorkOrder", w.getId(),
                 w.getNumber() + " - " + req.note().trim());
         return view(w);
@@ -869,6 +958,31 @@ public class WorkOrderService {
         audit.record(orgId, userId, "work_order.close", "WorkOrder", w.getId(),
                 w.getNumber() + " - total " + w.getTotalCost() + " " + w.getCurrency());
         return view(w);
+    }
+
+    /** Quem pediu a aprovação (e o técnico atribuído) fica a saber da decisão. */
+    private void avisarDecisao(WorkOrder w, boolean aprovada, String nota) {
+        java.util.Set<String> destinos = new java.util.LinkedHashSet<>();
+        w.getStatusHistory().stream()
+                .filter(h -> h.getToStatus() == WorkOrderStatus.AWAITING_APPROVAL && h.getChangedBy() != null)
+                .forEach(h -> destinos.add(h.getChangedBy()));
+        if (w.getAssignedTo() != null) {
+            destinos.add(w.getAssignedTo().getId());
+        }
+        for (String uid : destinos) {
+            users.findById(uid).ifPresent(u -> notifications.notifyUser(u,
+                    ao.autocare.modules.notification.NotificationService.Draft.of(
+                            w.getOrganization().getId(),
+                            ao.autocare.domain.enums.Enums.AlertCategory.WORK_ORDER,
+                            aprovada ? ao.autocare.domain.enums.Enums.AlertSeverity.INFO
+                                    : ao.autocare.domain.enums.Enums.AlertSeverity.WARNING,
+                            (aprovada ? "Orçamento aprovado - " : "Orçamento rejeitado - ") + w.getNumber(),
+                            w.getAsset().getTag() + " - " + w.getTitle()
+                                    + (w.getApprovedAmount() != null && aprovada ? " - " + w.getApprovedAmount() + " " + w.getCurrency() : "")
+                                    + (nota != null ? ". " + nota : "."),
+                            aprovada ? "work_order_approved" : "work_order_rejected", w.getId(),
+                            "/ordens/" + w.getId()).forAsset(w.getAsset())));
+        }
     }
 
     private void notifyApprovers(WorkOrder w, BigDecimal valor) {

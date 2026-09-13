@@ -1,10 +1,11 @@
 import { Badge, Button, Card, Checkbox, FileButton, Group, Image, Loader, NumberInput, SimpleGrid, Stack, Text, Textarea, Title } from '@mantine/core';
 import { notifications as toast } from '@mantine/notifications';
-import { IconArrowLeft, IconCamera, IconPlayerPlay } from '@tabler/icons-react';
+import { IconArrowLeft, IconCamera, IconPlayerPause, IconPlayerPlay } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../../api/client';
+import { useAuth } from '../../auth/AuthContext';
 import { fmtDateTime } from '../../lib/format';
 import { Erro, Feito, mensagemDe } from './comum';
 
@@ -33,6 +34,7 @@ interface Ordem {
   safetyNotes?: string | null;
   requiresShutdown?: boolean | null;
   tasks: Tarefa[];
+  timers?: { userId: string; userName: string; startedAt: string; minutes: number }[];
 }
 
 interface Anexo {
@@ -55,6 +57,7 @@ const FECHADA = new Set(['DONE', 'VERIFIED', 'CLOSED', 'CANCELLED', 'REJECTED'])
  */
 export function MOrdemPage() {
   const { id = '' } = useParams();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [resolucao, setResolucao] = useState('');
   const [contador, setContador] = useState<number | string>('');
@@ -99,6 +102,11 @@ export function MOrdemPage() {
     },
     onError: (e) => setErro(mensagemDe(e)),
   });
+  const cronometro = useMutation({
+    mutationFn: (acao: 'start' | 'stop') => api(`/work-orders/${id}/timer/${acao}`, { method: 'POST' }),
+    onSuccess: invalidar,
+    onError: (e) => setErro(mensagemDe(e)),
+  });
   const concluir = useMutation({
     mutationFn: () =>
       api<Ordem>(`/work-orders/${id}/complete`, {
@@ -117,6 +125,8 @@ export function MOrdemPage() {
 
   const fechada = FECHADA.has(o.status);
   const feitas = o.tasks.filter((t) => t.done).length;
+  const meuCronometro = (o.timers ?? []).find((t) => t.userId === user?.id);
+  const outros = (o.timers ?? []).filter((t) => t.userId !== user?.id);
 
   return (
     <Stack gap="md">
@@ -164,6 +174,22 @@ export function MOrdemPage() {
         <Button size="lg" leftSection={<IconPlayerPlay size={20} />} loading={iniciar.isPending} onClick={() => iniciar.mutate()}>
           Iniciar trabalho
         </Button>
+      )}
+      {!fechada && (
+        meuCronometro ? (
+          <Button size="lg" variant="light" color="orange" leftSection={<IconPlayerPause size={20} />} loading={cronometro.isPending} onClick={() => cronometro.mutate('stop')}>
+            Parar o meu tempo · {meuCronometro.minutes} min
+          </Button>
+        ) : (
+          <Button size="lg" variant="light" leftSection={<IconPlayerPlay size={20} />} loading={cronometro.isPending} onClick={() => cronometro.mutate('start')}>
+            Iniciar o meu tempo
+          </Button>
+        )
+      )}
+      {outros.length > 0 && (
+        <Text size="xs" c="dimmed">
+          Também a trabalhar: {outros.map((t) => `${t.userName} (${t.minutes} min)`).join(', ')}
+        </Text>
       )}
 
       {o.tasks.length > 0 && (
@@ -240,8 +266,8 @@ export function MOrdemPage() {
       <Erro mensagem={erro} />
 
       {!fechada && !PODE_INICIAR.has(o.status) && !aConcluir && (
-        <Button size="lg" color="green" variant="outline" onClick={() => setAConcluir(true)}>
-          Concluir trabalho
+        <Button size="lg" color="green" variant="outline" onClick={() => setAConcluir(true)} disabled={feitas < o.tasks.length}>
+          {feitas < o.tasks.length ? `Concluir (faltam ${o.tasks.length - feitas} tarefas)` : 'Concluir trabalho'}
         </Button>
       )}
       {!fechada && aConcluir && (

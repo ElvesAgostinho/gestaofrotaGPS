@@ -382,7 +382,9 @@ public final class WorkOrderDtos {
             List<QuoteView> quotes,
             List<StatusHistoryView> statusHistory,
             /** Estados para onde esta ordem pode seguir a partir de onde esta. */
-            List<String> nextStatuses) {
+            List<String> nextStatuses,
+            /** Cronómetros a correr agora: quem está a trabalhar nesta ordem e desde quando. */
+            List<TimerView> timers) {
 
         public static WorkOrderView of(WorkOrder w) {
             return of(w, List.of(), List.of());
@@ -394,6 +396,11 @@ public final class WorkOrderDtos {
 
         public static WorkOrderView of(
                 WorkOrder w, List<InsightView> insights, List<String> nextStatuses) {
+            return of(w, insights, nextStatuses, List.of());
+        }
+
+        public static WorkOrderView of(
+                WorkOrder w, List<InsightView> insights, List<String> nextStatuses, List<TimerView> timers) {
             return new WorkOrderView(
                     w.getId(), w.getNumber(), w.getAsset().getId(), w.getAsset().getTag(),
                     w.getAsset().getName(), w.getType().name(), w.getStatus().name(),
@@ -457,7 +464,15 @@ public final class WorkOrderDtos {
                     w.getOrderYear(),
                     w.getQuotes().stream().map(QuoteView::of).toList(),
                     w.getStatusHistory().stream().map(StatusHistoryView::of).toList(),
-                    nextStatuses);
+                    nextStatuses, timers);
+        }
+    }
+
+    /** Um cronómetro a correr. */
+    public record TimerView(String userId, String userName, Instant startedAt, long minutes) {
+        public static TimerView of(ao.autocare.domain.WorkOrderTimer t) {
+            return new TimerView(t.getUser().getId(), t.getUser().getName(), t.getStartedAt(),
+                    java.time.Duration.between(t.getStartedAt(), Instant.now()).toMinutes());
         }
     }
 
@@ -510,7 +525,7 @@ public final class WorkOrderDtos {
                 v.diagnosedByLabel(), v.diagnosedAt(),
                 null, v.approvalNote(), v.approvedByName(), v.approvedAt(),
                 v.rejectionReason(), v.rejectedAt(), v.closedAt(), v.orderYear(),
-                List.of(), v.statusHistory(), v.nextStatuses());
+                List.of(), v.statusHistory(), v.nextStatuses(), v.timers());
     }
 
 

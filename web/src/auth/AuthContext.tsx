@@ -28,6 +28,8 @@ export interface Organization {
   memberCount: number;
   /** Falso enquanto o assistente de primeira utilização não foi concluído nem saltado. */
   onboardingDone?: boolean;
+  maintenanceApprovalLimit?: number | null;
+  closeRequiresAfterPhoto?: boolean;
   defaultSpeedLimitKph?: number;
   /** Último dia da licença (nulo = sem prazo). */
   licenseUntil?: string | null;

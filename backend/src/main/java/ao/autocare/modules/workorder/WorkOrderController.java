@@ -351,6 +351,20 @@ public class WorkOrderController {
                 .body(pdf);
     }
 
+    @Operation(summary = "Iniciar o meu cronómetro nesta ordem (tempo real por técnico)")
+    @RequirePermission(Permission.WORKORDERS_MANAGE)
+    @PostMapping("/api/v1/work-orders/{id}/timer/start")
+    public WorkOrderView startTimer(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
+        return money(p, service.startTimer(org(p), p.id(), id));
+    }
+
+    @Operation(summary = "Parar o meu cronómetro: as horas ficam registadas como mão de obra")
+    @RequirePermission(Permission.WORKORDERS_MANAGE)
+    @PostMapping("/api/v1/work-orders/{id}/timer/stop")
+    public WorkOrderView stopTimer(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
+        return money(p, service.stopTimer(org(p), p.id(), id));
+    }
+
     @Operation(summary = "Registar mão de obra")
     @RequirePermission(Permission.WORKORDERS_MANAGE)
     @PostMapping("/api/v1/work-orders/{id}/labor")
