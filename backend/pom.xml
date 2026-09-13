@@ -47,6 +47,13 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+        <!-- No Flyway 10 o PostgreSQL vive num módulo à parte. Sem ele, o
+             arranque em produção morre com «Unsupported Database: PostgreSQL»
+             - e em desenvolvimento, com H2, nunca se nota. -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 
         <!-- Base de dados: H2 em modo de compatibilidade PostgreSQL (dev + testes) -->
         <dependency>
