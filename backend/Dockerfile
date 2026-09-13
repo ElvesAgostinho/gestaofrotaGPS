@@ -43,7 +43,10 @@ EXPOSE 8080
 ENV JAVA_OPTS="-XX:MaxRAMPercentage=60 -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -Xss512k"
 ENV SPRING_PROFILES_ACTIVE=prod
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8080/api/v1/health || exit 1
+# A porta segue a variável PORT (o Easypanel põe 80); a verificação tem de perguntar à mesma porta.
+# start-period generoso: num servidor partilhado o arranque passa dos 2 min; uma verificação impaciente
+# mata a aplicação a meio e o Swarm arranca outra, e outra, até afogar a máquina.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=240s --retries=5 \
+    CMD wget -qO- "http://localhost:${PORT:-8080}/api/v1/health" || exit 1
 
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]
