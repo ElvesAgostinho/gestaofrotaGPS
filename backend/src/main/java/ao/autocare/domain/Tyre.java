@@ -132,13 +132,13 @@ public class Tyre extends TimestampedEntity {
             return null;
         }
         if (lastTreadMm != null && minTreadMm != null && lastTreadMm.compareTo(minTreadMm) < 0) {
-            return "Sulco abaixo do mínimo (" + lastTreadMm.stripTrailingZeros().toPlainString()
-                    + " mm < " + minTreadMm.stripTrailingZeros().toPlainString() + " mm)";
+            return "Sulco abaixo do mínimo (" + lastTreadMm.stripTrailingZeros().toPlainString().replace('.', ',')
+                    + " mm < " + minTreadMm.stripTrailingZeros().toPlainString().replace('.', ',') + " mm)";
         }
         if (lastPressure != null && targetPressure != null && targetPressure.signum() > 0
                 && lastPressure.compareTo(targetPressure.multiply(new BigDecimal("0.80"))) < 0) {
-            return "Pressão baixa (" + lastPressure.stripTrailingZeros().toPlainString()
-                    + " bar, alvo " + targetPressure.stripTrailingZeros().toPlainString() + " bar)";
+            return "Pressão baixa (" + lastPressure.stripTrailingZeros().toPlainString().replace('.', ',')
+                    + " bar, alvo " + targetPressure.stripTrailingZeros().toPlainString().replace('.', ',') + " bar)";
         }
         return null;
     }

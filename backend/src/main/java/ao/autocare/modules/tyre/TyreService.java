@@ -32,6 +32,39 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class TyreService {
 
+    /**
+     * Avisa quem gere dos pneus com problema (sulco abaixo do mínimo, pressão
+     * baixa) e dos que já têm mais de 6 anos montados — a borracha envelhece
+     * mesmo sem andar. Um aviso por pneu enquanto o problema durar.
+     */
+    @org.springframework.transaction.annotation.Transactional
+    public int notifyAlerts() {
+        int enviados = 0;
+        for (ao.autocare.domain.Tyre t : tyres.findAll()) {
+            if (t.getStatus() != ao.autocare.domain.Tyre.Status.INSTALLED || t.getAsset() == null || t.getAsset().isArchived()) {
+                notifications.resolve("tyre_alert", t.getId());
+                continue;
+            }
+            String alerta = t.alerta();
+            if (alerta == null && t.getInstalledAt() != null
+                    && t.getInstalledAt().isBefore(java.time.Instant.now().minus(6L * 365, java.time.temporal.ChronoUnit.DAYS))) {
+                alerta = "Montado há mais de 6 anos: a borracha envelhece mesmo sem rodar";
+            }
+            if (alerta == null) {
+                notifications.resolve("tyre_alert", t.getId());
+                continue;
+            }
+            enviados += notifications.notifyManagers(ao.autocare.modules.notification.NotificationService.Draft.of(
+                    t.getOrganization().getId(),
+                    ao.autocare.domain.enums.Enums.AlertCategory.TIRE,
+                    ao.autocare.domain.enums.Enums.AlertSeverity.WARNING,
+                    "Pneu com alerta — " + t.getAsset().getTag() + " " + t.getPosition(),
+                    alerta + ". Verifique e substitua antes de sair para a estrada.",
+                    "tyre_alert", t.getId(), "/ativos/" + t.getAsset().getId() + "?tab=pneus").forAsset(t.getAsset()));
+        }
+        return enviados;
+    }
+
     private final TyreRepository tyres;
     private final TyreReadingRepository readings;
     private final AssetRepository assets;
@@ -39,10 +72,12 @@ public class TyreService {
     private final OrganizationRepository organizations;
     private final UserRepository users;
     private final AuditService audit;
+    private final ao.autocare.modules.notification.NotificationService notifications;
 
     public TyreService(TyreRepository tyres, TyreReadingRepository readings, AssetRepository assets,
             AssetMeterRepository meters, OrganizationRepository organizations, UserRepository users,
-            AuditService audit) {
+            AuditService audit,
+            ao.autocare.modules.notification.NotificationService notifications) {
         this.tyres = tyres;
         this.readings = readings;
         this.assets = assets;
@@ -50,6 +85,7 @@ public class TyreService {
         this.organizations = organizations;
         this.users = users;
         this.audit = audit;
+        this.notifications = notifications;
     }
 
     @Transactional(readOnly = true)

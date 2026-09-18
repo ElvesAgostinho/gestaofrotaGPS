@@ -136,6 +136,23 @@
   </tbody>
 </table>
 
+<h2 th:if="${!h.tyreChanges.isEmpty()}">Pneus: montagens e trocas</h2>
+<table class="lines" th:if="${!h.tyreChanges.isEmpty()}">
+  <thead>
+    <tr><th style="width:10%;">Posição</th><th>Pneu</th><th style="width:22%;">Montado</th><th style="width:22%;">Retirado</th><th style="width:12%;">Feitos</th><th style="width:12%;">Motivo</th></tr>
+  </thead>
+  <tbody>
+    <tr th:each="t : ${h.tyreChanges}">
+      <td th:text="${t.position}"></td>
+      <td th:text="${t.tyre}"></td>
+      <td th:text="${t.installed}"></td>
+      <td th:text="${t.removed}"></td>
+      <td th:text="${t.run}"></td>
+      <td th:text="${t.reason} ?: ''"></td>
+    </tr>
+  </tbody>
+</table>
+
 <div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
 </body>
 </html>

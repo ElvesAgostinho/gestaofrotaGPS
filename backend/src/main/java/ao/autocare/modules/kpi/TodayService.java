@@ -56,10 +56,11 @@ public class TodayService {
     private final GpsDeviceRepository devices;
     private final WorkOrderRepository workOrders;
     private final DriverRepository drivers;
+    private final ao.autocare.repo.TyreRepository tyres;
 
     public TodayService(AssetRepository assets, AssetPlanTaskRepository planTasks,
             AssetDocumentRepository documents, FuelAnomalyRepository anomalies, GpsDeviceRepository devices,
-            WorkOrderRepository workOrders, DriverRepository drivers) {
+            WorkOrderRepository workOrders, DriverRepository drivers, ao.autocare.repo.TyreRepository tyres) {
         this.assets = assets;
         this.planTasks = planTasks;
         this.documents = documents;
@@ -67,6 +68,7 @@ public class TodayService {
         this.devices = devices;
         this.workOrders = workOrders;
         this.drivers = drivers;
+        this.tyres = tyres;
     }
 
     @Transactional(readOnly = true)
@@ -135,6 +137,18 @@ public class TodayService {
             }
         }
         grupo(grupos, "drivers", "Motoristas com documentos a caducar", "WARNING", motoristas, "/motoristas");
+
+        // 5b. Pneus com alerta (sulco, pressão).
+        List<Item> pneus = new ArrayList<>();
+        for (ao.autocare.domain.Tyre t : tyres.findByOrganizationIdOrderByStatusAscUpdatedAtDesc(orgId)) {
+            String alerta = t.alerta();
+            if (alerta == null || t.getAsset() == null || t.getAsset().isArchived()) {
+                continue;
+            }
+            pneus.add(new Item(t.getAsset().getId(), t.getAsset().getTag(), "Pneu " + t.getPosition(), alerta,
+                    "/ativos/" + t.getAsset().getId() + "?tab=pneus"));
+        }
+        grupo(grupos, "tyres", "Pneus com alerta", "WARNING", pneus, "/ativos");
 
         // 6. Anomalias de combustível por analisar.
         List<Item> combustivel = new ArrayList<>();

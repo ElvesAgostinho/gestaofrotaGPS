@@ -102,6 +102,8 @@ export function PlanosPage() {
   const { has } = useAuth();
   const [procura, setProcura] = useState('');
   const [aberto, setAberto] = useState<Plano | null>(null);
+  // Abrir já com o pedido de aprovação à vista, quando se carrega em «por aprovar».
+  const [abrirAAprovar, setAbrirAAprovar] = useState(false);
   const [novo, setNovo] = useState(false);
   const [catalogo, setCatalogo] = useState(false);
 
@@ -202,6 +204,19 @@ export function PlanosPage() {
                   <Badge variant="light" color="green" size="sm">
                     {p.approvedByLabel ? `aprovado · ${p.approvedByLabel}` : 'aprovado'}
                   </Badge>
+                ) : has('PLANS_MANAGE') ? (
+                  <Button
+                    size="compact-xs"
+                    variant="light"
+                    color="yellow"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setAbrirAAprovar(true);
+                      setAberto(p);
+                    }}
+                  >
+                    Por aprovar · aprovar agora
+                  </Button>
                 ) : (
                   <Badge variant="light" color="yellow" size="sm">
                     por aprovar
@@ -213,14 +228,24 @@ export function PlanosPage() {
         />
       </Painel>
 
-      {aberto && <PlanoModal planoId={aberto.id} resumo={aberto} fechar={() => setAberto(null)} />}
+      {aberto && (
+        <PlanoModal
+          planoId={aberto.id}
+          resumo={aberto}
+          aprovarLogo={abrirAAprovar}
+          fechar={() => {
+            setAberto(null);
+            setAbrirAAprovar(false);
+          }}
+        />
+      )}
       <NovoPlanoModal aberto={novo} fechar={() => setNovo(false)} />
       <CatalogoModal aberto={catalogo} fechar={() => setCatalogo(false)} />
     </Stack>
   );
 }
 
-function PlanoModal({ planoId, resumo, fechar }: { planoId: string; resumo: Plano; fechar: () => void }) {
+function PlanoModal({ planoId, resumo, fechar, aprovarLogo = false }: { planoId: string; resumo: Plano; fechar: () => void; aprovarLogo?: boolean }) {
   const { has } = useAuth();
   const queryClient = useQueryClient();
   // A lista não traz as tarefas (um plano de fabricante tem dezenas); o detalhe traz.
@@ -230,7 +255,7 @@ function PlanoModal({ planoId, resumo, fechar }: { planoId: string; resumo: Plan
   });
   const plano = detalhe ?? resumo;
   const [atribuir, setAtribuir] = useState(false);
-  const [aprovar, setAprovar] = useState(false);
+  const [aprovar, setAprovar] = useState(aprovarLogo);
   const [assinatura, setAssinatura] = useState('');
 
   const invalidar = () => {

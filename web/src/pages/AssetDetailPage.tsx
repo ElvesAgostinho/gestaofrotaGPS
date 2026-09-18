@@ -4,15 +4,19 @@ import {
   Badge,
   Button,
   Card,
+  FileInput,
   Group,
   Loader,
+  Modal,
   NumberInput,
   Progress,
+  Select,
   SimpleGrid,
   Stack,
   Table,
   Tabs,
   Text,
+  TextInput,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
@@ -28,6 +32,7 @@ import {
   IconWheel,
   IconChecklist,
   IconFileText,
+  IconPlus,
   IconGauge,
   IconInfoCircle,
   IconLock,
@@ -38,7 +43,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { api, openFile } from '../api/client';
+import { checkUploadSize, api, openFile } from '../api/client';
 import { BarraEstado, BotaoBarra, COR_ESTADO_OM, COR_PRIORIDADE_OM, Painel, Ponto, SeparadorBarra } from '../components/erp';
 import { CabecalhoFicha, CamposFicha } from '../components/Ficha';
 import { Grelha } from '../components/Grelha';
@@ -933,16 +938,163 @@ interface FuelRecord {
 }
 
 function DocumentsTab({ assetId }: { assetId: string }) {
+  const queryClient = useQueryClient();
+  const { can } = useAuth();
   const { data } = useQuery({
     queryKey: ['documents', assetId],
     queryFn: () => api<DocumentView[]>(`/assets/${assetId}/documents`),
   });
+  const { data: tipos } = useQuery({
+    queryKey: ['documents', 'kinds'],
+    queryFn: () => api<{ code: string; label: string }[]>('/documents/kinds'),
+  });
+  const [novo, setNovo] = useState(false);
+  const [renovar, setRenovar] = useState<DocumentView | null>(null);
+  const [titulo, setTitulo] = useState('');
+  const [kind, setKind] = useState<string | null>('INSURANCE');
+  const [referencia, setReferencia] = useState('');
+  const [emissor, setEmissor] = useState('');
+  // AAAA-MM-DD do campo nativo de data: sem ambiguidade de formato, e funciona no telemóvel.
+  const [validade, setValidade] = useState('');
+  const [ficheiro, setFicheiro] = useState<File | null>(null);
+  const invalidar = () => {
+    queryClient.invalidateQueries({ queryKey: ['documents'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+  };
+  const limpar = () => {
+    setTitulo('');
+    setReferencia('');
+    setEmissor('');
+    setValidade('');
+    setFicheiro(null);
+  };
+  const criar = useMutation({
+    mutationFn: async () => {
+      const exp = validade ? new Date(validade + 'T23:59:00').toISOString() : undefined;
+      if (ficheiro) {
+        const recusa = checkUploadSize(ficheiro);
+        if (recusa) throw new Error(recusa);
+        const fd = new FormData();
+        fd.append('file', ficheiro);
+        fd.append('title', titulo.trim());
+        if (kind) fd.append('kind', kind);
+        if (referencia.trim()) fd.append('reference', referencia.trim());
+        if (emissor.trim()) fd.append('issuer', emissor.trim());
+        if (exp) fd.append('expiresAt', exp);
+        return api(`/assets/${assetId}/documents/upload`, { method: 'POST', body: fd });
+      }
+      return api(`/assets/${assetId}/documents`, {
+        method: 'POST',
+        body: { title: titulo.trim(), kind, reference: referencia.trim() || undefined, issuer: emissor.trim() || undefined, expiresAt: exp },
+      });
+    },
+    onSuccess: () => {
+      notifications.show({ message: 'Documento guardado.', color: 'green' });
+      setNovo(false);
+      limpar();
+      invalidar();
+    },
+    onError: (e: Error) => notifications.show({ title: 'Não foi possível guardar', message: e.message, color: 'red' }),
+  });
+  const renovarM = useMutation({
+    mutationFn: () => {
+      if (!renovar || !validade) throw new Error('Indique a nova validade.');
+      const exp = new Date(validade + 'T23:59:00').toISOString();
+      return api(`/documents/${renovar.id}`, {
+        method: 'PATCH',
+        body: { title: renovar.title, expiresAt: exp, reference: referencia.trim() || undefined },
+      });
+    },
+    onSuccess: () => {
+      notifications.show({ message: 'Validade renovada.', color: 'green' });
+      setRenovar(null);
+      limpar();
+      invalidar();
+    },
+    onError: (e: Error) => notifications.show({ title: 'Não foi possível renovar', message: e.message, color: 'red' }),
+  });
+  const remover = useMutation({
+    mutationFn: (id: string) => api(`/documents/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      notifications.show({ message: 'Documento removido.', color: 'gray' });
+      invalidar();
+    },
+    onError: (e: Error) => notifications.show({ title: 'Não foi possível remover', message: e.message, color: 'red' }),
+  });
+
+  const formulario = (
+    <Modal opened={novo} onClose={() => setNovo(false)} title="Adicionar documento" centered>
+      <Stack gap="sm">
+        <Select label="Tipo" data={(tipos ?? []).map((t) => ({ value: t.code, label: t.label }))} value={kind} onChange={setKind} allowDeselect={false} />
+        <TextInput label="Título" placeholder="Ex.: Seguro automóvel 2026" value={titulo} onChange={(e) => setTitulo(e.currentTarget.value)} required />
+        <Group grow>
+          <TextInput label="Referência / nº da apólice" value={referencia} onChange={(e) => setReferencia(e.currentTarget.value)} />
+          <TextInput label="Emitido por" placeholder="Seguradora, entidade…" value={emissor} onChange={(e) => setEmissor(e.currentTarget.value)} />
+        </Group>
+        <TextInput
+          type="date"
+          label="Válido até"
+          description="Deixe vazio se não caduca (manual, fatura). Com data, o sistema avisa 30, 15 e 7 dias antes e no dia."
+          value={validade}
+          onChange={(e) => setValidade(e.currentTarget.value)}
+        />
+        <FileInput label="Ficheiro (PDF ou fotografia)" placeholder="Escolher…" accept="application/pdf,image/*" value={ficheiro} onChange={setFicheiro} clearable />
+        <Group justify="flex-end">
+          <Button variant="default" onClick={() => setNovo(false)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => criar.mutate()} loading={criar.isPending} disabled={titulo.trim().length < 2}>
+            Guardar
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+  const renovacao = (
+    <Modal opened={!!renovar} onClose={() => setRenovar(null)} title={renovar ? `Renovar «${renovar.title}»` : ''} centered>
+      <Stack gap="sm">
+        <TextInput type="date" label="Nova validade" value={validade} onChange={(e) => setValidade(e.currentTarget.value)} required />
+        <TextInput label="Nova referência (opcional)" placeholder="Nº da apólice nova" value={referencia} onChange={(e) => setReferencia(e.currentTarget.value)} />
+        <Text size="xs" c="dimmed">
+          Para guardar o PDF novo, adicione-o como documento novo — o antigo fica no histórico.
+        </Text>
+        <Group justify="flex-end">
+          <Button variant="default" onClick={() => setRenovar(null)}>
+            Cancelar
+          </Button>
+          <Button onClick={() => renovarM.mutate()} loading={renovarM.isPending} disabled={!validade}>
+            Renovar
+          </Button>
+        </Group>
+      </Stack>
+    </Modal>
+  );
+  const cabecalho = can('TECHNICIAN') ? (
+    <Group justify="flex-end" mb="sm">
+      <Button size="xs" leftSection={<IconPlus size={14} />} onClick={() => setNovo(true)}>
+        Adicionar documento
+      </Button>
+    </Group>
+  ) : null;
 
   if (!data?.length) {
-    return <Text c="dimmed">Nenhum documento associado a este ativo.</Text>;
+    return (
+      <>
+        {cabecalho}
+        {formulario}
+        <Text c="dimmed">
+          Nenhum documento associado a este ativo. Registe o seguro, a inspeção, o livrete e a licença com a data de
+          validade — o sistema avisa antes de caducarem.
+        </Text>
+      </>
+    );
   }
 
   return (
+    <>
+    {cabecalho}
+    {formulario}
+    {renovacao}
     <Table>
       <Table.Thead>
         <Table.Tr>
@@ -951,6 +1103,7 @@ function DocumentsTab({ assetId }: { assetId: string }) {
           <Table.Th>Referência</Table.Th>
           <Table.Th>Validade</Table.Th>
           <Table.Th>Ficheiro</Table.Th>
+          <Table.Th />
         </Table.Tr>
       </Table.Thead>
       <Table.Tbody>
@@ -984,10 +1137,33 @@ function DocumentsTab({ assetId }: { assetId: string }) {
                 '—'
               )}
             </Table.Td>
+            <Table.Td>
+              {can('TECHNICIAN') && (
+                <Group gap={4} justify="flex-end" wrap="nowrap">
+                  <Button
+                    size="compact-xs"
+                    variant="light"
+                    onClick={() => {
+                      setValidade('');
+                      setReferencia('');
+                      setRenovar(d);
+                    }}
+                  >
+                    Renovar
+                  </Button>
+                  {can('MANAGER') && (
+                    <Button size="compact-xs" variant="subtle" color="red" onClick={() => remover.mutate(d.id)}>
+                      Remover
+                    </Button>
+                  )}
+                </Group>
+              )}
+            </Table.Td>
           </Table.Tr>
         ))}
       </Table.Tbody>
     </Table>
+    </>
   );
 }
 

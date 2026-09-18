@@ -32,6 +32,7 @@ public class MaintenanceScheduler {
     private final NotificationService notifications;
     private final PredictiveService predictive;
     private final ao.autocare.modules.predictive.FailureForecastService forecasts;
+    private final ao.autocare.modules.tyre.TyreService tyreService;
     private final DocumentService documents;
     private final ao.autocare.modules.fleet.DriverRecordsService driverRecords;
     private final ao.autocare.modules.budget.BudgetService budgets;
@@ -45,13 +46,15 @@ public class MaintenanceScheduler {
             DocumentService documents,
             ao.autocare.modules.fleet.DriverRecordsService driverRecords,
             ao.autocare.modules.budget.BudgetService budgets,
-            ao.autocare.modules.predictive.FailureForecastService forecasts) {
+            ao.autocare.modules.predictive.FailureForecastService forecasts,
+            ao.autocare.modules.tyre.TyreService tyreService) {
         this.planTasks = planTasks;
         this.assetPlans = assetPlans;
         this.workOrders = workOrders;
         this.notifications = notifications;
         this.predictive = predictive;
         this.forecasts = forecasts;
+        this.tyreService = tyreService;
         this.documents = documents;
         this.driverRecords = driverRecords;
         this.budgets = budgets;
@@ -122,9 +125,35 @@ public class MaintenanceScheduler {
                 log.warn("Falha ao avisar da tarefa {}: {}", task.getId(), e.toString());
             }
         }
-        // Tarefas que já não estão vencidas deixam de ter aviso pendente.
+        // A vencer: avisa-se uma vez, antes — é para isso que serve um plano.
+        for (AssetPlanTask task : planTasks.findAllWithStatus(PlanTaskStatus.DUE_SOON)) {
+            try {
+                Asset asset = task.getAssetPlan().getAsset();
+                String falta = task.getRemainingMeter() != null
+                        ? "faltam " + task.getRemainingMeter().setScale(0, java.math.RoundingMode.HALF_UP).toPlainString() + " no contador"
+                        : task.getRemainingDays() != null ? "faltam " + task.getRemainingDays() + " dia(s)" : "a vencer";
+                notifications.notifyManagers(NotificationService.Draft.of(
+                                task.getAssetPlan().getOrganization().getId(),
+                                ao.autocare.domain.enums.Enums.AlertCategory.MAINTENANCE,
+                                ao.autocare.domain.enums.Enums.AlertSeverity.WARNING,
+                                "Manutenção a vencer — " + asset.getTag(),
+                                task.getTitle() + (task.getSystemName() != null ? " (" + task.getSystemName() + ")" : "")
+                                        + ": " + falta + ". Marque a oficina antes de passar o limite.",
+                                "plan_task_due_soon", task.getId(),
+                                "/ativos/" + asset.getId() + "?tab=plano")
+                        .forAsset(asset));
+            } catch (Exception e) {
+                log.warn("Falha ao avisar da tarefa a vencer {}: {}", task.getId(), e.toString());
+            }
+            notifications.resolve("plan_task_overdue", task.getId());
+        }
+        // Tarefas que já não estão vencidas nem a vencer deixam de ter aviso pendente.
         for (AssetPlanTask task : planTasks.findAllWithStatus(PlanTaskStatus.OK)) {
             notifications.resolve("plan_task_overdue", task.getId());
+            notifications.resolve("plan_task_due_soon", task.getId());
+        }
+        for (AssetPlanTask task : planTasks.findAllWithStatus(PlanTaskStatus.OVERDUE)) {
+            notifications.resolve("plan_task_due_soon", task.getId());
         }
     }
 
@@ -164,6 +193,10 @@ public class MaintenanceScheduler {
             int sent = predictive.notifyDue();
             if (sent > 0) {
                 log.info("{} aviso(s) de análise preditiva vencida", sent);
+            }
+            int pneus = tyreService.notifyAlerts();
+            if (pneus > 0) {
+                log.info("{} aviso(s) de pneus", pneus);
             }
             int previstas = forecasts.notifyImminent();
             if (previstas > 0) {

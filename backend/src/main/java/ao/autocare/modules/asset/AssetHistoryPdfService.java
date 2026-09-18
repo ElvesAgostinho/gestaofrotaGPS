@@ -43,7 +43,10 @@ public class AssetHistoryPdfService {
             String tag, String name, String type, String plate, String serialNumber,
             String manufacturer, String model, String meter, String location,
             boolean showMoney, int orderCount, String totalCost, String totalDowntime,
-            List<Order> orders, List<Completion> completions) {}
+            List<Order> orders, List<Completion> completions, List<TyreChange> tyreChanges) {}
+
+    /** Uma troca de pneu: onde, quando, aos quantos km, e porquê saiu. */
+    public record TyreChange(String position, String tyre, String installed, String removed, String run, String reason) {}
 
     public record Order(
             String number, String title, String type, String status, String openedAt,
@@ -57,16 +60,23 @@ public class AssetHistoryPdfService {
     public record Completion(String completedAt, String title, String meterValue,
                              String performedBy, String notes) {}
 
+    private static final java.util.Map<String, String> MOTIVO_PNEU = java.util.Map.of(
+            "WORN", "Desgaste", "DAMAGED", "Danificado", "PUNCTURE", "Furo", "ROTATION", "Rotação",
+            "RETREAD", "Recauchutagem", "OTHER", "Outro");
+
     private final AssetRepository assets;
     private final AssetMeterRepository meters;
     private final WorkOrderRepository workOrders;
     private final PlanTaskCompletionRepository completions;
+    private final ao.autocare.repo.TyreRepository tyres;
     private final Letterhead letterhead;
     private final PdfRenderer renderer;
 
     public AssetHistoryPdfService(AssetRepository assets, AssetMeterRepository meters,
             WorkOrderRepository workOrders, PlanTaskCompletionRepository completions,
+            ao.autocare.repo.TyreRepository tyres,
             Letterhead letterhead, PdfRenderer renderer) {
+        this.tyres = tyres;
         this.assets = assets;
         this.meters = meters;
         this.workOrders = workOrders;
@@ -146,6 +156,21 @@ public class AssetHistoryPdfService {
                     c.getPerformedByLabel(), c.getNotes()));
         }
 
+        List<TyreChange> trocas = new ArrayList<>();
+        for (ao.autocare.domain.Tyre t : tyres.findByAssetIdOrderByStatusAscPositionAsc(a.getId())) {
+            if (t.getInstalledAt() == null && t.getRemovedAt() == null) continue;
+            String nome = java.util.stream.Stream.of(t.getBrand(), t.getModel(), t.getSize())
+                    .filter(x -> x != null && !x.isBlank()).collect(java.util.stream.Collectors.joining(" "));
+            java.math.BigDecimal feitos = t.getStatus() == ao.autocare.domain.Tyre.Status.INSTALLED
+                    ? t.distanceRun(primary != null ? primary.getCurrentValue() : null)
+                    : (t.getRemovedMeter() != null && t.getInstalledMeter() != null ? t.getRemovedMeter().subtract(t.getInstalledMeter()) : null);
+            trocas.add(new TyreChange(t.getPosition(), nome.isBlank() ? "—" : nome,
+                    data(t.getInstalledAt()) + (t.getInstalledMeter() != null ? " · " + numero(t.getInstalledMeter(), 0) + " " + unidade : ""),
+                    t.getRemovedAt() != null ? data(t.getRemovedAt()) + (t.getRemovedMeter() != null ? " · " + numero(t.getRemovedMeter(), 0) + " " + unidade : "") : "ainda montado",
+                    feitos != null ? numero(feitos, 0) + " " + unidade : "—",
+                    t.getRemovalReason() != null ? MOTIVO_PNEU.getOrDefault(t.getRemovalReason().name(), t.getRemovalReason().name()) : null));
+        }
+
         Doc doc = new Doc(
                 a.getTag(), a.getName(),
                 a.getAssetType() != null ? a.getAssetType().getName() : null,
@@ -154,7 +179,7 @@ public class AssetHistoryPdfService {
                 showMoney, ordens.size(),
                 showMoney ? numero(custoTotal, 2) : null,
                 numero(paragemTotal, 1),
-                ordens, execucoes);
+                ordens, execucoes, trocas);
 
         return renderer.render("asset-history", letterhead.of(a.getOrganization()), "h", doc, selo);
     }

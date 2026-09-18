@@ -65,6 +65,63 @@
   </tr>
 </table>
 
+<h2>Plano de manutenção e intervalos</h2>
+<p class="muted" th:if="${a.plan.isEmpty()}">Sem plano de manutenção atribuído. Atribua um em Planos e intervalos.</p>
+<table class="lines" th:if="${!a.plan.isEmpty()}">
+  <thead>
+    <tr>
+      <th>Tarefa</th><th style="width:12%;">Sistema</th><th style="width:15%;">Intervalo</th>
+      <th style="width:18%;">Última vez</th><th style="width:13%;">Próxima</th><th style="width:14%;">Falta</th><th style="width:9%;">Estado</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="t : ${a.plan}">
+      <td th:text="${t.title}"></td>
+      <td th:text="${t.system} ?: '—'"></td>
+      <td th:text="${t.interval} ?: '—'"></td>
+      <td th:text="${t.lastDone}"></td>
+      <td th:text="${t.nextDue}"></td>
+      <td th:text="${t.remaining}"></td>
+      <td th:text="${t.status}" th:style="${t.overdue} ? 'color:#b91c1c;font-weight:bold' : (${t.dueSoon} ? 'color:#b45309;font-weight:bold' : '')"></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Pneus montados</h2>
+<p class="muted" th:if="${a.tyres.isEmpty()}">Sem pneus registados.</p>
+<table class="lines" th:if="${!a.tyres.isEmpty()}">
+  <thead>
+    <tr><th style="width:10%;">Posição</th><th>Pneu</th><th style="width:22%;">Montado</th><th style="width:12%;">Feitos</th><th style="width:9%;">Sulco</th><th style="width:24%;">Alerta</th></tr>
+  </thead>
+  <tbody>
+    <tr th:each="t : ${a.tyres}">
+      <td th:text="${t.position}"></td>
+      <td th:text="${t.tyre}"></td>
+      <td th:text="${t.installed}"></td>
+      <td th:text="${t.run}"></td>
+      <td th:text="${t.tread}"></td>
+      <td th:text="${t.alert} ?: ''" style="color:#b91c1c;"></td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Documentos e validades</h2>
+<p class="muted" th:if="${a.documents.isEmpty()}">Sem documentos registados.</p>
+<table class="lines" th:if="${!a.documents.isEmpty()}">
+  <thead>
+    <tr><th style="width:16%;">Tipo</th><th>Título</th><th style="width:18%;">Referência</th><th style="width:13%;">Validade</th><th style="width:12%;">Estado</th></tr>
+  </thead>
+  <tbody>
+    <tr th:each="d : ${a.documents}">
+      <td th:text="${d.kind}"></td>
+      <td th:text="${d.title}"></td>
+      <td th:text="${d.reference} ?: '—'"></td>
+      <td th:text="${d.expires} ?: '—'"></td>
+      <td th:text="${d.state}" th:style="${d.state == 'CADUCADO'} ? 'color:#b91c1c;font-weight:bold' : (${d.state == 'A caducar'} ? 'color:#b45309;font-weight:bold' : '')"></td>
+    </tr>
+  </tbody>
+</table>
+
 <h2>Últimas ordens de serviço</h2>
 <p class="muted" th:if="${a.orders.isEmpty()}">Sem ordens registadas.</p>
 <table class="lines" th:if="${!a.orders.isEmpty()}">
