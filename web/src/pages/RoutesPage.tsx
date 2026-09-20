@@ -8,10 +8,18 @@ import { Grelha } from '../components/Grelha';
 import { CampoProcura, filtrar } from '../components/Procura';
 import { fmtNumber } from '../lib/format';
 import { NovaRotaForm } from './routes/NovaRotaForm';
+import { FichaRota } from './routes/FichaRota';
 
 interface Waypoint {
   id: string;
   label: string;
+}
+
+interface Atribuicao {
+  id: string;
+  assetTag: string;
+  driverName?: string | null;
+  plannedFor?: string | null;
 }
 
 interface Route {
@@ -29,6 +37,7 @@ interface Route {
   distanceSource?: string | null;
   notes?: string | null;
   waypoints: Waypoint[];
+  assignments?: Atribuicao[];
 }
 
 /**
@@ -40,6 +49,8 @@ interface Route {
  */
 export function RoutesPage() {
   const [nova, setNova] = useState(false);
+  // A ficha: o percurso desenhado, quem o faz, e o previsto contra o andado.
+  const [aberta, setAberta] = useState<Route | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['routes'],
@@ -76,6 +87,7 @@ export function RoutesPage() {
           chave={(r) => r.id}
           carregando={isLoading}
           vazio="Ainda não há rotas definidas."
+          aoAbrir={(r) => setAberta(r)}
           colunas={[
             {
               id: 'nome',
@@ -120,6 +132,36 @@ export function RoutesPage() {
                   )}
                 </>
               ),
+            },
+            {
+              id: 'viaturas',
+              titulo: 'Viaturas',
+              largura: 190,
+              valor: (r) => (r.assignments ?? []).map((a) => a.assetTag).join(', '),
+              render: (r) => {
+                const lista = r.assignments ?? [];
+                if (lista.length === 0) {
+                  return (
+                    <Text size="xs" c="dimmed">
+                      sem viatura
+                    </Text>
+                  );
+                }
+                return (
+                  <Group gap={4} wrap="wrap">
+                    {lista.slice(0, 3).map((a) => (
+                      <Badge key={a.id} size="sm" variant="light">
+                        {a.assetTag}
+                      </Badge>
+                    ))}
+                    {lista.length > 3 && (
+                      <Text size="xs" c="dimmed">
+                        +{lista.length - 3}
+                      </Text>
+                    )}
+                  </Group>
+                );
+              },
             },
             {
               id: 'distancia',
@@ -187,6 +229,7 @@ export function RoutesPage() {
             </Painel>
 
       <NovaRotaForm opened={nova} onClose={() => setNova(false)} />
+      {aberta && <FichaRota rotaId={aberta.id} fechar={() => setAberta(null)} />}
     </Stack>
   );
 }

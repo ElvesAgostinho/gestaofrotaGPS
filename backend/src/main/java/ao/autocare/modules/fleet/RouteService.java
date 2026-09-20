@@ -40,6 +40,11 @@ public class RouteService {
     private final AuditService audit;
     private final RoutingEngine engine;
     private final IntegrationService integrations;
+    private final ao.autocare.repo.RouteAssignmentRepository assignments;
+    private final ao.autocare.repo.AssetRepository assets;
+    private final ao.autocare.repo.DriverRepository drivers;
+    private final ao.autocare.repo.TripRepository trips;
+    private final ao.autocare.repo.GpsPositionRepository positions;
 
     public RouteService(
             RouteRepository routes,
@@ -47,13 +52,23 @@ public class RouteService {
             OrganizationRepository organizations,
             AuditService audit,
             RoutingEngine engine,
-            IntegrationService integrations) {
+            IntegrationService integrations,
+            ao.autocare.repo.RouteAssignmentRepository assignments,
+            ao.autocare.repo.AssetRepository assets,
+            ao.autocare.repo.DriverRepository drivers,
+            ao.autocare.repo.TripRepository trips,
+            ao.autocare.repo.GpsPositionRepository positions) {
         this.routes = routes;
         this.locations = locations;
         this.organizations = organizations;
         this.audit = audit;
         this.engine = engine;
         this.integrations = integrations;
+        this.assignments = assignments;
+        this.assets = assets;
+        this.drivers = drivers;
+        this.trips = trips;
+        this.positions = positions;
     }
 
     /**
@@ -105,15 +120,125 @@ public class RouteService {
 
     @Transactional(readOnly = true)
     public List<RouteView> list(String orgId) {
+        java.util.Map<String, List<ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView>> porRota =
+                new java.util.HashMap<>();
+        for (ao.autocare.domain.RouteAssignment a : assignments.forOrganization(orgId)) {
+            porRota.computeIfAbsent(a.getRoute().getId(), k -> new java.util.ArrayList<>())
+                    .add(ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView.of(a));
+        }
         return routes.findByOrganizationIdOrderByNameAsc(orgId).stream()
-                .map(r -> RouteView.of(r, waypointViews(r)))
+                .map(r -> RouteView.of(r, waypointViews(r), porRota.getOrDefault(r.getId(), List.of())))
                 .toList();
     }
 
     @Transactional(readOnly = true)
     public RouteView get(String orgId, String routeId) {
         Route r = require(orgId, routeId);
-        return RouteView.of(r, waypointViews(r));
+        return RouteView.of(r, waypointViews(r), assignmentViews(r.getId()));
+    }
+
+    private List<ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView> assignmentViews(String routeId) {
+        return assignments.forRoute(routeId).stream()
+                .map(ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView::of).toList();
+    }
+
+    // ==== Atribuições ====================================================
+    @Transactional(readOnly = true)
+    public List<ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView> listAssignments(
+            String orgId, String routeId) {
+        require(orgId, routeId);
+        return assignmentViews(routeId);
+    }
+
+    @Transactional
+    public ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView assign(
+            String orgId, String userId, String routeId,
+            ao.autocare.modules.fleet.dto.FleetDtos.AssignRouteRequest req) {
+        Route r = require(orgId, routeId);
+        ao.autocare.domain.RouteAssignment a = criarAtribuicao(orgId, r, req.assetId(), req.driverId(),
+                req.plannedFor(), req.notes());
+        audit.record(orgId, userId, "route.assign", "Route", r.getId(),
+                r.getName() + " · " + a.getAsset().getTag()
+                        + (a.getDriver() != null ? " · " + a.getDriver().getName() : "")
+                        + (a.getPlannedFor() != null ? " · " + a.getPlannedFor() : ""));
+        return ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView.of(a);
+    }
+
+    @Transactional
+    public void unassign(String orgId, String userId, String assignmentId) {
+        ao.autocare.domain.RouteAssignment a = assignments.findByIdAndOrganizationId(assignmentId, orgId)
+                .orElseThrow(() -> ApiException.notFound("Atribuição não encontrada."));
+        if (assignments.countByRouteIdAndActiveTrue(a.getRoute().getId()) <= 1) {
+            throw ApiException.conflict(
+                    "Esta é a única viatura atribuída a «" + a.getRoute().getName()
+                            + "». Atribua outra antes de retirar esta, ou desative a rota.");
+        }
+        a.setActive(false);
+        audit.record(orgId, userId, "route.unassign", "Route", a.getRoute().getId(),
+                a.getRoute().getName() + " · " + a.getAsset().getTag());
+    }
+
+    private ao.autocare.domain.RouteAssignment criarAtribuicao(String orgId, Route r, String assetId,
+            String driverId, java.time.LocalDate plannedFor, String notes) {
+        if (assetId == null || assetId.isBlank()) {
+            throw ApiException.badRequest(
+                    "Indique a viatura que vai fazer esta rota. Uma rota sem viatura é um percurso "
+                            + "de que ninguém é responsável.");
+        }
+        ao.autocare.domain.Asset asset = assets.findByIdAndOrganizationId(assetId, orgId)
+                .orElseThrow(() -> ApiException.badRequest("Viatura não encontrada."));
+        ao.autocare.domain.RouteAssignment a = new ao.autocare.domain.RouteAssignment();
+        a.setOrganization(organizations.getReferenceById(orgId));
+        a.setRoute(r);
+        a.setAsset(asset);
+        if (driverId != null && !driverId.isBlank()) {
+            a.setDriver(drivers.findByIdAndOrganizationId(driverId, orgId)
+                    .orElseThrow(() -> ApiException.badRequest("Motorista não encontrado.")));
+        }
+        a.setPlannedFor(plannedFor);
+        a.setNotes(notes != null && !notes.isBlank() ? notes.trim() : null);
+        return assignments.save(a);
+    }
+
+    // ==== Previsto contra o andado =======================================
+    /**
+     * O traçado da rota e o percurso real das viagens que a fizeram, com a
+     * diferença em km e minutos. É a comparação que transforma «gastou muito»
+     * numa diferença que se põe em cima da mesa.
+     */
+    @Transactional(readOnly = true)
+    public List<ao.autocare.modules.fleet.dto.FleetDtos.RouteVsRealView> comparison(
+            String orgId, String routeId, int limite) {
+        Route r = require(orgId, routeId);
+        List<ao.autocare.modules.fleet.dto.FleetDtos.RouteVsRealView> out = new java.util.ArrayList<>();
+        for (ao.autocare.domain.Trip t : trips.findByRouteIdOrderByStartedAtDesc(routeId,
+                org.springframework.data.domain.PageRequest.of(0, Math.min(Math.max(1, limite), 20)))) {
+            List<double[]> track = new java.util.ArrayList<>();
+            java.time.Instant fim = t.getEndedAt() != null ? t.getEndedAt() : java.time.Instant.now();
+            for (ao.autocare.domain.GpsPosition p : positions.track(t.getAsset().getId(), t.getStartedAt(), fim)) {
+                if (p.getLatitude() != null && p.getLongitude() != null) {
+                    track.add(new double[] {p.getLongitude().doubleValue(), p.getLatitude().doubleValue()});
+                }
+            }
+            java.math.BigDecimal deltaKm = r.getExpectedDistanceKm() != null && t.getDistanceKm() != null
+                    ? t.getDistanceKm().subtract(r.getExpectedDistanceKm()) : null;
+            Integer deltaMin = r.getExpectedDurationMinutes() != null && t.getDurationMinutes() != null
+                    ? t.getDurationMinutes() - r.getExpectedDurationMinutes() : null;
+            Boolean fora = null;
+            if (deltaKm != null && r.getExpectedDistanceKm() != null && r.getExpectedDistanceKm().signum() > 0) {
+                java.math.BigDecimal tolerancia = r.getExpectedDistanceKm()
+                        .multiply(r.getTolerancePercent() != null ? r.getTolerancePercent() : java.math.BigDecimal.ZERO)
+                        .divide(java.math.BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                fora = deltaKm.abs().compareTo(tolerancia) > 0;
+            }
+            out.add(new ao.autocare.modules.fleet.dto.FleetDtos.RouteVsRealView(
+                    r.getId(), r.getName(), r.getPathGeojson(),
+                    r.getExpectedDistanceKm(), r.getExpectedDurationMinutes(),
+                    t.getId(), t.getAsset().getId(), t.getAsset().getTag(),
+                    t.getStartedAt(), t.getEndedAt(), t.getDistanceKm(), t.getDurationMinutes(),
+                    deltaKm, deltaMin, fora, track));
+        }
+        return out;
     }
 
     @Transactional
@@ -127,18 +252,25 @@ public class RouteService {
         r.setOrganization(organizations.getReferenceById(orgId));
         apply(orgId, r, req);
         routes.save(r);
+        // A viatura é obrigatória na criação: o percurso nasce com um responsável.
+        ao.autocare.domain.RouteAssignment atribuicao =
+                criarAtribuicao(orgId, r, req.assetId(), req.driverId(), req.plannedFor(), null);
 
         audit.record(orgId, userId, "route.create", "Route", r.getId(),
-                r.getName() + " · " + describe(r));
-        return RouteView.of(r, waypointViews(r));
+                r.getName() + " · " + describe(r) + " · " + atribuicao.getAsset().getTag());
+        return RouteView.of(r, waypointViews(r), assignmentViews(r.getId()));
     }
 
     @Transactional
     public RouteView update(String orgId, String userId, String routeId, SaveRouteRequest req) {
         Route r = require(orgId, routeId);
         apply(orgId, r, req);
+        // Ao alterar, uma viatura nova acrescenta-se; as que lá estão mantêm-se.
+        if (req.assetId() != null && !req.assetId().isBlank()) {
+            criarAtribuicao(orgId, r, req.assetId(), req.driverId(), req.plannedFor(), null);
+        }
         audit.record(orgId, userId, "route.update", "Route", r.getId(), r.getName());
-        return RouteView.of(r, waypointViews(r));
+        return RouteView.of(r, waypointViews(r), assignmentViews(r.getId()));
     }
 
     @Transactional

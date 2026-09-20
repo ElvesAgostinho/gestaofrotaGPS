@@ -201,8 +201,57 @@ public final class FleetDtos {
             @Size(max = 20) String distanceSource,
             String pathGeojson,
             List<WaypointRequest> waypoints,
+            /**
+             * Viatura que vai fazer a rota. <b>Obrigatória ao criar</b>: uma rota
+             * sem viatura é um percurso de que ninguém é responsável. Ao alterar,
+             * ausente mantém as atribuições que já existem.
+             */
+            String assetId,
+            /** Motorista previsto (opcional). */
+            String driverId,
+            /** Dia previsto (opcional); vazio = a viatura faz a rota de forma recorrente. */
+            java.time.LocalDate plannedFor,
             /** A versão que o ecrã leu. Ausente: não se verifica. */
             Long version) {}
+
+    /** Atribuir (mais) uma viatura a uma rota já criada. */
+    public record AssignRouteRequest(
+            @NotBlank(message = "Indique a viatura.") String assetId,
+            String driverId,
+            java.time.LocalDate plannedFor,
+            @Size(max = 500) String notes) {}
+
+    public record RouteAssignmentView(
+            String id, String routeId, String routeName,
+            String assetId, String assetTag, String assetName,
+            String driverId, String driverName,
+            java.time.LocalDate plannedFor, String notes, java.time.Instant createdAt) {
+
+        public static RouteAssignmentView of(ao.autocare.domain.RouteAssignment a) {
+            return new RouteAssignmentView(a.getId(), a.getRoute().getId(), a.getRoute().getName(),
+                    a.getAsset().getId(), a.getAsset().getTag(), a.getAsset().getName(),
+                    a.getDriver() != null ? a.getDriver().getId() : null,
+                    a.getDriver() != null ? a.getDriver().getName() : null,
+                    a.getPlannedFor(), a.getNotes(), a.getCreatedAt());
+        }
+    }
+
+    /**
+     * O previsto contra o andado: o traçado da rota, o percurso real de uma
+     * viagem que a fez, e a diferença em km e minutos.
+     */
+    public record RouteVsRealView(
+            String routeId, String routeName, String pathGeojson,
+            BigDecimal expectedDistanceKm, Integer expectedDurationMinutes,
+            String tripId, String assetId, String assetTag,
+            java.time.Instant startedAt, java.time.Instant endedAt,
+            BigDecimal actualDistanceKm, Integer actualDurationMinutes,
+            /** Km a mais (positivo) ou a menos do que o previsto; nulo sem previsto. */
+            BigDecimal distanceDeltaKm,
+            Integer durationDeltaMinutes,
+            /** Verdadeiro quando a diferença passa a tolerância da rota. */
+            Boolean outOfTolerance,
+            List<double[]> track) {}
 
     /**
      * Pedido de cálculo de percurso.
@@ -259,9 +308,16 @@ public final class FleetDtos {
             String distanceSource,
             String pathGeojson,
             List<WaypointView> waypoints,
+            /** Viaturas atribuídas a esta rota; nunca vazia numa rota criada pelo ecrã. */
+            List<RouteAssignmentView> assignments,
             Long version) {
 
         public static RouteView of(Route r, List<WaypointView> waypoints) {
+            return of(r, waypoints, List.of());
+        }
+
+        public static RouteView of(Route r, List<WaypointView> waypoints,
+                List<RouteAssignmentView> assignments) {
             return new RouteView(
                     r.getId(), r.getCode(), r.getName(),
                     r.getOriginLocation() != null ? r.getOriginLocation().getId() : null,
@@ -271,7 +327,7 @@ public final class FleetDtos {
                     r.getExpectedDistanceKm(), r.getExpectedDurationMinutes(),
                     r.getExpectedFuelLiters(), r.getTolerancePercent(),
                     r.isActive(), r.getNotes(),
-                    r.getDistanceSource(), r.getPathGeojson(), waypoints,
+                    r.getDistanceSource(), r.getPathGeojson(), waypoints, assignments,
                     r.getVersion());
         }
     }

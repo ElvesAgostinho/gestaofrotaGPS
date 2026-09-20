@@ -53,7 +53,7 @@ public abstract class AbstractIntegrationTest {
                 // Frota (V21), conducao (V22) e controlo de combustivel (V23)
                 "fuel_card_transactions", "fuel_anomalies", "asset_consumption_baselines",
                 "driver_scores", "driving_events",
-                "route_waypoints", "routes", "driver_assignments", "driver_infractions", "driver_shifts", "drivers",
+                "route_assignments", "route_waypoints", "routes", "driver_assignments", "driver_infractions", "driver_shifts", "drivers",
                 "tyre_readings", "tyres",
                 "device_commands", "fuel_records", "asset_documents",
                 "predictive_readings", "predictive_programs",

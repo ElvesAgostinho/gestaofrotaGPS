@@ -21,6 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../../api/client';
 import { MapaSeletor, type Ponto } from '../../components/MapaSeletor';
+import { MapaPercurso, type PontoRota } from '../../components/MapaPercurso';
 
 interface Local {
   id: string;
@@ -28,6 +29,17 @@ interface Local {
   city?: string | null;
   latitude?: number | null;
   longitude?: number | null;
+}
+
+interface AtivoLeve {
+  id: string;
+  tag: string;
+  name: string;
+}
+
+interface MotoristaLeve {
+  id: string;
+  name: string;
 }
 
 /** Um extremo ou uma passagem do percurso. */
@@ -75,8 +87,23 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
     enabled: opened,
   });
 
+  const { data: ativos } = useQuery({
+    queryKey: ['assets', 'rotas'],
+    queryFn: () => api<{ content: AtivoLeve[] }>('/assets?size=200'),
+    enabled: opened,
+  });
+  const { data: motoristas } = useQuery({
+    queryKey: ['drivers', 'rotas'],
+    queryFn: () => api<{ content: MotoristaLeve[] }>('/drivers?size=200'),
+    enabled: opened,
+  });
+
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  // Uma rota nasce sempre com um responsável: sem viatura não se grava.
+  const [assetId, setAssetId] = useState<string | null>(null);
+  const [driverId, setDriverId] = useState<string | null>(null);
+  const [plannedFor, setPlannedFor] = useState('');
   const [origem, setOrigem] = useState<Paragem>(VAZIA);
   const [destino, setDestino] = useState<Paragem>(VAZIA);
   const [passagens, setPassagens] = useState<Paragem[]>([]);
@@ -142,6 +169,9 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
           destinationLocationId: destino.locationId,
           originLabel: origem.locationId ? null : nomeDe(origem, 'Origem'),
           destinationLabel: destino.locationId ? null : nomeDe(destino, 'Destino'),
+          assetId,
+          driverId: driverId || null,
+          plannedFor: plannedFor || null,
           expectedDistanceKm: distance === '' ? null : Number(distance),
           expectedDurationMinutes: duration === '' ? null : Number(duration),
           expectedFuelLiters: fuel === '' ? null : Number(fuel),
@@ -179,6 +209,9 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
   function limpar() {
     setName('');
     setCode('');
+    setAssetId(null);
+    setDriverId(null);
+    setPlannedFor('');
     setOrigem(VAZIA);
     setDestino(VAZIA);
     setPassagens([]);
@@ -211,6 +244,22 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
 
   const semLocais = comPonto.length === 0;
 
+  /** Os pontos que já têm coordenadas, para o mapa desenhar enquanto se escolhe. */
+  const pontosDoMapa: PontoRota[] = todas
+    .map((p, i): PontoRota | null => {
+      const local = p.locationId ? comPonto.find((l) => l.id === p.locationId) : null;
+      const lat = p.ponto?.latitude ?? (local?.latitude != null ? Number(local.latitude) : null);
+      const lon = p.ponto?.longitude ?? (local?.longitude != null ? Number(local.longitude) : null);
+      if (lat == null || lon == null) return null;
+      return {
+        latitude: lat,
+        longitude: lon,
+        label: nomeDe(p, i === 0 ? 'Origem' : i === todas.length - 1 ? 'Destino' : `Passagem ${i}`),
+        tipo: i === 0 ? 'origem' : i === todas.length - 1 ? 'destino' : 'passagem',
+      };
+    })
+    .filter((p): p is PontoRota => p !== null);
+
   return (
     <>
       <Modal opened={opened} onClose={onClose} title="Criar rota" size="lg" centered>
@@ -227,6 +276,35 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
             placeholder="LAD-LOB"
             value={code}
             onChange={(e) => setCode(e.currentTarget.value)}
+          />
+
+          <Group grow align="flex-start">
+            <Select
+              label="Viatura que faz a rota"
+              description="Obrigatória: uma rota sem viatura é um percurso de que ninguém é responsável."
+              placeholder="Escolher…"
+              data={(ativos?.content ?? []).map((a) => ({ value: a.id, label: `${a.tag} — ${a.name}` }))}
+              value={assetId}
+              onChange={setAssetId}
+              searchable
+              required
+            />
+            <Select
+              label="Motorista (opcional)"
+              placeholder="Por definir"
+              data={(motoristas?.content ?? []).map((m) => ({ value: m.id, label: m.name }))}
+              value={driverId}
+              onChange={setDriverId}
+              searchable
+              clearable
+            />
+          </Group>
+          <TextInput
+            type="date"
+            label="Dia previsto (opcional)"
+            description="Vazio = a viatura faz esta rota de forma recorrente."
+            value={plannedFor}
+            onChange={(e) => setPlannedFor(e.currentTarget.value)}
           />
 
           {semLocais && (
@@ -295,6 +373,12 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
             />
           </Group>
 
+          <MapaPercurso
+            pathGeojson={calculo && !corrigido ? calculo.geojson : null}
+            pontos={pontosDoMapa}
+            altura={260}
+          />
+
           <Group>
             <Button
               variant="default"
@@ -358,7 +442,7 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
               Cancelar
             </Button>
             <Button
-              disabled={!name.trim() || !prontoParaCalcular}
+              disabled={!name.trim() || !prontoParaCalcular || !assetId}
               loading={create.isPending}
               onClick={() => create.mutate()}
             >
@@ -366,9 +450,11 @@ export function NovaRotaForm({ opened, onClose }: { opened: boolean; onClose: ()
             </Button>
           </Group>
 
-          {!prontoParaCalcular && (
+          {(!prontoParaCalcular || !assetId) && (
             <Text size="xs" c="dimmed">
-              Escolha a origem e o destino para poder criar a rota.
+              {!prontoParaCalcular
+                ? 'Escolha a origem e o destino para poder criar a rota.'
+                : 'Escolha a viatura que vai fazer esta rota.'}
             </Text>
           )}
         </Stack>

@@ -176,6 +176,40 @@ public class FleetController {
         return routesService.calculate(org(p), req);
     }
 
+    @Operation(summary = "Viaturas atribuídas a uma rota")
+    @GetMapping("/api/v1/routes/{id}/assignments")
+    public java.util.List<ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView> routeAssignments(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
+        return routesService.listAssignments(org(p), id);
+    }
+
+    @Operation(summary = "Atribuir uma viatura (e motorista) a uma rota")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @PostMapping("/api/v1/routes/{id}/assignments")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ao.autocare.modules.fleet.dto.FleetDtos.RouteAssignmentView assignRoute(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id,
+            @Valid @RequestBody ao.autocare.modules.fleet.dto.FleetDtos.AssignRouteRequest req) {
+        return routesService.assign(org(p), p.id(), id, req);
+    }
+
+    @Operation(summary = "Retirar uma atribuição (nunca a última da rota)")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @DeleteMapping("/api/v1/route-assignments/{id}")
+    public java.util.Map<String, String> unassignRoute(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
+        routesService.unassign(org(p), p.id(), id);
+        return java.util.Map.of("message", "Atribuição retirada.");
+    }
+
+    @Operation(summary = "Previsto contra o andado: traçado da rota e percurso real das últimas viagens")
+    @GetMapping("/api/v1/routes/{id}/comparison")
+    public java.util.List<ao.autocare.modules.fleet.dto.FleetDtos.RouteVsRealView> routeComparison(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id,
+            @RequestParam(defaultValue = "5") int limit) {
+        return routesService.comparison(org(p), id, limit);
+    }
+
     @Operation(summary = "Criar uma rota")
     @RequirePermission(Permission.DRIVERS_MANAGE)
     @PostMapping("/api/v1/routes")

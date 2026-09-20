@@ -281,8 +281,45 @@ class FleetIntegrationTest extends AbstractIntegrationTest {
     @Test
     void aRouteNeedsAnOriginAndADestination() throws Exception {
         assertThat(send(post("/api/v1/routes"),
-                Map.of("name", "Rota sem pontas"), 400)
+                Map.of("name", "Rota sem pontas", "assetId", assetId), 400)
                 .get("message").asText()).contains("origem e destino");
+    }
+
+    @Test
+    void aRouteNeedsAVehicle() throws Exception {
+        Map<String, Object> rota = new HashMap<>();
+        rota.put("name", "Rota sem dono");
+        rota.put("originLabel", "A");
+        rota.put("destinationLabel", "B");
+        assertThat(send(post("/api/v1/routes"), rota, 400).get("message").asText())
+                .contains("Indique a viatura");
+    }
+
+    @Test
+    void aRotaGuardaQuemAFazEANaoDeixaFicarSemViatura() throws Exception {
+        Map<String, Object> rota = new HashMap<>();
+        rota.put("name", "Luanda - Benguela");
+        rota.put("originLabel", "Luanda");
+        rota.put("destinationLabel", "Benguela");
+        rota.put("assetId", assetId);
+        rota.put("assetId", assetId);
+        JsonNode r = send(post("/api/v1/routes"), rota, 201);
+        assertThat(r.get("assignments")).hasSize(1);
+        assertThat(r.get("assignments").get(0).get("assetTag").asText()).isEqualTo("CAM-001");
+        String routeId = r.get("id").asText();
+
+        // Uma segunda viatura na mesma rota: o percurso e um so, quem o faz e que muda.
+        JsonNode segunda = send(post("/api/v1/routes/" + routeId + "/assignments"),
+                Map.of("assetId", otherAssetId, "plannedFor", "2026-10-01"), 201);
+        assertThat(segunda.get("assetTag").asText()).isEqualTo("CAM-002");
+        assertThat(send(get("/api/v1/routes/" + routeId + "/assignments"), null, 200)).hasSize(2);
+
+        // Retirar uma pode; a ultima nao -- a rota ficaria sem ninguem responsavel.
+        send(delete("/api/v1/route-assignments/" + segunda.get("id").asText()), null, 200);
+        String primeira = send(get("/api/v1/routes/" + routeId + "/assignments"), null, 200)
+                .get(0).get("id").asText();
+        assertThat(send(delete("/api/v1/route-assignments/" + primeira), null, 409)
+                .get("message").asText()).contains("única viatura");
     }
 
     @Test
@@ -292,6 +329,7 @@ class FleetIntegrationTest extends AbstractIntegrationTest {
         rota.put("code", "LAD-LOB");
         rota.put("originLabel", "Luanda");
         rota.put("destinationLabel", "Lobito");
+        rota.put("assetId", assetId);
         rota.put("expectedDistanceKm", 480);
         rota.put("expectedDurationMinutes", 420);
         rota.put("expectedFuelLiters", 160);
@@ -314,6 +352,7 @@ class FleetIntegrationTest extends AbstractIntegrationTest {
         rota.put("name", "Rota nova");
         rota.put("originLabel", "A");
         rota.put("destinationLabel", "B");
+        rota.put("assetId", assetId);
         JsonNode r = send(post("/api/v1/routes"), rota, 201);
 
         // Preencher um palpite daria ar de rigor a um numero inventado.
@@ -329,6 +368,7 @@ class FleetIntegrationTest extends AbstractIntegrationTest {
         rota.put("code", "R-1");
         rota.put("originLabel", "A");
         rota.put("destinationLabel", "B");
+        rota.put("assetId", assetId);
         send(post("/api/v1/routes"), rota, 201);
 
         rota.put("name", "Rota B");

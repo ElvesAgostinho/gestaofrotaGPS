@@ -15,6 +15,10 @@ public interface TripRepository extends JpaRepository<Trip, String> {
 
     Page<Trip> findByAssetIdOrderByStartedAtDesc(String assetId, Pageable pageable);
 
+    /** As viagens que fizeram uma rota, da mais recente para a mais antiga. */
+    @Query("select t from Trip t join fetch t.asset where t.route.id = :routeId order by t.startedAt desc")
+    List<Trip> findByRouteIdOrderByStartedAtDesc(String routeId, Pageable pageable);
+
     Page<Trip> findByOrganizationIdOrderByStartedAtDesc(String organizationId, Pageable pageable);
 
     List<Trip> findByOrganizationIdAndEndedAtIsNull(String organizationId);

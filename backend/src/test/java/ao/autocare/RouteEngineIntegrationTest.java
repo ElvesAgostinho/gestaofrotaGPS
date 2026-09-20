@@ -36,6 +36,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 class RouteEngineIntegrationTest extends AbstractIntegrationTest {
 
     private String bearer;
+    /** Uma rota nasce sempre com uma viatura responsável. */
+    private String assetId;
     private HttpServer motor;
 
     /** O que o falso OSRM recebeu, para se conferir o pedido. */
@@ -63,6 +65,9 @@ class RouteEngineIntegrationTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         bearer = register("rotas@teste.ao").bearer();
+        String tipo = send(post("/api/v1/asset-types"), Map.of("name", "Camião"), 201).get("id").asText();
+        assetId = send(post("/api/v1/assets"),
+                Map.of("tag", "RT-1", "name", "Camião", "assetTypeId", tipo), 201).get("id").asText();
 
         motor = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         motor.createContext("/", troca -> {
@@ -259,6 +264,7 @@ class RouteEngineIntegrationTest extends AbstractIntegrationTest {
         rota.put("name", "Luanda - Lobito");
         rota.put("originLocationId", a);
         rota.put("destinationLocationId", b);
+        rota.put("assetId", assetId);
         rota.put("expectedDistanceKm", "497.3");
         rota.put("distanceSource", "ENGINE");
         rota.put("pathGeojson", "{\"type\":\"LineString\"}");
@@ -281,6 +287,7 @@ class RouteEngineIntegrationTest extends AbstractIntegrationTest {
         rota.put("name", "Inventada");
         rota.put("originLocationId", a);
         rota.put("destinationLocationId", b);
+        rota.put("assetId", assetId);
         rota.put("distanceSource", "CONFIADO");
 
         send(post("/api/v1/routes"), rota, 400);
@@ -295,6 +302,7 @@ class RouteEngineIntegrationTest extends AbstractIntegrationTest {
         rota.put("name", "Escrita a mao");
         rota.put("originLocationId", a);
         rota.put("destinationLocationId", b);
+        rota.put("assetId", assetId);
         rota.put("expectedDistanceKm", "40");
 
         String id = send(post("/api/v1/routes"), rota, 201).get("id").asText();

@@ -156,6 +156,9 @@ class OptimisticLockIntegrationTest extends AbstractIntegrationTest {
         rota.put("name", "Luanda - Lobito");
         rota.put("originLabel", "Luanda");
         rota.put("destinationLabel", "Lobito");
+        // Uma rota nasce sempre com a viatura que a faz.
+        rota.put("assetId", send(post("/api/v1/assets"),
+                Map.of("tag", "OL-1", "name", "Camião", "assetTypeId", tipo), 201).get("id").asText());
         String rotaId = send(post("/api/v1/routes"), rota, 201).get("id").asText();
         long vRota = send(get("/api/v1/routes/" + rotaId), null, 200).get("version").asLong();
         rota.put("name", "Luanda - Lobito (norte)");
