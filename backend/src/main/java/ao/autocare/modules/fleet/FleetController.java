@@ -46,13 +46,16 @@ public class FleetController {
     private final DriverService driversService;
     private final RouteService routesService;
     private final RouteLiveService routesLiveService;
+    private final DriverAccessService driverAccess;
     private final OrgContext orgContext;
 
     public FleetController(
+            DriverAccessService driverAccess,
             DriverService driversService, RouteService routesService, OrgContext orgContext, RouteLiveService routesLiveService) {
         this.driversService = driversService;
         this.routesService = routesService;
         this.routesLiveService = routesLiveService;
+        this.driverAccess = driverAccess;
         this.orgContext = orgContext;
     }
 
@@ -70,6 +73,51 @@ public class FleetController {
             @RequestParam(defaultValue = "30") int size) {
         return driversService.list(org(p), search,
                 PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200)));
+    }
+
+    // ==== Acesso do motorista à aplicação ==================================
+
+    @Operation(summary = "Estado do acesso de um motorista à aplicação")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @GetMapping("/api/v1/drivers/{driverId}/access")
+    public DriverAccessService.Acesso driverAccess(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String driverId) {
+        return driverAccess.estado(org(p), driverId);
+    }
+
+    @Operation(summary = "Criar o acesso de um motorista",
+            description = "Gera o identificador curto e a palavra-passe. A palavra-passe é "
+                    + "devolvida uma única vez: depois fica cifrada e nem o gestor a vê.")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @PostMapping("/api/v1/drivers/{driverId}/access")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DriverAccessService.Credenciais createDriverAccess(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String driverId) {
+        return driverAccess.criar(org(p), p.id(), driverId);
+    }
+
+    @Operation(summary = "Repor a palavra-passe de um motorista")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @PostMapping("/api/v1/drivers/{driverId}/access/password")
+    public DriverAccessService.Credenciais resetDriverPassword(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String driverId) {
+        return driverAccess.reporPalavraPasse(org(p), p.id(), driverId);
+    }
+
+    @Operation(summary = "Bloquear o acesso de um motorista")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @PostMapping("/api/v1/drivers/{driverId}/access/block")
+    public DriverAccessService.Acesso blockDriverAccess(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String driverId) {
+        return driverAccess.bloquear(org(p), p.id(), driverId);
+    }
+
+    @Operation(summary = "Desbloquear o acesso de um motorista")
+    @RequirePermission(Permission.DRIVERS_MANAGE)
+    @PostMapping("/api/v1/drivers/{driverId}/access/unblock")
+    public DriverAccessService.Acesso unblockDriverAccess(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String driverId) {
+        return driverAccess.desbloquear(org(p), p.id(), driverId);
     }
 
     @Operation(summary = "Resumo de motoristas para o painel")

@@ -74,6 +74,8 @@ public class UserService {
             throw ApiException.badRequest("A palavra-passe atual não está correta.");
         }
         user.setPasswordHash(passwordEncoder.encode(req.newPassword()));
+        // A palavra-passe passou a ser só dele: a obrigação de a trocar cumpriu-se.
+        user.setMustChangePassword(false);
         refreshTokens.revokeAllForUser(userId, java.time.Instant.now());
         audit.recordForUser(userId, "user.change_password", "User", userId, null);
     }

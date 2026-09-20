@@ -1,4 +1,5 @@
 import { Center, Loader } from '@mantine/core';
+import { TrocarPalavraPasse } from './auth/TrocarPalavraPasse';
 import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
@@ -95,6 +96,12 @@ function Router() {
   // mostrar um painel cheio de erros.
   if (org?.blockedReason && !user.admin) {
     return <EmpresaBloqueadaPage motivo={org.blockedReason} />;
+  }
+
+  // Quem entrou com a palavra-passe que o gestor lhe deu não passa daqui sem
+  // escolher a sua. É o primeiro ecrã do motorista, e só acontece uma vez.
+  if (user.mustChangePassword) {
+    return <TrocarPalavraPasse />;
   }
 
   // O administrador da plataforma sem empresa própria só tem a Plataforma.

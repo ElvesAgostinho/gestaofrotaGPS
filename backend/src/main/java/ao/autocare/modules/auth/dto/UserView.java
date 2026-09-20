@@ -9,6 +9,10 @@ public record UserView(
         String name,
         String email,
         String phone,
+        /** O identificador curto de entrada, quando a conta tem um. */
+        String loginId,
+        /** Entrou com uma palavra-passe posta pelo gestor: tem de a trocar. */
+        boolean mustChangePassword,
         String avatarUrl,
         String locale,
         String currency,
@@ -24,6 +28,8 @@ public record UserView(
                 u.getName(),
                 u.getEmail(),
                 u.getPhone(),
+                u.getLoginId(),
+                u.isMustChangePassword(),
                 u.getAvatarUrl(),
                 u.getLocale(),
                 u.getCurrency(),

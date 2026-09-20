@@ -25,8 +25,21 @@ public class User extends TimestampedEntity {
     @Column(length = 40)
     private String phone;
 
+    /**
+      * O identificador curto com que se entra sem email — «MOT-0412».
+      *
+      * <p>Existe para quem não tem email: o gestor cria a conta, entrega o
+      * identificador e a palavra-passe em papel, e o motorista entra com isso.
+      */
+    @Column(name = "login_id", length = 20)
+    private String loginId;
+
     @Column(name = "password_hash", nullable = false, length = 100)
     private String passwordHash;
+
+    /** A palavra-passe foi posta por outra pessoa; tem de ser trocada à entrada. */
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;

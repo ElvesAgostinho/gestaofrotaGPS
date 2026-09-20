@@ -8,6 +8,10 @@ export interface SessionUser {
   email?: string;
   /** Telemóvel em formato internacional; para onde vão os avisos por WhatsApp/SMS. */
   phone?: string | null;
+  /** O identificador curto de entrada, para quem entra sem email. */
+  loginId?: string | null;
+  /** Entrou com uma palavra-passe posta pelo gestor: tem de a trocar antes de seguir. */
+  mustChangePassword?: boolean;
   admin: boolean;
 }
 

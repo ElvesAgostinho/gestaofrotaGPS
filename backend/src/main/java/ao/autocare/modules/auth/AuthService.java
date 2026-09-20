@@ -152,9 +152,10 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest req, HttpServletRequest http) {
         String identifier = req.identifier().trim();
-        Optional<User> maybeUser = users.findByEmailOrPhone(identifier);
+        Optional<User> maybeUser = users.findByEmailOrPhoneOrLoginId(identifier);
 
-        ApiException invalid = ApiException.unauthorized("Email/telefone ou palavra-passe incorretos.");
+        ApiException invalid = ApiException.unauthorized(
+                "Email, telefone ou identificador incorretos — ou a palavra-passe.");
 
         if (maybeUser.isEmpty()) {
             passwordEncoder.matches(req.password(), DUMMY_HASH); // tempo constante

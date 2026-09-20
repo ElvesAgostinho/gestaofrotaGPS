@@ -15,12 +15,21 @@ import {
   TextInput,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconAlertTriangle, IconCalendarEvent, IconGavel, IconId, IconPlus, IconTrash } from '@tabler/icons-react';
+import {
+  IconAlertTriangle,
+  IconCalendarEvent,
+  IconDeviceMobile,
+  IconGavel,
+  IconId,
+  IconPlus,
+  IconTrash,
+} from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { fmtDate, fmtDateTime, fmtMoney } from '../../lib/format';
+import { AcessoApp } from './AcessoApp';
 
 export interface MotoristaFicha {
   id: string;
@@ -151,6 +160,9 @@ export function FichaMotorista({ motoristaId, fechar }: { motoristaId: string; f
               <Tabs.Tab value="escala" leftSection={<IconCalendarEvent size={15} />}>
                 Escala
               </Tabs.Tab>
+              <Tabs.Tab value="acesso" leftSection={<IconDeviceMobile size={15} />}>
+                Acesso à app
+              </Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value="documentos" pt="sm">
               <DocumentosTab m={m} podeGerir={podeGerir} />
@@ -160,6 +172,9 @@ export function FichaMotorista({ motoristaId, fechar }: { motoristaId: string; f
             </Tabs.Panel>
             <Tabs.Panel value="escala" pt="sm">
               <EscalaTab motoristaId={m.id} podeGerir={podeGerir} />
+            </Tabs.Panel>
+            <Tabs.Panel value="acesso" pt="sm">
+              <AcessoApp motoristaId={m.id} nome={m.name} />
             </Tabs.Panel>
           </Tabs>
         </Stack>
