@@ -39,7 +39,12 @@ public record PlanPdfModel(
     public record Plan(String name, String notes, LubeTask lube, List<PlanRow> rows,
                        List<Integer> intervals) {}
 
-    public record Kpi(String name, String target, String formula) {}
+    /** O indicador com a meta, a fórmula e — quando já há dados — o número real. */
+    public record Kpi(String name, String target, String formula, String actual) {
+        public Kpi(String name, String target, String formula) {
+            this(name, target, formula, null);
+        }
+    }
 
     public record Predictive(String frequency, String technique, String components, String goal) {}
 

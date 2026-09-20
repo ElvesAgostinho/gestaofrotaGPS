@@ -90,11 +90,16 @@ export function NovaOrdemForm({
   aberto,
   fechar,
   assetIdFixo,
+  tituloInicial,
+  descricaoInicial,
 }: {
   aberto: boolean;
   fechar: () => void;
   /** Quando aberto a partir da lista, já se sabe qual é a viatura. */
   assetIdFixo?: string;
+  /** Quando a ordem nasce de outra coisa — uma inspeção reprovada, por exemplo. */
+  tituloInicial?: string;
+  descricaoInicial?: string;
 }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -102,8 +107,8 @@ export function NovaOrdemForm({
   const [assetId, setAssetId] = useState<string | null>(assetIdFixo ?? null);
   const [type, setType] = useState<string | null>('CORRECTIVE');
   const [priority, setPriority] = useState<string | null>('NORMAL');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [title, setTitle] = useState(tituloInicial ?? '');
+  const [description, setDescription] = useState(descricaoInicial ?? '');
   const [systemCode, setSystemCode] = useState<string | null>(null);
   const [assignedToUserId, setAssignedToUserId] = useState<string | null>(null);
   const [branchId, setBranchId] = useState<string | null>(null);
@@ -123,6 +128,15 @@ export function NovaOrdemForm({
   if (assetIdFixo !== ultimoFixo) {
     setUltimoFixo(assetIdFixo);
     setAssetId(assetIdFixo ?? null);
+  }
+
+  // O mesmo para o texto que vem de fora: a ordem que nasce de uma inspeção
+  // reprovada já traz o título e os pontos que falharam.
+  const [ultimoTexto, setUltimoTexto] = useState<string | undefined>(tituloInicial);
+  if (tituloInicial !== ultimoTexto) {
+    setUltimoTexto(tituloInicial);
+    if (tituloInicial) setTitle(tituloInicial);
+    if (descricaoInicial) setDescription(descricaoInicial);
   }
 
   const { data: ativos } = useQuery({

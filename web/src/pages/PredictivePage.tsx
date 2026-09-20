@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { Painel } from '../components/erp';
 import { PrevisaoAvarias } from '../components/PrevisaoAvarias';
+import { IndicadoresFicha } from './assets/FichaPreditiva';
 import { fmtDate } from '../lib/format';
 
 interface Program {
@@ -131,6 +132,7 @@ export function PredictivePage() {
           </Table>
         </Table.ScrollContainer>
             </Painel>
+      <IndicadoresFicha />
     </Stack>
   );
 }

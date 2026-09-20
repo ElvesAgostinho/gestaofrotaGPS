@@ -54,6 +54,7 @@ import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
 import { PneusTab } from './assets/PneusTab';
 import { InspecoesTab } from './assets/InspecoesTab';
+import { IndicadoresFicha, ProgramaPreditivoFicha } from './assets/FichaPreditiva';
 import { PrevisaoAvarias } from '../components/PrevisaoAvarias';
 import { EstadoTarefa, LimiteManutencaoModal, PainelProximaManutencao, unidade } from './assets/LimiteManutencao';
 import type { AssetView } from '../api/types';
@@ -362,9 +363,10 @@ export function AssetDetailPage() {
         </Tabs.Panel>
 
         <Tabs.Panel value="preditiva" pt="md">
-          <Stack gap="md">
+          <Stack gap="lg">
             <PrevisaoAvarias assetId={id} />
-            <PredictiveTab assetId={id} />
+            <ProgramaPreditivoFicha assetId={id} />
+            <IndicadoresFicha assetId={id} />
           </Stack>
         </Tabs.Panel>
         <Tabs.Panel value="combustivel" pt="md">
@@ -752,81 +754,6 @@ interface PlanTask {
   remainingDays?: number | null;
   lastDoneAt?: string | null;
   lastDoneMeter?: number | null;
-  status: string;
-}
-
-function PredictiveTab({ assetId }: { assetId: string }) {
-  const queryClient = useQueryClient();
-  const { can } = useAuth();
-  const { data } = useQuery({
-    queryKey: ['predictive', assetId],
-    queryFn: () => api<PredictiveProgram[]>(`/assets/${assetId}/predictive`),
-  });
-
-  const applyStandard = useMutation({
-    mutationFn: () => api(`/assets/${assetId}/predictive/standard`, { method: 'POST' }),
-    onSuccess: () => {
-      notifications.show({ message: 'Programas do documento de referência aplicados.', color: 'green' });
-      queryClient.invalidateQueries({ queryKey: ['predictive', assetId] });
-    },
-    onError: (e: Error) => notifications.show({ message: e.message, color: 'red' }),
-  });
-
-  if (!data?.length) {
-    return (
-      <Stack align="flex-start">
-        <Alert variant="light" icon={<IconInfoCircle size={18} />}>
-          Sem monitorização de condição. O conjunto de referência é análise de vibração mensal,
-          termografia trimestral e análise de óleo semestral.
-        </Alert>
-        {can('MANAGER') && (
-          <Button onClick={() => applyStandard.mutate()} loading={applyStandard.isPending}>
-            Aplicar conjunto de referência
-          </Button>
-        )}
-      </Stack>
-    );
-  }
-
-  return (
-    <Table>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Técnica</Table.Th>
-          <Table.Th>Periodicidade</Table.Th>
-          <Table.Th>Última</Table.Th>
-          <Table.Th>Próxima</Table.Th>
-          <Table.Th>Estado</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {data.map((p) => (
-          <Table.Tr key={p.id}>
-            <Table.Td fw={600}>{p.techniqueLabel}</Table.Td>
-            <Table.Td>{p.frequencyLabel}</Table.Td>
-            <Table.Td>{fmtDate(p.lastDoneAt)}</Table.Td>
-            <Table.Td>{fmtDate(p.nextDueAt)}</Table.Td>
-            <Table.Td>
-              <Badge
-                variant="light"
-                color={p.status === 'OVERDUE' ? 'red' : p.status === 'DUE_SOON' ? 'yellow' : 'green'}
-              >
-                {p.status === 'OVERDUE' ? 'Vencida' : p.status === 'DUE_SOON' ? 'A chegar' : 'Em dia'}
-              </Badge>
-            </Table.Td>
-          </Table.Tr>
-        ))}
-      </Table.Tbody>
-    </Table>
-  );
-}
-
-interface PredictiveProgram {
-  id: string;
-  techniqueLabel: string;
-  frequencyLabel: string;
-  lastDoneAt?: string | null;
-  nextDueAt?: string | null;
   status: string;
 }
 

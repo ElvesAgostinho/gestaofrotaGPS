@@ -7,6 +7,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -90,6 +92,38 @@ class PlanPdfIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk()).andReturn();
         org.assertj.core.api.Assertions.assertThat(
                 new String(res.getResponse().getContentAsByteArray(), 0, 5)).isEqualTo("%PDF-");
+    }
+
+    /**
+     * Uma meta impressa sozinha é uma intenção. O plano leva o número medido ao
+     * lado dela — e, onde ainda não há dados, di-lo em vez de imprimir zero.
+     */
+    @Test
+    void oPlanoLevaOsIndicadoresComMetaValorEFormula() throws Exception {
+        bearer = register("pdf3@teste.ao").bearer();
+        String typeId = postJson("/api/v1/asset-types", Map.of("name", "Retroescavadora"), 201)
+                .get("id").asText();
+        String assetId = postJson("/api/v1/assets", Map.of(
+                "tag", "RE-7", "name", "Retroescavadora", "assetTypeId", typeId,
+                "initialMeterValue", 900), 201).get("id").asText();
+        postJson("/api/v1/assets/" + assetId + "/predictive/standard", Map.of(), 201);
+
+        MvcResult res = mvc.perform(get("/api/v1/assets/" + assetId + "/maintenance-plan.pdf")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk()).andReturn();
+
+        String texto;
+        try (PDDocument doc = PDDocument.load(res.getResponse().getContentAsByteArray())) {
+            texto = new PDFTextStripper().getText(doc).replace(' ', ' ');
+        }
+        // O PDF quebra as colunas onde lhe convém; o que interessa é o conteúdo.
+        String corrido = texto.replaceAll("\s+", " ");
+        org.assertj.core.api.Assertions.assertThat(corrido).containsIgnoringCase("Manutenção preditiva");
+        org.assertj.core.api.Assertions.assertThat(corrido).containsIgnoringCase("vibração");
+        org.assertj.core.api.Assertions.assertThat(corrido).containsIgnoringCase("Indicadores de desempenho");
+        org.assertj.core.api.Assertions.assertThat(corrido).contains("MTBF");
+        org.assertj.core.api.Assertions.assertThat(corrido).contains("Real");
+        org.assertj.core.api.Assertions.assertThat(corrido).containsAnyOf("por apurar", "%");
     }
 
     @Test

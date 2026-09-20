@@ -71,6 +71,7 @@ public class MaintenancePlanPdfService {
     private final AutoCareProperties props;
     private final AssetRepository assets;
     private final ao.autocare.repo.PredictiveProgramRepository predictivePrograms;
+    private final ao.autocare.modules.kpi.KpiService kpis;
     private final AssetCriticalityRepository criticalities;
     private final ChecklistTemplateRepository checklistTemplates;
     private final AssetPlanRepository assetPlans;
@@ -85,6 +86,7 @@ public class MaintenancePlanPdfService {
             AssetPlanRepository assetPlans,
             AssetPlanTaskRepository assetPlanTasks,
             ao.autocare.repo.PredictiveProgramRepository predictivePrograms,
+            ao.autocare.modules.kpi.KpiService kpis,
             ao.autocare.modules.org.Letterhead letterhead) {
         this.letterhead = letterhead;
         this.templateEngine = templateEngine;
@@ -95,6 +97,7 @@ public class MaintenancePlanPdfService {
         this.assetPlans = assetPlans;
         this.assetPlanTasks = assetPlanTasks;
         this.predictivePrograms = predictivePrograms;
+        this.kpis = kpis;
     }
 
     @Transactional(readOnly = true)
@@ -156,11 +159,43 @@ public class MaintenancePlanPdfService {
                         asset.getResponsibleLabel() != null ? asset.getResponsibleLabel()
                                 : (asset.getResponsibleUser() != null ? asset.getResponsibleUser().getName() : "—"),
                         nz(asset.getObjective())),
-                criticality, checklist, plan, KPIS, predictiveFor(asset.getId()),
+                criticality, checklist, plan, kpisFor(orgId, asset.getId()),
+                predictiveFor(asset.getId()),
                 buildPartGroups(plan),
                 "Todas as manutenções devem ser registadas no sistema (OM). "
                         + "Utilizar apenas peças originais. Seguir as recomendações do manual do "
                         + "operador e de serviço. Manter o equipamento limpo e protegido contra intempéries.");
+    }
+
+    /**
+     * Os indicadores com a meta e o valor medido no último ano.
+     *
+     * <p>Uma meta impressa sozinha é uma intenção; ao lado do número real é um
+     * compromisso que se pode verificar. Onde ainda não há dados que cheguem,
+     * imprime-se «por apurar» — nunca um zero que parece um desastre.
+     */
+    private List<PlanPdfModel.Kpi> kpisFor(String orgId, String assetId) {
+        java.util.Map<String, String> reais = new java.util.HashMap<>();
+        try {
+            var relatorio = kpis.report(orgId, assetId,
+                    java.time.Instant.now().minus(java.time.Duration.ofDays(365)), null);
+            for (var m : relatorio.metrics()) {
+                if (m.value() != null) {
+                    reais.put(m.key(), ao.autocare.modules.org.PdfRenderer.numero(java.math.BigDecimal.valueOf(m.value()), 1)
+                            + ("%".equals(m.unit()) ? " %" : " " + m.unit()));
+                }
+            }
+        } catch (RuntimeException e) {
+            // Um indicador que não se consegue calcular não impede a folha de sair.
+            return KPIS;
+        }
+        List<PlanPdfModel.Kpi> out = new java.util.ArrayList<>();
+        String[] chaves = {"availability", "mtbf", "mttr", "plan_compliance"};
+        for (int i = 0; i < KPIS.size(); i++) {
+            PlanPdfModel.Kpi k = KPIS.get(i);
+            out.add(new PlanPdfModel.Kpi(k.name(), k.target(), k.formula(), reais.get(chaves[i])));
+        }
+        return out;
     }
 
     private boolean matchesAssetType(ChecklistTemplate t, Asset asset) {

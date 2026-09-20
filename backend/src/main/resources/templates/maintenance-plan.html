@@ -135,9 +135,11 @@
   <!-- Indicadores -->
   <h2>Indicadores de desempenho</h2>
   <table class="kpi">
-    <tr><th>Indicador</th><th>Meta</th><th>Fórmula</th></tr>
+    <tr><th>Indicador</th><th>Meta</th><th>Real</th><th>Fórmula</th></tr>
     <tr th:each="k : ${doc.kpis}">
-      <td th:text="${k.name}">—</td><td th:text="${k.target}">—</td><td th:text="${k.formula}">—</td>
+      <td th:text="${k.name}">—</td><td th:text="${k.target}">—</td>
+      <td th:text="${k.actual} ?: 'por apurar'">—</td>
+      <td th:text="${k.formula}">—</td>
     </tr>
   </table>
 
