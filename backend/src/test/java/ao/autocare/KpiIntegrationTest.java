@@ -81,6 +81,59 @@ class KpiIntegrationTest extends AbstractIntegrationTest {
         throw new AssertionError("métrica não encontrada: " + key);
     }
 
+    /**
+     * Numa viatura, o contador é o odómetro: o MTBF tem de vir em quilómetros.
+     *
+     * <p>Antes somava-se o contador fosse ele qual fosse e chamava-se «horas»
+     * ao resultado — um camião com 12 000 km aparecia com um MTBF de «12 000 h»
+     * e cumpria a meta de 500 h por acidente. Um indicador que engana é pior do
+     * que não ter indicador nenhum.
+     */
+    @Test
+    void oMtbfDeUmaViaturaVemEmQuilometrosENaoEmHoras() throws Exception {
+        bearer = register("kpi4@teste.ao").bearer();
+        String typeId = postJson("/api/v1/asset-types",
+                Map.of("name", "Camião basculante", "category", "VEHICLE", "primaryMeter", "ODOMETER"),
+                201).get("id").asText();
+        String assetId = postJson("/api/v1/assets", Map.of(
+                "tag", "CAM-001", "name", "Camião", "assetTypeId", typeId), 201).get("id").asText();
+
+        // 12 000 km no período
+        postJson("/api/v1/assets/" + assetId + "/meters/ODOMETER/readings",
+                Map.of("value", 120_000, "readingAt", Instant.now().minus(2, ChronoUnit.DAYS).toString()), 201);
+        postJson("/api/v1/assets/" + assetId + "/meters/ODOMETER/readings",
+                Map.of("value", 132_000), 201);
+
+        JsonNode wo = postJson("/api/v1/work-orders", Map.of(
+                "assetId", assetId, "type", "CORRECTIVE", "title", "Avaria na embraiagem",
+                "failure", Map.of("description", "Embraiagem a patinar")), 201);
+        String woId = wo.get("id").asText();
+        Instant start = Instant.now().minus(4, ChronoUnit.HOURS);
+        postJson("/api/v1/work-orders/" + woId + "/start", Map.of("startedAt", start.toString()), 200);
+        postJson("/api/v1/work-orders/" + woId + "/complete",
+                Map.of("completedAt", start.plus(2, ChronoUnit.HOURS).toString(),
+                        "resolution", "Kit substituído"), 200);
+
+        JsonNode kpi = getJson("/api/v1/kpis?assetId=" + assetId);
+        org.assertj.core.api.Assertions.assertThat(kpi.get("operatingKm").asDouble()).isEqualTo(12_000.0);
+        org.assertj.core.api.Assertions.assertThat(kpi.get("operatingHours").asDouble()).isZero();
+
+        JsonNode mtbfKm = findMetric(kpi.get("metrics"), "mtbf_km");
+        org.assertj.core.api.Assertions.assertThat(mtbfKm.get("value").asDouble()).isEqualTo(12_000.0);
+        org.assertj.core.api.Assertions.assertThat(mtbfKm.get("unit").asText()).isEqualTo("km");
+        org.assertj.core.api.Assertions.assertThat(mtbfKm.get("meetsTarget").asBoolean()).isFalse();
+
+        // E não se mostra um MTBF em horas para quem não tem horímetro.
+        org.assertj.core.api.Assertions.assertThat(temMetrica(kpi.get("metrics"), "mtbf")).isFalse();
+    }
+
+    private boolean temMetrica(JsonNode metrics, String key) {
+        for (JsonNode m : metrics) {
+            if (m.get("key").asText().equals(key)) return true;
+        }
+        return false;
+    }
+
     @Test
     void dashboardSummarisesFleetState() throws Exception {
         bearer = register("kpi2@teste.ao").bearer();

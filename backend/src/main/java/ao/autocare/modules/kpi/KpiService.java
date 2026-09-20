@@ -2,6 +2,7 @@ package ao.autocare.modules.kpi;
 
 import ao.autocare.common.ApiException;
 import ao.autocare.domain.Asset;
+import ao.autocare.domain.enums.Enums.MeterKind;
 import ao.autocare.domain.WorkOrder;
 import ao.autocare.domain.enums.Enums.WorkOrderType;
 import ao.autocare.modules.kpi.dto.KpiDtos.KpiReport;
@@ -32,6 +33,7 @@ public class KpiService {
 
     private final AssetRepository assets;
     private final MeterReadingRepository readings;
+    private final ao.autocare.repo.AssetMeterRepository meters;
     private final FailureRepository failures;
     private final RepairRepository repairs;
     private final WorkOrderRepository workOrders;
@@ -39,11 +41,13 @@ public class KpiService {
     public KpiService(
             AssetRepository assets,
             MeterReadingRepository readings,
+            ao.autocare.repo.AssetMeterRepository meters,
             FailureRepository failures,
             RepairRepository repairs,
             WorkOrderRepository workOrders) {
         this.assets = assets;
         this.readings = readings;
+        this.meters = meters;
         this.failures = failures;
         this.repairs = repairs;
         this.workOrders = workOrders;
@@ -79,12 +83,58 @@ public class KpiService {
             scopeName = "Toda a frota";
         }
 
-        // Horas de operação = soma dos deltas de horímetro no período
+        // O que a frota andou, cada coisa na sua unidade: as máquinas contam-se
+        // em horas de horímetro, as viaturas em quilómetros de odómetro. Somar
+        // as duas dá um número que não é nenhuma das duas — e era com ele que o
+        // MTBF de um camião saía em «horas» quando eram quilómetros.
+        java.util.Set<String> noAmbito = scopeAssets.stream().map(Asset::getId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        // O grupo de cada ativo vem do contador que ele tem — uma viatura parada
+        // o mês inteiro continua a medir-se em quilómetros.
+        java.util.Set<String> ativosPorHoras = new java.util.HashSet<>();
+        java.util.Set<String> ativosPorKm = new java.util.HashSet<>();
+        for (Object[] linha : meters.primaryKindsForOrg(orgId)) {
+            String id = (String) linha[0];
+            if (!noAmbito.contains(id)) {
+                continue;
+            }
+            if (linha[1] == MeterKind.ODOMETER) {
+                ativosPorKm.add(id);
+            } else {
+                ativosPorHoras.add(id);
+            }
+        }
+
         double operatingHours = 0;
-        for (Asset a : scopeAssets) {
-            BigDecimal units = readings.operatingUnitsForAsset(a.getId(), start, end);
-            if (units != null && units.signum() > 0) {
-                operatingHours += units.doubleValue();
+        double operatingKm = 0;
+        for (Object[] linha : readings.operatingUnitsByAsset(orgId, start, end)) {
+            String id = (String) linha[0];
+            if (!noAmbito.contains(id)) {
+                continue;
+            }
+            double unidades = linha[2] != null ? ((BigDecimal) linha[2]).doubleValue() : 0;
+            if (unidades <= 0) {
+                continue;
+            }
+            if (linha[1] == MeterKind.ODOMETER) {
+                operatingKm += unidades;
+            } else {
+                operatingHours += unidades;
+            }
+        }
+
+        // As avarias também se separam: as do grupo das horas e as do grupo dos
+        // quilómetros. Uma avaria de camião não entra no MTBF das máquinas.
+        int falhasHoras = 0;
+        int falhasKm = 0;
+        for (Object[] linha : failures.countByAssetBetween(orgId, start, end)) {
+            String id = (String) linha[0];
+            int n = ((Number) linha[1]).intValue();
+            if (ativosPorHoras.contains(id)) {
+                falhasHoras += n;
+            } else if (ativosPorKm.contains(id)) {
+                falhasKm += n;
             }
         }
 
@@ -126,17 +176,32 @@ public class KpiService {
                 ? Math.min(100.0, round((double) executedOrders / plannedOrders * 100))
                 : null;
 
-        // Sem horas de operação (nenhum contador a andar) o MTBF não é zero, é desconhecido.
-        Double mtbf = failureCount > 0 && operatingHours > 0 ? round(operatingHours / failureCount) : null;
+        // Sem contador a andar, o MTBF não é zero: é desconhecido.
+        Double mtbf = falhasHoras > 0 && operatingHours > 0
+                ? round(operatingHours / falhasHoras) : null;
+        Double mtbfKm = falhasKm > 0 && operatingKm > 0
+                ? round(operatingKm / falhasKm) : null;
         Double mttr = repairCount > 0 ? round(totalRepairHours / repairCount) : null;
 
         List<Metric> metrics = new ArrayList<>();
         metrics.add(new Metric("availability", "Disponibilidade", availability, "%", 90.0, "MIN",
                 availability != null && availability >= 90,
                 "(Horas Disponíveis / Horas Planeadas) × 100"));
-        metrics.add(new Metric("mtbf", "MTBF", mtbf, "h", 500.0, "MIN",
-                mtbf != null && mtbf >= 500,
-                "Horas de Operação / Número de Falhas"));
+        // Só se mostra o MTBF da unidade que o âmbito tem. Numa frota mista
+        // aparecem os dois, cada um com a sua meta; numa retroescavadora
+        // aparece só o das horas, e num ligeiro só o dos quilómetros.
+        boolean temHoras = !ativosPorHoras.isEmpty();
+        boolean temKm = !ativosPorKm.isEmpty();
+        if (temHoras || !temKm) {
+            metrics.add(new Metric("mtbf", "MTBF (equipamento com horímetro)", mtbf, "h", 500.0, "MIN",
+                    mtbf != null && mtbf >= 500,
+                    "Horas de Operação / Número de Falhas"));
+        }
+        if (temKm) {
+            metrics.add(new Metric("mtbf_km", "MTBF (viaturas, por quilómetros)", mtbfKm, "km",
+                    20_000.0, "MIN", mtbfKm != null && mtbfKm >= 20_000,
+                    "Quilómetros Percorridos / Número de Falhas"));
+        }
         metrics.add(new Metric("mttr", "MTTR", mttr, "h", 4.0, "MAX",
                 mttr != null && mttr <= 4,
                 "Tempo Total de Reparação / Número de Reparações"));
@@ -145,7 +210,8 @@ public class KpiService {
                 "(Ordens Executadas / Ordens Planeadas) × 100"));
 
         return new KpiReport(scope, scopeId, scopeName, start, end,
-                round(operatingHours), failureCount, repairCount, round(totalRepairHours),
+                round(operatingHours), round(operatingKm),
+                failureCount, repairCount, round(totalRepairHours),
                 round(plannedHours), round(downtimeHours), plannedOrders, executedOrders, metrics);
     }
 

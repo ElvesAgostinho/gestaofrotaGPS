@@ -25,4 +25,20 @@ public interface MeterReadingRepository extends JpaRepository<MeterReading, Stri
               and r.readingAt >= :from and r.readingAt < :to
             """)
     BigDecimal operatingUnitsForAsset(String assetId, Instant from, Instant to);
+
+    /**
+     * O mesmo para toda a empresa, mas <b>com a unidade do contador</b>.
+     *
+     * <p>Sem a unidade, somar o contador de um camião com o de uma máquina dá
+     * um número que não é horas nem quilómetros — e é com ele que o MTBF sai
+     * errado. Devolve, por ativo: id, tipo de contador e unidades do período.
+     */
+    @Query("""
+            select r.meter.asset.id, r.meter.kind, max(r.value) - min(r.value)
+            from MeterReading r
+            where r.meter.asset.organization.id = :orgId and r.meter.primary = true
+              and r.readingAt >= :from and r.readingAt < :to
+            group by r.meter.asset.id, r.meter.kind
+            """)
+    List<Object[]> operatingUnitsByAsset(String orgId, Instant from, Instant to);
 }

@@ -359,7 +359,7 @@ export function AssetDetailPage() {
           <InspecoesTab assetId={id} />
         </Tabs.Panel>
         <Tabs.Panel value="pontos" pt="md">
-          <PontosDeServico tipo={asset.assetTypeName} assetId={id} />
+          <PontosDeServico tipo={asset.assetTypeName} assetId={id} familia={asset.family} />
         </Tabs.Panel>
 
         <Tabs.Panel value="preditiva" pt="md">

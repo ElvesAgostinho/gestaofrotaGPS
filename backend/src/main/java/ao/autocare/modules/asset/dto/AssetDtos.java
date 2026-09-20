@@ -164,6 +164,8 @@ public final class AssetDtos {
             String name,
             String assetTypeId,
             String assetTypeName,
+            /** A família do catálogo: RETROESCAVADORA, TRUCK_HEAVY, LIGHT_VEHICLE ou GENERATOR. */
+            String family,
             String locationId,
             String locationName,
             String responsibleUserId,
@@ -205,7 +207,7 @@ public final class AssetDtos {
          * vez de a zero: zero seria um valor, e um valor errado.
          */
         public AssetView withoutMoney() {
-            return new AssetView(id, tag, name, assetTypeId, assetTypeName, locationId,
+            return new AssetView(id, tag, name, assetTypeId, assetTypeName, family, locationId,
                     locationName, responsibleUserId, responsibleLabel, manufacturer, model,
                     serialNumber, modelYear, plate, acquisitionDate, null, currency, photoUrl,
                     objective, notes, status, archived, createdAt, primaryPhotoUrl, latitude,
@@ -223,6 +225,10 @@ public final class AssetDtos {
             return new AssetView(
                     a.getId(), a.getTag(), a.getName(),
                     a.getAssetType().getId(), a.getAssetType().getName(),
+                    ao.autocare.modules.plan.PlanCatalog.codigoPara(
+                            a.getAssetType().getCategory() != null
+                                    ? a.getAssetType().getCategory().name() : null,
+                            a.getAssetType().getName()),
                     a.getLocation() != null ? a.getLocation().getId() : null,
                     a.getLocation() != null ? a.getLocation().getName() : null,
                     a.getResponsibleUser() != null ? a.getResponsibleUser().getId() : null,

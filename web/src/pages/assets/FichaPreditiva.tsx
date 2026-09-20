@@ -17,6 +17,7 @@ import {
   IconDroplet,
   IconGauge,
   IconInfoCircle,
+  IconRoad,
   IconTemperature,
   IconTool,
   IconWaveSine,
@@ -75,6 +76,7 @@ const SIMBOLO: Record<string, typeof IconWaveSine> = {
 const SIMBOLO_KPI: Record<string, typeof IconGauge> = {
   availability: IconGauge,
   mtbf: IconClockHour4,
+  mtbf_km: IconRoad,
   mttr: IconTool,
   plan_compliance: IconClipboardList,
 };

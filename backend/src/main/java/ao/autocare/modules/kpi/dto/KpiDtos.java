@@ -23,6 +23,7 @@ public final class KpiDtos {
             Instant from,
             Instant to,
             double operatingHours,
+            double operatingKm,
             int failures,
             int repairs,
             double totalRepairHours,

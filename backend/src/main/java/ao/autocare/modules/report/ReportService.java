@@ -485,6 +485,7 @@ public class ReportService {
         csv.row("De", report.from());
         csv.row("Até", report.to());
         csv.row("Horas de operação", java.math.BigDecimal.valueOf(report.operatingHours()));
+        csv.row("Quilómetros percorridos", java.math.BigDecimal.valueOf(report.operatingKm()));
         csv.row("Horas planeadas", java.math.BigDecimal.valueOf(report.plannedHours()));
         csv.row("Horas de paragem", java.math.BigDecimal.valueOf(report.downtimeHours()));
         csv.row("Nº de falhas", report.failures());

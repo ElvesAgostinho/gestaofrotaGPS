@@ -55,11 +55,8 @@ public class DailyInspectionService {
     public static String codigoDe(Asset a) {
         AssetCategory c = a.getAssetType() != null && a.getAssetType().getCategory() != null
                 ? a.getAssetType().getCategory() : AssetCategory.MACHINE;
-        return switch (c) {
-            case VEHICLE -> "TRUCK_HEAVY";
-            case GENERATOR -> "GENERATOR";
-            default -> "RETROESCAVADORA";
-        };
+        String tipo = a.getAssetType() != null ? a.getAssetType().getName() : null;
+        return PlanCatalog.codigoPara(c.name(), tipo);
     }
 
     @Transactional(readOnly = true)

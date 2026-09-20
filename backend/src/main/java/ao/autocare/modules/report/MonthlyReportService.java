@@ -171,7 +171,12 @@ public class MonthlyReportService {
 
         KpiReport kpi = kpis.report(orgId, null, inicio, fim);
         String disponibilidade = metrica(kpi, "availability");
+        // Numa frota só de viaturas o MTBF vem em quilómetros; é esse que se mostra,
+        // com a unidade colada ao número, em vez de um travessão.
         String mtbf = metrica(kpi, "mtbf");
+        if (mtbf == null) {
+            mtbf = metrica(kpi, "mtbf_km");
+        }
         String mttr = metrica(kpi, "mttr");
         String plano = metrica(kpi, "plan_compliance");
         String metaDisp = kpi.metrics().stream().filter(m -> m.key().equals("availability") && m.target() != null)

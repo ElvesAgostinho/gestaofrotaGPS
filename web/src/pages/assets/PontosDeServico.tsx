@@ -606,6 +606,18 @@ const FAMILIAS: Record<string, Familia> = {
 };
 
 /** Escolhe a família a partir do tipo de ativo, que é texto livre do cliente. */
+/** Os códigos do catálogo do servidor, traduzidos para os desenhos daqui. */
+const DO_SERVIDOR: Record<string, string> = {
+  RETROESCAVADORA: 'RETROESCAVADORA',
+  TRUCK_HEAVY: 'CAMIAO',
+  LIGHT_VEHICLE: 'LIGEIRO',
+  GENERATOR: 'GERADOR',
+};
+
+/**
+ * A família pelo nome do tipo — o caminho antigo, que fica como recurso para
+ * quando o servidor não diz qual é (fichas antigas em cache, por exemplo).
+ */
 function familiaDe(tipo?: string | null): Familia {
   const t = (tipo ?? '').toLowerCase();
   if (/(gerador|generator|grupo eletrog|electrog)/.test(t)) return FAMILIAS.GERADOR;
@@ -623,8 +635,17 @@ function familiaDe(tipo?: string | null): Familia {
 
 // ==== Componente ===========================================================
 
-export function PontosDeServico({ tipo, assetId }: { tipo?: string | null; assetId: string }) {
-  const familia = familiaDe(tipo);
+export function PontosDeServico({
+  tipo,
+  assetId,
+  familia: codigo,
+}: {
+  tipo?: string | null;
+  assetId: string;
+  /** A família que o servidor atribuiu ao ativo; o nome do tipo é o recurso. */
+  familia?: string | null;
+}) {
+  const familia = FAMILIAS[DO_SERVIDOR[codigo ?? ''] ?? ''] ?? familiaDe(tipo);
   const [activo, setActivo] = useState<number | null>(null);
   const ponto = familia.pontos.find((p) => p.numero === activo) ?? null;
 

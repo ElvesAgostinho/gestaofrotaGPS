@@ -158,19 +158,24 @@ public class PredictiveService {
     @Transactional
     public List<ProgramView> applyStandardSet(String orgId, String userId, String assetId) {
         Asset asset = requireAsset(orgId, assetId);
-        for (PredictiveTechnique technique : STANDARD_SET) {
-            if (programs.findByAssetIdAndTechnique(assetId, technique).isPresent()) {
-                continue;
+
+        // O conjunto certo não é o mesmo para tudo: num gerador o que interessa
+        // é o ensaio de isolamento do alternador, e num camião o alinhamento —
+        // medir vibração no painel elétrico de um gerador não diz nada a
+        // ninguém. A família do ativo é que decide.
+        var doCatalogo = ao.autocare.modules.plan.PlanCatalog.predictivePrograms(familiaDe(asset));
+        if (doCatalogo.isEmpty()) {
+            for (PredictiveTechnique technique : STANDARD_SET) {
+                criarSeFaltar(orgId, asset, technique, technique.defaultFrequencyMonths(),
+                        standardComponents(technique), standardGoal(technique));
             }
-            PredictiveProgram p = new PredictiveProgram();
-            p.setOrganization(organizations.getReferenceById(orgId));
-            p.setAsset(asset);
-            p.setTechnique(technique);
-            p.setFrequencyMonths(technique.defaultFrequencyMonths());
-            p.setComponents(standardComponents(technique));
-            p.setGoal(standardGoal(technique));
-            reschedule(p);
-            programs.save(p);
+        } else {
+            for (var req : doCatalogo) {
+                criarSeFaltar(orgId, asset, req.technique(),
+                        req.frequencyMonths() != null
+                                ? req.frequencyMonths() : req.technique().defaultFrequencyMonths(),
+                        req.components(), req.goal());
+            }
         }
         audit.record(orgId, userId, "predictive.standard_set", "Asset", assetId, asset.getTag());
         return listForAsset(orgId, assetId);
@@ -310,6 +315,31 @@ public class PredictiveService {
     }
 
     /** Próxima medição = última (ou agora, se nunca houve) + periodicidade. */
+    /** A família do catálogo deste ativo — a mesma regra que a inspeção diária usa. */
+    private static String familiaDe(Asset a) {
+        String categoria = a.getAssetType() != null && a.getAssetType().getCategory() != null
+                ? a.getAssetType().getCategory().name() : null;
+        String tipo = a.getAssetType() != null ? a.getAssetType().getName() : null;
+        return ao.autocare.modules.plan.PlanCatalog.codigoPara(categoria, tipo);
+    }
+
+    /** Cria o programa se o ativo ainda não tiver essa técnica. */
+    private void criarSeFaltar(String orgId, Asset asset, PredictiveTechnique technique,
+            int frequencyMonths, String components, String goal) {
+        if (programs.findByAssetIdAndTechnique(asset.getId(), technique).isPresent()) {
+            return;
+        }
+        PredictiveProgram p = new PredictiveProgram();
+        p.setOrganization(organizations.getReferenceById(orgId));
+        p.setAsset(asset);
+        p.setTechnique(technique);
+        p.setFrequencyMonths(frequencyMonths);
+        p.setComponents(components);
+        p.setGoal(goal);
+        reschedule(p);
+        programs.save(p);
+    }
+
     private void reschedule(PredictiveProgram p) {
         Instant base = p.getLastDoneAt() != null ? p.getLastDoneAt() : Instant.now();
         p.setNextDueAt(base.plus(p.getFrequencyMonths() * 30L, ChronoUnit.DAYS));

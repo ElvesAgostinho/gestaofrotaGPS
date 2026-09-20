@@ -83,6 +83,8 @@ export interface AssetView {
   name: string;
   assetTypeId: string;
   assetTypeName: string;
+  /** A família decidida pelo servidor: RETROESCAVADORA, TRUCK_HEAVY, LIGHT_VEHICLE, GENERATOR. */
+  family?: string | null;
   locationId: string | null;
   locationName: string | null;
   responsibleUserId: string | null;
