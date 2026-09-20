@@ -45,12 +45,14 @@ public class FleetController {
 
     private final DriverService driversService;
     private final RouteService routesService;
+    private final RouteLiveService routesLiveService;
     private final OrgContext orgContext;
 
     public FleetController(
-            DriverService driversService, RouteService routesService, OrgContext orgContext) {
+            DriverService driversService, RouteService routesService, OrgContext orgContext, RouteLiveService routesLiveService) {
         this.driversService = driversService;
         this.routesService = routesService;
+        this.routesLiveService = routesLiveService;
         this.orgContext = orgContext;
     }
 
@@ -200,6 +202,20 @@ public class FleetController {
             @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
         routesService.unassign(org(p), p.id(), id);
         return java.util.Map.of("message", "Atribuição retirada.");
+    }
+
+    @Operation(summary = "Quem vai a caminho agora: progresso, hora prevista de chegada e desvio")
+    @GetMapping("/api/v1/routes/live")
+    public java.util.List<ao.autocare.modules.fleet.dto.FleetDtos.RouteLiveView> routesLive(
+            @AuthenticationPrincipal AuthPrincipal p) {
+        return routesLiveService.live(org(p));
+    }
+
+    @Operation(summary = "Viaturas a caminho nesta rota")
+    @GetMapping("/api/v1/routes/{id}/live")
+    public java.util.List<ao.autocare.modules.fleet.dto.FleetDtos.RouteLiveView> routeLive(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
+        return routesLiveService.liveForRoute(org(p), id);
     }
 
     @Operation(summary = "Previsto contra o andado: traçado da rota e percurso real das últimas viagens")

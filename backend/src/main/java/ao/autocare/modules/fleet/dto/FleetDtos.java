@@ -195,6 +195,8 @@ public final class FleetDtos {
             Integer expectedDurationMinutes,
             BigDecimal expectedFuelLiters,
             BigDecimal tolerancePercent,
+            /** Largura do corredor, em metros; fora dele avisa-se quem gere. */
+            Integer corridorMeters,
             Boolean active,
             @Size(max = 2000) String notes,
             /** MANUAL, ENGINE ou STRAIGHT. Ausente mantém o que lá estava. */
@@ -235,6 +237,29 @@ public final class FleetDtos {
                     a.getPlannedFor(), a.getNotes(), a.getCreatedAt());
         }
     }
+
+    /**
+     * Uma viatura a fazer uma rota agora: onde vai, quanto falta, a que horas
+     * chega e se está fora do corredor.
+     */
+    public record RouteLiveView(
+            String routeId, String routeName, String assetId, String assetTag, String assetName,
+            String driverName,
+            java.time.Instant positionAt, BigDecimal latitude, BigDecimal longitude,
+            BigDecimal speedKph,
+            /** 0..1 do percurso já feito. */
+            BigDecimal progress,
+            BigDecimal doneKm, BigDecimal remainingKm,
+            /** Metros a que está da estrada prevista. */
+            Integer offRouteMeters,
+            boolean offRoute,
+            Integer corridorMeters,
+            /** Hora prevista de chegada; nula quando não há velocidade nem duração prevista. */
+            java.time.Instant eta,
+            /** Minutos de atraso sobre o previsto; negativo = adiantado. */
+            Integer delayMinutes,
+            /** Como se calculou o ETA: GPS (velocidade atual), PLANO (duração prevista) ou nulo. */
+            String etaSource) {}
 
     /**
      * O previsto contra o andado: o traçado da rota, o percurso real de uma
@@ -303,6 +328,7 @@ public final class FleetDtos {
             Integer expectedDurationMinutes,
             BigDecimal expectedFuelLiters,
             BigDecimal tolerancePercent,
+            Integer corridorMeters,
             boolean active,
             String notes,
             String distanceSource,
@@ -325,7 +351,7 @@ public final class FleetDtos {
                             ? r.getDestinationLocation().getId() : null,
                     r.originName(), r.destinationName(),
                     r.getExpectedDistanceKm(), r.getExpectedDurationMinutes(),
-                    r.getExpectedFuelLiters(), r.getTolerancePercent(),
+                    r.getExpectedFuelLiters(), r.getTolerancePercent(), r.getCorridorMeters(),
                     r.isActive(), r.getNotes(),
                     r.getDistanceSource(), r.getPathGeojson(), waypoints, assignments,
                     r.getVersion());

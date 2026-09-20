@@ -88,6 +88,13 @@ public class Route extends VersionedEntity {
     private String distanceSource = "MANUAL";
 
     /** O traçado devolvido pelo motor, em GeoJSON, para o mapa desenhar. */
+    /**
+     * Largura do corredor da rota, em metros: fora dele, avisa-se quem gere.
+     * Por omissão 500 m — obras e erro de GPS não são desvios.
+     */
+    @Column(name = "corridor_meters")
+    private Integer corridorMeters = 500;
+
     @Column(name = "path_geojson", columnDefinition = "TEXT")
     private String pathGeojson;
 

@@ -298,6 +298,14 @@ public class RouteService {
             }
             r.setTolerancePercent(req.tolerancePercent());
         }
+        if (req.corridorMeters() != null) {
+            if (req.corridorMeters() < 50 || req.corridorMeters() > 20_000) {
+                throw ApiException.badRequest(
+                        "O corredor da rota tem de estar entre 50 m e 20 km. Abaixo de 50 m o erro do "
+                                + "GPS sozinho dispararia avisos.");
+            }
+            r.setCorridorMeters(req.corridorMeters());
+        }
         if (req.active() != null) {
             r.setActive(req.active());
         }

@@ -15,6 +15,17 @@ interface Waypoint {
   label: string;
 }
 
+/** Uma viatura a caminho agora, para a coluna «A caminho». */
+interface AoVivo {
+  routeId: string;
+  assetTag: string;
+  progress: number;
+  remainingKm: number;
+  offRoute: boolean;
+  eta?: string | null;
+  delayMinutes?: number | null;
+}
+
 interface Atribuicao {
   id: string;
   assetTag: string;
@@ -55,6 +66,12 @@ export function RoutesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['routes'],
     queryFn: () => api<Route[]>('/routes'),
+  });
+  // Quem vai a caminho: renova sozinho, como um quadro de partidas.
+  const { data: aovivo } = useQuery({
+    queryKey: ['routes', 'live'],
+    queryFn: () => api<AoVivo[]>('/routes/live'),
+    refetchInterval: 30_000,
   });
 
   const [procura, setProcura] = useState('');
@@ -132,6 +149,35 @@ export function RoutesPage() {
                   )}
                 </>
               ),
+            },
+            {
+              id: 'acaminho',
+              titulo: 'A caminho',
+              largura: 210,
+              valor: (r) => (aovivo ?? []).filter((v) => v.routeId === r.id).length,
+              render: (r) => {
+                const lista = (aovivo ?? []).filter((v) => v.routeId === r.id);
+                if (lista.length === 0) {
+                  return (
+                    <Text size="xs" c="dimmed">
+                      ninguém agora
+                    </Text>
+                  );
+                }
+                return (
+                  <>
+                    {lista.map((v) => (
+                      <Text key={v.assetTag} size="xs" c={v.offRoute ? 'red' : undefined} fw={v.offRoute ? 700 : 400}>
+                        {v.assetTag} · {Math.round(v.progress * 100)} %
+                        {v.eta
+                          ? ` · chega ${new Date(v.eta).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`
+                          : ''}
+                        {v.offRoute ? ' · FORA DA ROTA' : ''}
+                      </Text>
+                    ))}
+                  </>
+                );
+              },
             },
             {
               id: 'viaturas',

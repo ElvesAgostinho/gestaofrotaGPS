@@ -12,7 +12,7 @@ import {
   TextInput,
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
-import { IconAlertTriangle, IconTruck } from '@tabler/icons-react';
+import { IconAlertTriangle, IconRoute, IconTruck } from '@tabler/icons-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { api } from '../../api/client';
@@ -41,9 +41,31 @@ export interface RotaDetalhe {
   expectedDurationMinutes?: number | null;
   expectedFuelLiters?: number | null;
   tolerancePercent: number;
+  corridorMeters?: number | null;
   pathGeojson?: string | null;
   waypoints: { id: string; label: string; latitude?: number | null; longitude?: number | null }[];
   assignments?: Atribuicao[];
+}
+
+/** Uma viatura a caminho agora nesta rota. */
+interface AoVivo {
+  assetId: string;
+  assetTag: string;
+  assetName: string;
+  driverName?: string | null;
+  positionAt: string;
+  latitude: number;
+  longitude: number;
+  speedKph?: number | null;
+  progress: number;
+  doneKm: number;
+  remainingKm: number;
+  offRouteMeters?: number | null;
+  offRoute: boolean;
+  corridorMeters?: number | null;
+  eta?: string | null;
+  delayMinutes?: number | null;
+  etaSource?: string | null;
 }
 
 interface Comparacao {
@@ -83,6 +105,12 @@ export function FichaRota({ rotaId, fechar }: { rotaId: string; fechar: () => vo
   const { data: comparacoes } = useQuery({
     queryKey: ['routes', rotaId, 'comparison'],
     queryFn: () => api<Comparacao[]>(`/routes/${rotaId}/comparison?limit=5`),
+  });
+  // Ao vivo: quem vai a caminho, onde vai e a que horas chega. Renova sozinho.
+  const { data: aovivo } = useQuery({
+    queryKey: ['routes', rotaId, 'live'],
+    queryFn: () => api<AoVivo[]>(`/routes/${rotaId}/live`),
+    refetchInterval: 30_000,
   });
   const { data: ativos } = useQuery({
     queryKey: ['assets', 'rotas'],
@@ -161,9 +189,74 @@ export function FichaRota({ rotaId, fechar }: { rotaId: string; fechar: () => vo
             <Badge variant="outline" color="gray">
               tolerância {fmtNumber(rota.tolerancePercent, 0)} %
             </Badge>
+            {rota.corridorMeters != null && (
+              <Badge variant="outline" color="gray">
+                corredor {rota.corridorMeters} m
+              </Badge>
+            )}
           </Group>
 
           <MapaPercurso pathGeojson={rota.pathGeojson} pontos={pontos} reais={reais} altura={330} />
+
+          {(aovivo ?? []).length > 0 && (
+            <Stack gap={6}>
+              <Text fw={700} size="sm">
+                A caminho agora
+              </Text>
+              {(aovivo ?? []).map((v) => (
+                <Alert
+                  key={v.assetId}
+                  color={v.offRoute ? 'red' : 'blue'}
+                  variant="light"
+                  icon={v.offRoute ? <IconAlertTriangle size={18} /> : <IconRoute size={18} />}
+                >
+                  <Group justify="space-between" wrap="wrap" gap="xs">
+                    <div>
+                      <Text size="sm" fw={700}>
+                        {v.assetTag} · {Math.round(v.progress * 100)} % do percurso
+                        {v.driverName ? ` · ${v.driverName}` : ''}
+                      </Text>
+                      <Text size="xs">
+                        {fmtNumber(v.doneKm, 0)} km feitos · faltam {fmtNumber(v.remainingKm, 0)} km
+                        {v.speedKph != null ? ` · a ${fmtNumber(v.speedKph, 0)} km/h` : ''}
+                        {' · posição de '}
+                        {new Date(v.positionAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                      {v.offRoute && (
+                        <Text size="xs" fw={700}>
+                          Fora do corredor: a {fmtNumber((v.offRouteMeters ?? 0) / 1000, 1)} km da rota prevista
+                          {v.corridorMeters ? ` (corredor de ${v.corridorMeters} m)` : ''}.
+                        </Text>
+                      )}
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      {v.eta ? (
+                        <>
+                          <Text size="sm" fw={700}>
+                            Chega às{' '}
+                            {new Date(v.eta).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                          </Text>
+                          <Text size="xs" c={(v.delayMinutes ?? 0) > 10 ? 'red' : 'dimmed'}>
+                            {v.delayMinutes == null
+                              ? v.etaSource === 'PLANO'
+                                ? 'ao ritmo previsto da rota'
+                                : ''
+                              : v.delayMinutes > 0
+                                ? `${v.delayMinutes} min de atraso`
+                                : `${-v.delayMinutes} min adiantado`}
+                          </Text>
+                        </>
+                      ) : (
+                        <Text size="xs" c="dimmed">
+                          sem hora prevista (parada e sem duração na rota)
+                        </Text>
+                      )}
+                    </div>
+                  </Group>
+                </Alert>
+              ))}
+            </Stack>
+          )}
 
           {!rota.pathGeojson && (
             <Alert color="yellow" variant="light" icon={<IconAlertTriangle size={16} />}>

@@ -100,6 +100,7 @@ public class TelemetryService {
     private final TelemetryStream stream;
     private final SpeedWatch speedWatch;
     private final CommsWatch commsWatch;
+    private final ao.autocare.modules.fleet.RouteWatch routeWatch;
     private final AuditService audit;
     private final ao.autocare.modules.integration.TraccarAccounts traccarAccounts;
 
@@ -119,7 +120,8 @@ public class TelemetryService {
             AuditService audit,
             ao.autocare.modules.fuel.FuelSensorWatch fuelSensor,
             @org.springframework.context.annotation.Lazy ao.autocare.modules.meter.MeterService meterService,
-            ao.autocare.modules.integration.TraccarAccounts traccarAccounts) {
+            ao.autocare.modules.integration.TraccarAccounts traccarAccounts,
+            ao.autocare.modules.fleet.RouteWatch routeWatch) {
         this.meterService = meterService;
         this.fuelSensor = fuelSensor;
         this.devices = devices;
@@ -134,6 +136,7 @@ public class TelemetryService {
         this.stream = stream;
         this.speedWatch = speedWatch;
         this.commsWatch = commsWatch;
+        this.routeWatch = routeWatch;
         this.audit = audit;
         this.traccarAccounts = traccarAccounts;
     }
@@ -318,6 +321,8 @@ public class TelemetryService {
         GeofenceService.Evaluation fence = geofences.evaluate(asset, p);
         // Reaproveita as zonas já calculadas para aplicar o limite da zona.
         speedWatch.check(asset, device, p, fence.inside());
+        // Saiu do caminho combinado? O aviso vale no momento, não no relatório.
+        routeWatch.check(asset, p);
         commsWatch.deviceReported(device, recordedAt);
         int fenceEvents = fence.events().size();
 
