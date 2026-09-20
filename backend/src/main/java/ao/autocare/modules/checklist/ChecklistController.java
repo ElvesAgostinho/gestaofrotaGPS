@@ -36,14 +36,23 @@ public class ChecklistController {
     private final ChecklistTemplateService templates;
     private final ChecklistExecutionService executionsService;
     private final OrgContext orgContext;
+    private final DailyInspectionService daily;
+    private final OperatorSheetPdfService operatorSheet;
+    private final ao.autocare.modules.org.DocumentSealService seals;
 
     public ChecklistController(
             ChecklistTemplateService templates,
             ChecklistExecutionService executionsService,
-            OrgContext orgContext) {
+            OrgContext orgContext,
+            DailyInspectionService daily,
+            OperatorSheetPdfService operatorSheet,
+            ao.autocare.modules.org.DocumentSealService seals) {
         this.templates = templates;
         this.executionsService = executionsService;
         this.orgContext = orgContext;
+        this.daily = daily;
+        this.operatorSheet = operatorSheet;
+        this.seals = seals;
     }
 
     // ---- Modelos ------------------------------------------------------
@@ -100,6 +109,37 @@ public class ChecklistController {
         return executionsService.history(
                 orgContext.requireOrganizationId(principal), assetId,
                 PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200)));
+    }
+
+    @Operation(summary = "A inspeção diária deste equipamento: o modelo da empresa ou o sugerido para a família")
+    @GetMapping("/api/v1/assets/{assetId}/daily-inspection")
+    public DailyInspectionService.Ficha dailyInspection(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String assetId) {
+        return daily.forAsset(orgContext.requireOrganizationId(principal), assetId);
+    }
+
+    @Operation(summary = "Criar na empresa a inspeção diária sugerida para esta família")
+    @RequireRole(MembershipRole.MANAGER)
+    @PostMapping("/api/v1/assets/{assetId}/daily-inspection")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TemplateView adoptDailyInspection(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String assetId) {
+        return daily.adopt(orgContext.requireOrganizationId(principal), principal.id(), assetId);
+    }
+
+    @Operation(summary = "Ficha do posto em PDF: inspeção diária, lubrificação e materiais, para pendurar na cabina")
+    @GetMapping(value = "/api/v1/assets/{assetId}/operator-sheet.pdf",
+            produces = org.springframework.http.MediaType.APPLICATION_PDF_VALUE)
+    public org.springframework.http.ResponseEntity<byte[]> operatorSheet(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String assetId) {
+        String orgId = orgContext.requireOrganizationId(principal);
+        byte[] pdf = seals.emitir(orgId, principal.id(), "OPERATOR_SHEET", assetId, assetId,
+                selo -> operatorSheet.render(orgId, assetId, selo));
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"ficha-do-posto.pdf\"")
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 
     @Operation(summary = "Registar uma inspeção")

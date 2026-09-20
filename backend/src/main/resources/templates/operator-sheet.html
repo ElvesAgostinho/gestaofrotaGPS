@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="'Ficha do posto — ' + ${f.tag}">Ficha do posto</title>
+  <style>
+    /*
+      A folha que fica na cabina: barras pretas com título em amarelo, tabela
+      de traço grosso, tudo legível a um metro de distância e com espaço para
+      o operador assinar à mão. É o desenho do manual do fabricante, com o
+      timbre da empresa.
+    */
+    @page { size: A4; margin: 12mm 11mm; }
+    body { font-family: sans-serif; font-size: 9.5pt; color: #141416; }
+    h1 { font-size: 16pt; margin: 6px 0 2px; }
+    .muted { color: #71717a; }
+    .barra { background: #141416; color: #FFC62F; font-weight: bold; font-size: 10.5pt;
+             text-transform: uppercase; letter-spacing: 0.5pt; padding: 5px 9px; margin-top: 12px; }
+    .barra .direita { float: right; color: #fff; font-weight: normal; text-transform: none;
+                      letter-spacing: 0; font-size: 8.5pt; }
+    .caixa { border: 1.5px solid #141416; border-top: none; padding: 7px 9px; }
+    table.itens { width: 100%; border-collapse: collapse; }
+    table.itens th { background: #f4f4f5; text-align: left; font-size: 8pt; text-transform: uppercase;
+                     letter-spacing: 0.4pt; border-bottom: 1.5px solid #141416; padding: 4px 6px; }
+    table.itens td { border-bottom: 1px solid #d4d4d8; padding: 4px 6px; }
+    table.itens td.verif { width: 22%; }
+    table.itens td.ok { width: 12%; text-align: center; }
+    .quadrado { display: inline-block; width: 11px; height: 11px; border: 1.2px solid #141416; }
+    .critico { color: #b91c1c; font-weight: bold; font-size: 7.5pt; }
+    .grid td { padding: 2px 8px 2px 0; vertical-align: top; }
+    .grid .lbl { color: #71717a; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; }
+    ul { margin: 3px 0 3px 15px; padding: 0; }
+    li { margin: 1.5px 0; }
+    .assinaturas { margin-top: 14px; }
+    .assinaturas td { padding-top: 22px; border-top: 1px solid #141416; font-size: 8pt; color: #52525b;
+                      width: 33%; padding-right: 14px; }
+    .nota { font-size: 8pt; color: #52525b; margin-top: 4px; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${f.tag}, 'Ficha do posto / Operator sheet')}"></div>
+
+<h1 th:text="${f.name}">Equipamento</h1>
+<table class="grid">
+  <tr>
+    <td class="lbl">Equipamento</td><td th:text="${f.tag}"></td>
+    <td class="lbl">Tipo</td><td th:text="${f.type} ?: '—'"></td>
+    <td class="lbl">Matrícula</td><td th:text="${f.plate} ?: '—'"></td>
+    <td class="lbl">Contador</td><td th:text="${f.meter} ?: '—'"></td>
+    <td class="lbl">Local</td><td th:text="${f.location} ?: '—'"></td>
+  </tr>
+</table>
+
+<!-- ====== Inspeção diária ====== -->
+<div class="barra">
+  <span th:text="${#strings.toUpperCase(f.inspectionTitle)}">Inspeção diária</span>
+  <span class="direita" th:if="${f.minutes != null}" th:text="'Tempo estimado: ' + ${f.minutes} + ' minutos'"></span>
+</div>
+<div class="caixa">
+  <div class="muted" th:if="${f.inspectionNote}" th:text="${f.inspectionNote}" style="font-size:8.5pt; margin-bottom:5px;"></div>
+  <p class="muted" th:if="${#lists.isEmpty(f.inspection)}">
+    Esta família ainda não tem inspeção diária definida. Crie-a no sistema, em Equipamento → Inspeções.
+  </p>
+  <table class="itens" th:unless="${#lists.isEmpty(f.inspection)}">
+    <thead>
+      <tr><th>Item</th><th>Verificação</th><th style="text-align:center;">Conforme</th><th style="text-align:center;">Não conforme</th></tr>
+    </thead>
+    <tbody>
+      <tr th:each="i : ${f.inspection}">
+        <td>
+          <span th:text="${i.texto}"></span>
+          <span class="critico" th:if="${i.critico}"> · CRÍTICO</span>
+        </td>
+        <td class="verif" th:text="${i.verificacao}"></td>
+        <td class="ok"><span class="quadrado"></span></td>
+        <td class="ok"><span class="quadrado"></span></td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="nota">
+    Qualquer ponto <b>crítico</b> não conforme impede a máquina de sair até ser resolvido.
+    Comunique a avaria pelo telemóvel (app IMBONDEIRO OS, «Comunicar avaria») — a ordem abre sozinha.
+  </div>
+</div>
+
+<!-- ====== Lubrificação e manutenção do plano ====== -->
+<div th:each="b : ${f.lubrication}">
+  <div class="barra" th:text="${#strings.toUpperCase(b.titulo)}">A cada 50 horas</div>
+  <div class="caixa">
+    <ul>
+      <li th:each="a : ${b.accoes}" th:text="${a}"></li>
+    </ul>
+  </div>
+</div>
+<p class="muted" th:if="${#lists.isEmpty(f.lubrication)}" style="margin-top:10px;">
+  Este equipamento ainda não tem plano de manutenção atribuído. Atribua um em Planos e intervalos —
+  ou aplique o do fabricante a partir do catálogo.
+</p>
+
+<!-- ====== Ferramentas e materiais ====== -->
+<div th:if="${!#lists.isEmpty(f.lubrication) and !#lists.isEmpty(f.lubrication[0].materiais)}">
+  <div class="barra">Ferramentas e materiais</div>
+  <div class="caixa">
+    <ul>
+      <li th:each="m : ${f.lubrication[0].materiais}" th:text="${m}"></li>
+      <li>EPIs: luvas, óculos e botas de biqueira de aço</li>
+    </ul>
+  </div>
+</div>
+
+<table class="assinaturas">
+  <tr>
+    <td>Operador — nome e assinatura</td>
+    <td>Data e hora</td>
+    <td>Responsável de manutenção</td>
+  </tr>
+</table>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+</body>
+</html>

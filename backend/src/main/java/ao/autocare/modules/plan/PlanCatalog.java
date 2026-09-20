@@ -504,7 +504,7 @@ public final class PlanCatalog {
                             item("Documentos a bordo e extintor", VERIFY, true),
                             item("Fixação da carga", INSPECT, true)));
             case "GENERATOR" -> new SaveTemplateRequest(
-                    "Inspecao diaria — gerador",
+                    "Inspeção diária — gerador",
                     assetTypeId,
                     "A fazer todos os dias, mesmo quando o gerador não trabalhou: "
                             + "o dia em que faltar a energia não é dia de descobrir problemas.",
