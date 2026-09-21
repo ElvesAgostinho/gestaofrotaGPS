@@ -374,7 +374,8 @@ public class AssetService {
                 ao.autocare.modules.plan.PlanCatalog.codigoPara(
                         a.getAssetType().getCategory() != null
                                 ? a.getAssetType().getCategory().name() : null,
-                        a.getAssetType().getName()),
+                        a.getAssetType().getName(),
+                        a.getManufacturer(), a.getModel(), a.getModelYear()),
                 familia.name(), familia.label(), familia.sortOrder(),
                 a.getLocation() != null ? a.getLocation().getName() : null,
                 a.getStatus().name(), crit, a.isArchived(),

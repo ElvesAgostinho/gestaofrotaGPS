@@ -57,6 +57,26 @@ public final class PlanCatalog {
                         "Revisões por quilometragem: 10.000, 20.000, 40.000 e 60.000 km, "
                                 + "mais o que se faz por tempo e não por quilómetros.",
                         lightVehicleTasks().size()),
+                new Modelo("SEDAN",
+                        "Ligeiro de passageiros (sedan)",
+                        "O carro de serviço: revisões por quilometragem e o que se faz por "
+                                + "tempo — líquido de travões e ar condicionado.",
+                        lightVehicleTasks().size()),
+                new Modelo("SUV",
+                        "Jipe / SUV 4x4",
+                        "Como o ligeiro, mais o que só um 4x4 tem: transferência, "
+                                + "diferenciais, semieixos e proteções inferiores.",
+                        suvTasks().size()),
+                new Modelo("PICKUP",
+                        "Pick-up (cabina simples ou dupla)",
+                        "4x4 de trabalho: além do plano do jipe, a caixa de carga, os "
+                                + "amarradores e a suspensão que anda sempre carregada.",
+                        pickupTasks().size()),
+                new Modelo("VAN",
+                        "Carrinha de passageiros ou mercadorias",
+                        "Leva gente e peso: travões e suspensão traseira mais cedo, portas "
+                                + "laterais e climatização do compartimento.",
+                        vanTasks().size()),
                 new Modelo("BUS",
                         "Autocarro de passageiros",
                         "Revisões por quilometragem com o que evita o que mais mata em "
@@ -87,41 +107,20 @@ public final class PlanCatalog {
      * pergunta.
      */
     public static String codigoPara(String categoria, String tipoNome) {
-        String n = tipoNome == null ? "" : java.text.Normalizer
-                .normalize(tipoNome.toLowerCase(), java.text.Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "");
-        if ("GENERATOR".equals(categoria) || n.contains("gerador") || n.contains("electrog")
-                || n.contains("eletrog") || n.contains("generator")) {
-            return "GENERATOR";
-        }
-        // Um autocarro não é um camião: leva pessoas, e é isso que muda tudo —
-        // da inspeção diária à criticidade. Vem antes dos outros veículos
-        // porque «autocarro de passageiros» também contém «passageiros».
-        // «Ligeiro de passageiros» é um carro, não um autocarro: a palavra
-        // «passageiros» sozinha não chega para decidir.
-        boolean autocarro = n.contains("autocarro") || n.contains("onibus")
-                || n.contains("minibus") || n.matches(".*\bbus\b.*")
-                || (n.contains("passageiro") && !n.contains("ligeir"));
-        if (autocarro) {
-            return "BUS";
-        }
-        if (n.contains("empilhad") || n.contains("forklift")) {
-            return "FORKLIFT";
-        }
-        // Alfaias e implementos não têm motor: são rebocados e é a estrutura,
-        // os engates e os rolamentos que se verificam.
-        if ("IMPLEMENT".equals(categoria) || n.contains("alfaia") || n.contains("implemento")
-                || n.contains("reboque") || n.contains("atrelado") || n.contains("semirreboque")
-                || n.contains("semi-reboque") || n.contains("cisterna")) {
-            return "IMPLEMENT";
-        }
-        if ("VEHICLE".equals(categoria)) {
-            boolean ligeiro = n.contains("ligeir") || n.contains("carro") || n.contains("autom")
-                    || n.contains("pick") || n.contains("jipe") || n.contains("suv")
-                    || n.contains("carrinha") || n.contains("van") || n.contains("sedan");
-            return ligeiro ? "LIGHT_VEHICLE" : "TRUCK_HEAVY";
-        }
-        return "RETROESCAVADORA";
+        return codigoPara(categoria, tipoNome, null, null, null);
+    }
+
+    /**
+     * A família de um ativo, olhando também para a marca, o modelo e o ano.
+     *
+     * <p>Delegada em {@link VehicleTaxonomy}: é lá que vive o conhecimento de
+     * que um Hilux é um pick-up e um Coaster é um autocarro. Aqui fica só a
+     * porta de entrada, que o resto do sistema já conhece.
+     */
+    public static String codigoPara(String categoria, String tipoNome,
+            String marca, String modelo, Integer ano) {
+        return VehicleTaxonomy.classificar(
+                new VehicleTaxonomy.Identificacao(categoria, tipoNome, marca, modelo, ano)).familia();
     }
 
     /** Monta o pedido de criação de um plano a partir do código do modelo. */
@@ -172,6 +171,51 @@ public final class PlanCatalog {
                             + "do fabricante, sobretudo a correia de distribuição.",
                     "Departamento de Manutenção",
                     lightVehicleTasks());
+            case "SEDAN" -> new SavePlanRequest(
+                    "Ligeiro (sedan) — plano preventivo",
+                    assetTypeId,
+                    "Revisões por quilometragem para carro de serviço.",
+                    "Num carro de escritório o que falha primeiro não é o motor: é a bateria "
+                            + "de manhã, o ar condicionado no calor e os travões que ninguém "
+                            + "mediu. O plano trata disso antes de tratar do resto.",
+                    "Ter o carro pronto todos os dias, ao menor custo por quilómetro.",
+                    "Intervalos habituais de frota ligeira. Confirmar com o manual do fabricante.",
+                    "Departamento de Manutenção",
+                    lightVehicleTasks());
+            case "SUV" -> new SavePlanRequest(
+                    "Jipe / SUV 4x4 — plano preventivo",
+                    assetTypeId,
+                    "Revisões por quilometragem para viatura 4x4 de passageiros.",
+                    "Um 4x4 tem três coisas que um carro normal não tem e que ninguém olha "
+                            + "até partirem: caixa de transferência, diferencial dianteiro e "
+                            + "semieixos com foles. Em estrada de terra, é por aí que começa.",
+                    "Manter a viatura disponível e segura dentro e fora do alcatrão.",
+                    "Intervalos habituais de 4x4 com uso misto. Em uso fora-de-estrada "
+                            + "contínuo, encurtar filtros e óleos.",
+                    "Departamento de Manutenção",
+                    suvTasks());
+            case "PICKUP" -> new SavePlanRequest(
+                    "Pick-up — plano preventivo",
+                    assetTypeId,
+                    "Revisões por quilometragem para pick-up de trabalho.",
+                    "Uma pick-up de obra anda sempre carregada e em piso mau: as molas "
+                            + "traseiras, os amortecedores e os apoios da caixa sofrem o que "
+                            + "num carro normal nunca sofreriam.",
+                    "Manter a viatura a trabalhar com carga, sem surpresas na estrada.",
+                    "Intervalos habituais de pick-up 4x4 em obra. Com carga ao máximo "
+                            + "todos os dias, encurtar travagem e suspensão.",
+                    "Departamento de Manutenção",
+                    pickupTasks());
+            case "VAN" -> new SavePlanRequest(
+                    "Carrinha — plano preventivo",
+                    assetTypeId,
+                    "Revisões por quilometragem para carrinha de passageiros ou mercadorias.",
+                    "Uma carrinha trava com peso em cima e abre e fecha portas o dia inteiro. "
+                            + "É aí que se gasta: travões, suspensão traseira e corrediças.",
+                    "Transportar pessoas e carga em segurança, com a viatura disponível.",
+                    "Intervalos habituais de frota ligeira de mercadorias e passageiros.",
+                    "Departamento de Manutenção",
+                    vanTasks());
             case "BUS" -> new SavePlanRequest(
                     "Autocarro — plano preventivo",
                     assetTypeId,
@@ -775,6 +819,102 @@ public final class PlanCatalog {
         return t;
     }
 
+    // ==== Jipe, pick-up e carrinha =========================================
+
+    /**
+     * O plano do 4x4: o do ligeiro, mais a transmissão às quatro rodas.
+     *
+     * <p>Um jipe não é um carro alto. São três sistemas a mais — caixa de
+     * transferência, diferencial dianteiro e semieixos com foles — e é por
+     * esses que começa a avaria quando se anda em terra batida.
+     */
+    private static List<TaskInput> suvTasks() {
+        List<TaskInput> t = new ArrayList<>(lightVehicleTasks());
+
+        t.add(tarefa("TRANSMISSAO", "Tração às quatro rodas",
+                "4x4 — transferência, diferenciais e foles (20.000 km)",
+                "· Verificar o nível da caixa de transferência e dos diferenciais\n"
+                        + "· Inspecionar os foles dos semieixos: rasgados deixam entrar areia\n"
+                        + "· Engatar a tração para confirmar que ainda engata\n\n"
+                        + "Uma tração que só se usa quando é precisa é uma tração que gripa.",
+                90, "Chave de bujões, lanterna, macaco", km(20_000), List.of()));
+
+        t.add(tarefa("MOTOR", "Motor", "Motor — filtro de ar em ambiente de poeira (20.000 km)",
+                "Substituir o filtro de ar. Num 4x4 que anda em terra, o intervalo do "
+                        + "manual europeu não se aplica: o filtro entope a meio.",
+                30, "—", km(20_000), List.of(peca("Filtro de ar", "1", "un"))));
+
+        t.add(tarefa("ESTRUTURA", "Estrutura e proteções",
+                "Proteções inferiores e chassi (40.000 km)",
+                "Verificar cárter, proteções e fixações por baixo, à procura de pancadas, "
+                        + "amolgadelas e parafusos em falta.",
+                60, "Macaco, lanterna", km(40_000), List.of()));
+
+        t.add(tarefa("TRANSMISSAO", "Tração às quatro rodas",
+                "4x4 — óleos da transferência e diferenciais (60.000 km)",
+                "Substituir os óleos da caixa de transferência e dos diferenciais dianteiro "
+                        + "e traseiro.",
+                150, "Chave de bujões, bomba de óleo",
+                km(60_000), List.of(peca("Óleo do diferencial SAE 80W-90", "5", "L"))));
+
+        return t;
+    }
+
+    /** O plano da pick-up: o do jipe, mais a caixa que anda sempre carregada. */
+    private static List<TaskInput> pickupTasks() {
+        List<TaskInput> t = new ArrayList<>(suvTasks());
+
+        t.add(tarefa("SUSPENSAO", "Suspensão e direção",
+                "Molas e amortecedores traseiros com carga (20.000 km)",
+                "Medir a altura da traseira em vazio e comparar com o valor de fábrica: "
+                        + "molas cansadas fazem a viatura roçar e partem os amortecedores. "
+                        + "Procurar folhas partidas e buchas gastas.",
+                60, "Fita métrica, pé de cabra", km(20_000), List.of()));
+
+        t.add(tarefa("ESTRUTURA", "Caixa de carga",
+                "Caixa, amarradores e fixações (20.000 km)",
+                "· Verificar os parafusos de fixação da caixa ao chassi\n"
+                        + "· Inspecionar amarradores, ganchos e o taipal traseiro\n"
+                        + "· Procurar trincas e corrosão no fundo da caixa",
+                45, "Chave dinamométrica, lanterna", km(20_000), List.of()));
+
+        return t;
+    }
+
+    /** O plano da carrinha: trava com peso e abre portas o dia inteiro. */
+    private static List<TaskInput> vanTasks() {
+        List<TaskInput> t = new ArrayList<>(lightVehicleTasks());
+
+        t.add(tarefa("TRAVAGEM", "Sistema de travagem",
+                "Travagem com carga — traseiros e regulador (20.000 km)",
+                "Medir pastilhas e maxilas traseiras e verificar o regulador de travagem "
+                        + "por carga. Uma carrinha carregada trava com o dobro do esforço.",
+                90, "Paquímetro, macaco", km(20_000), List.of()));
+
+        t.add(tarefa("ESTRUTURA", "Portas e compartimento",
+                "Portas laterais, corrediças e piso (20.000 km)",
+                "Lubrificar corrediças e dobradiças, verificar o alinhamento das portas e "
+                        + "o estado do piso do compartimento de carga.",
+                45, "Massa lubrificante, chave de fendas", km(20_000), List.of()));
+
+        t.add(tarefa("SUSPENSAO", "Suspensão e direção",
+                "Suspensão traseira com carga (40.000 km)",
+                "Molas, amortecedores e buchas traseiras: é o que primeiro se gasta numa "
+                        + "viatura que anda sempre cheia.",
+                90, "Macaco, pé de cabra", km(40_000), List.of()));
+
+        t.add(tarefa("CLIMATIZACAO", "Climatização",
+                "Ar condicionado do compartimento de passageiros (12 meses)",
+                "Verificar a carga de gás e higienizar também o evaporador traseiro, quando "
+                        + "existe. Numa carrinha de nove lugares, isto é transporte de pessoas.",
+                90, "Máquina de recuperação de gás",
+                List.of(new TriggerInput(PlanTriggerType.CALENDAR_DAYS, null,
+                        BigDecimal.valueOf(365), BigDecimal.valueOf(15))),
+                List.of()));
+
+        return t;
+    }
+
     // ==== Autocarro ========================================================
 
     /**
@@ -1261,6 +1401,40 @@ public final class PlanCatalog {
                             item("Água do limpa-vidros e estado das escovas", VERIFY, false),
                             item("Triângulo, colete e macaco a bordo", VERIFY, true),
                             item("Documentos da viatura e do condutor", VERIFY, true)));
+            case "SEDAN" -> dailyChecklist("LIGHT_VEHICLE", assetTypeId);
+            case "SUV", "PICKUP" -> new SaveTemplateRequest(
+                    "Inspeção diária — 4x4",
+                    assetTypeId,
+                    "A fazer antes de sair, todos os dias. Em obra e em estrada de terra, "
+                            + "cinco minutos evitam ficar a pé longe de tudo.",
+                    10,
+                    List.of(
+                            item("Nível do óleo do motor", VERIFY, true),
+                            item("Nível do líquido de arrefecimento", VERIFY, true),
+                            item("Pressão e piso dos pneus, incluindo o sobresselente", INSPECT, true),
+                            item("Manchas de óleo ou água por baixo", INSPECT, true),
+                            item("Foles dos semieixos rasgados", INSPECT, true),
+                            item("Proteções inferiores e cárter", INSPECT, false),
+                            item("Luzes, piscas e stops", TEST, true),
+                            item("Travões e travão de mão", TEST, true),
+                            item("Macaco, chave de rodas e triângulo a bordo", VERIFY, true),
+                            item("Documentos da viatura e do condutor", VERIFY, true)));
+            case "VAN" -> new SaveTemplateRequest(
+                    "Inspeção diária — carrinha",
+                    assetTypeId,
+                    "A fazer antes de sair. Se leva pessoas, leva responsabilidade.",
+                    10,
+                    List.of(
+                            item("Nível do óleo do motor", VERIFY, true),
+                            item("Nível do líquido de arrefecimento", VERIFY, true),
+                            item("Pressão e piso dos pneus", INSPECT, true),
+                            item("Manchas por baixo da viatura", INSPECT, true),
+                            item("Travões e travão de mão, com a carga a bordo", TEST, true),
+                            item("Portas laterais e traseiras fecham e travam", TEST, true),
+                            item("Cintos de segurança de todos os lugares", INSPECT, true),
+                            item("Luzes, piscas e stops", TEST, true),
+                            item("Extintor e triângulo a bordo", VERIFY, true),
+                            item("Documentos da viatura e do condutor", VERIFY, true)));
             case "BUS" -> new SaveTemplateRequest(
                     "Inspeção diária — autocarro",
                     assetTypeId,
@@ -1355,6 +1529,21 @@ public final class PlanCatalog {
                     programa(PredictiveTechnique.ALIGNMENT, 12,
                             "Direção e rodado",
                             "Evitar desgaste irregular dos pneus"));
+            case "SEDAN" -> predictivePrograms("LIGHT_VEHICLE");
+            case "SUV", "PICKUP" -> List.of(
+                    programa(PredictiveTechnique.OIL_ANALYSIS, 12,
+                            "Motor, caixa de transferência, diferenciais",
+                            "Apanhar entrada de água e desgaste em quem anda fora de estrada"),
+                    programa(PredictiveTechnique.ALIGNMENT, 6,
+                            "Direção e rodado",
+                            "Piso mau desalinha: é o que come pneus"));
+            case "VAN" -> List.of(
+                    programa(PredictiveTechnique.OIL_ANALYSIS, 12,
+                            "Motor e caixa",
+                            "Avaliar desgaste de quem anda sempre carregado"),
+                    programa(PredictiveTechnique.ALIGNMENT, 6,
+                            "Direção e rodado",
+                            "Evitar desgaste irregular com peso a bordo"));
             case "BUS" -> List.of(
                     programa(PredictiveTechnique.THERMOGRAPHY, 3,
                             "Quadro elétrico, alternador, cabos de potência, compartimento do motor",
@@ -1431,6 +1620,21 @@ public final class PlanCatalog {
                     parte("Filtro de combustível", "COMBUSTIVEL", "un", "2"),
                     parte("Pastilhas de travao", "TRAVAGEM", "jogo", "1"),
                     parte("Correias", "MOTOR", "jogo", "1"));
+            case "SEDAN" -> spareParts("LIGHT_VEHICLE");
+            case "SUV", "PICKUP" -> List.of(
+                    parte("Filtro de óleo", "MOTOR", "un", "2"),
+                    parte("Filtro de ar", "MOTOR", "un", "3"),
+                    parte("Filtro de combustível", "COMBUSTIVEL", "un", "2"),
+                    parte("Foles de semieixo", "TRANSMISSAO", "kit", "1"),
+                    parte("Óleo do diferencial SAE 80W-90", "TRANSMISSAO", "L", "10"),
+                    parte("Pastilhas de travão dianteiras", "TRAVAGEM", "jogo", "1"),
+                    parte("Amortecedores traseiros", "SUSPENSAO", "jogo", "1"));
+            case "VAN" -> List.of(
+                    parte("Filtro de óleo", "MOTOR", "un", "2"),
+                    parte("Filtro de ar", "MOTOR", "un", "2"),
+                    parte("Filtro de habitáculo", "MOTOR", "un", "2"),
+                    parte("Pastilhas de travão", "TRAVAGEM", "jogo", "2"),
+                    parte("Rolamentos de corrediça da porta", "ESTRUTURA", "kit", "1"));
             case "BUS" -> List.of(
                     parte("Filtro de óleo", "MOTOR", "un", "2"),
                     parte("Filtro de ar", "MOTOR", "un", "2"),
@@ -1517,6 +1721,13 @@ public final class PlanCatalog {
             case "TRUCK_HEAVY" -> new CriticalityRequest(4, 4, 4, null,
                     "Veículo pesado de mercadorias: paragem afeta entregas e "
                             + "envolve risco rodoviário.");
+            case "SEDAN" -> criticality("LIGHT_VEHICLE");
+            case "SUV", "PICKUP" -> new CriticalityRequest(3, 4, 3, null,
+                    "Viatura 4x4 de serviço: leva pessoas a sítios onde uma avaria custa "
+                            + "horas de espera.");
+            case "VAN" -> new CriticalityRequest(3, 5, 3, null,
+                    "Transporta pessoas: o impacto na segurança conta como se fosse um "
+                            + "veículo de passageiros — porque é.");
             case "BUS" -> new CriticalityRequest(4, 5, 4, null,
                     "Transporte de passageiros: uma falha não é uma paragem, é um risco "
                             + "para dezenas de pessoas. Impacto na segurança no máximo.");

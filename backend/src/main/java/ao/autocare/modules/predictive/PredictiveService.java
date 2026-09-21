@@ -320,7 +320,8 @@ public class PredictiveService {
         String categoria = a.getAssetType() != null && a.getAssetType().getCategory() != null
                 ? a.getAssetType().getCategory().name() : null;
         String tipo = a.getAssetType() != null ? a.getAssetType().getName() : null;
-        return ao.autocare.modules.plan.PlanCatalog.codigoPara(categoria, tipo);
+        return ao.autocare.modules.plan.PlanCatalog.codigoPara(categoria, tipo,
+                a.getManufacturer(), a.getModel(), a.getModelYear());
     }
 
     /** Cria o programa se o ativo ainda não tiver essa técnica. */

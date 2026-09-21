@@ -39,6 +39,7 @@ public class CatalogApplyService {
     private final PredictiveService predictive;
     private final StockService stock;
     private final ao.autocare.modules.asset.AssetService assetService;
+    private final ao.autocare.repo.AssetRepository assets;
 
     public CatalogApplyService(
             PlanService plans,
@@ -46,13 +47,15 @@ public class CatalogApplyService {
             ChecklistTemplateService checklists,
             PredictiveService predictive,
             StockService stock,
-            ao.autocare.modules.asset.AssetService assetService) {
+            ao.autocare.modules.asset.AssetService assetService,
+            ao.autocare.repo.AssetRepository assets) {
         this.plans = plans;
         this.assetPlans = assetPlans;
         this.checklists = checklists;
         this.predictive = predictive;
         this.stock = stock;
         this.assetService = assetService;
+        this.assets = assets;
     }
 
     /** O que foi criado, para o ecrã poder dizê-lo sem adivinhar. */
@@ -90,7 +93,24 @@ public class CatalogApplyService {
         List<String> avisos = new ArrayList<>();
 
         // ---- o plano de horas ---------------------------------------------
-        var plano = plans.create(orgId, userId, PlanCatalog.build(code, assetTypeId));
+        //
+        // A idade do equipamento entra aqui. Um camião de 2005 não se mantém
+        // com os intervalos de um de 2023: as mangueiras, as correias e o
+        // líquido de travões envelhecem no tempo, e não nos quilómetros. Quando
+        // a viatura passa dos dez anos, esses sistemas são encurtados — e o
+        // motivo fica escrito no plano, para ninguém pensar que foi engano.
+        var pedido = PlanCatalog.build(code, assetTypeId);
+        Integer ano = null;
+        if (assetId != null && !assetId.isBlank()) {
+            ano = assets.findByIdAndOrganizationId(assetId, orgId)
+                    .map(a -> a.getModelYear()).orElse(null);
+        }
+        String notaIdade = VehicleTaxonomy.notaDeIdade(ano);
+        if (notaIdade != null) {
+            pedido = comIntervalosDeIdade(pedido, VehicleTaxonomy.factorDeIdade(ano), notaIdade);
+            avisos.add(notaIdade);
+        }
+        var plano = plans.create(orgId, userId, pedido);
 
         // Atribuir ao ativo, se foi indicado. Sem isto o plano existe mas não
         // conta a ninguém — e é aí que as empresas ficam com planos no papel.
@@ -179,5 +199,45 @@ public class CatalogApplyService {
     static SaveTemplateRequest modeloChecklist(
             String nome, String assetTypeId, String descricao, int minutos, List<ItemInput> itens) {
         return new SaveTemplateRequest(nome, assetTypeId, descricao, minutos, itens);
+    }
+
+    /**
+     * Encurta os intervalos do que envelhece com o tempo.
+     *
+     * <p>Só travagem, arrefecimento, mangueiras e correias — e nunca alarga
+     * nada. Uma viatura velha não pode esperar mais do que uma nova; pode ter
+     * de esperar menos.
+     */
+    private static ao.autocare.modules.plan.dto.PlanDtos.SavePlanRequest comIntervalosDeIdade(
+            ao.autocare.modules.plan.dto.PlanDtos.SavePlanRequest pedido, double factor, String nota) {
+
+        java.util.Set<String> sensiveis = java.util.Set.of(
+                "TRAVAGEM", "ARREFECIMENTO", "MOTOR", "COMBUSTIVEL");
+
+        java.util.List<ao.autocare.modules.plan.dto.PlanDtos.TaskInput> tarefas = new ArrayList<>();
+        for (var tarefa : pedido.tasks()) {
+            if (!sensiveis.contains(tarefa.systemCode()) || tarefa.triggers() == null) {
+                tarefas.add(tarefa);
+                continue;
+            }
+            var gatilhos = new ArrayList<ao.autocare.modules.plan.dto.PlanDtos.TriggerInput>();
+            for (var g : tarefa.triggers()) {
+                java.math.BigDecimal intervalo = g.interval();
+                if (intervalo != null) {
+                    intervalo = intervalo.multiply(java.math.BigDecimal.valueOf(factor))
+                            .setScale(0, java.math.RoundingMode.HALF_UP);
+                }
+                gatilhos.add(new ao.autocare.modules.plan.dto.PlanDtos.TriggerInput(
+                        g.type(), g.meterKind(), intervalo, g.tolerance()));
+            }
+            tarefas.add(new ao.autocare.modules.plan.dto.PlanDtos.TaskInput(
+                    tarefa.systemCode(), tarefa.systemName(), tarefa.title(),
+                    tarefa.instructions(), tarefa.estimatedMinutes(), tarefa.tools(),
+                    gatilhos, tarefa.parts()));
+        }
+        String notas = (pedido.notes() == null ? "" : pedido.notes() + "\n\n") + nota;
+        return new ao.autocare.modules.plan.dto.PlanDtos.SavePlanRequest(pedido.name(), pedido.assetTypeId(), pedido.description(),
+                notas, pedido.objective(), pedido.sourceReference(), pedido.preparedByLabel(),
+                tarefas);
     }
 }

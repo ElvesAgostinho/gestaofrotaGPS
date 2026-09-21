@@ -182,6 +182,14 @@ export function IconeAtivo({
   // A família decidida pelo servidor manda: é a mesma que escolhe o plano e a
   // inspeção, e assim o ícone nunca discorda do resto do sistema.
   switch (familia) {
+    case 'SEDAN':
+      return <IconeLigeiro {...props} />;
+    case 'SUV':
+    case 'PICKUP':
+      // Um 4x4 lê-se pela altura e pelos pneus, não por ser «viatura».
+      return <IconeCamiao {...props} />;
+    case 'VAN':
+      return <IconeReboque {...props} />;
     case 'GENERATOR':
       return <IconeGerador {...props} />;
     case 'BUS':

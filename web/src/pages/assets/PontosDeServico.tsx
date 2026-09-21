@@ -356,6 +356,91 @@ function DesenhoReboque() {
   );
 }
 
+/** Jipe / SUV 4x4, visto de lado. */
+function DesenhoJipe() {
+  return (
+    <g>
+      <Solo y={322} />
+      {/* tejadilho alto e vidros */}
+      <path d="M150 128h230a14 14 0 0 1 12 6l26 44H132l12-44a14 14 0 0 1 6-6Z" fill={CHAPA} />
+      <path d="M160 142h80v36h-92z" fill={VIDRO} />
+      <path d="M252 142h60v36h-60z" fill={VIDRO} />
+      <path d="M324 142h48a6 6 0 0 1 5 3l18 33h-71z" fill={VIDRO} />
+      <g opacity=".6">
+        <line x1="246" y1="140" x2="246" y2="180" strokeWidth="1.5" />
+        <line x1="318" y1="140" x2="318" y2="180" strokeWidth="1.5" />
+      </g>
+      {/* corpo alto */}
+      <path d="M112 178h300a14 14 0 0 1 14 14v58H98v-58a14 14 0 0 1 14-14Z" fill={CHAPA} />
+      <path d="M98 226h328v24H98z" fill={SOMBRA} />
+      {/* estribos e proteções */}
+      <path d="M150 252h210v10H150z" fill={METAL} />
+      <rect x="96" y="196" width="20" height="14" rx="3" fill="#FFF8E1" />
+      <rect x="408" y="196" width="18" height="14" rx="3" fill="#FCA5A5" />
+      {/* roda suplente na traseira */}
+      <circle cx="436" cy="212" r="22" fill={BORRACHA} />
+      <circle cx="436" cy="212" r="10" fill={METAL} />
+      <Roda cx={172} cy={268} r={44} />
+      <Roda cx={372} cy={268} r={44} />
+    </g>
+  );
+}
+
+/** Pick-up de cabina dupla, vista de lado. */
+function DesenhoPickup() {
+  return (
+    <g>
+      <Solo y={322} />
+      {/* cabina */}
+      <path d="M140 132h150a14 14 0 0 1 12 6l24 42H124l10-42a14 14 0 0 1 6-6Z" fill={CHAPA} />
+      <path d="M150 146h68v34h-78z" fill={VIDRO} />
+      <path d="M230 146h52a6 6 0 0 1 5 3l16 31h-73z" fill={VIDRO} />
+      <line x1="224" y1="144" x2="224" y2="180" strokeWidth="1.5" />
+      {/* corpo e caixa de carga */}
+      <path d="M104 180h222v70H104z" fill={CHAPA} />
+      <path d="M326 192h120v58H326z" fill={SOMBRA} />
+      <g opacity=".55">
+        {[352, 382, 412].map((x) => (
+          <line key={x} x1={x} y1="196" x2={x} y2="248" strokeWidth="1.3" />
+        ))}
+      </g>
+      <path d="M96 226h350v24H96z" fill={SOMBRA} />
+      <path d="M150 252h250v10H150z" fill={METAL} />
+      <rect x="94" y="198" width="20" height="14" rx="3" fill="#FFF8E1" />
+      <rect x="428" y="200" width="18" height="12" rx="3" fill="#FCA5A5" />
+      <Roda cx={166} cy={268} r={42} />
+      <Roda cx={386} cy={268} r={42} />
+    </g>
+  );
+}
+
+/** Carrinha (van) de passageiros ou mercadorias, vista de lado. */
+function DesenhoCarrinha() {
+  return (
+    <g>
+      <Solo y={322} />
+      {/* volume único e alto */}
+      <path d="M96 118h330a16 16 0 0 1 16 16v116H80V150a32 32 0 0 1 16-32Z" fill={CHAPA} />
+      {/* para-brisas inclinado e janelas laterais */}
+      <path d="M96 132h44v46H82l4-30a12 12 0 0 1 10-16Z" fill={VIDRO} />
+      <path d="M156 136h92v46h-92z" fill={VIDRO} />
+      <path d="M262 136h92v46h-92z" fill={VIDRO} />
+      {/* porta lateral de correr */}
+      <g opacity=".7">
+        <line x1="150" y1="132" x2="150" y2="248" strokeWidth="1.6" />
+        <line x1="256" y1="132" x2="256" y2="248" strokeWidth="1.6" />
+        <line x1="360" y1="132" x2="360" y2="248" strokeWidth="1.6" />
+      </g>
+      <rect x="236" y="196" width="18" height="6" rx="3" fill={METAL} />
+      <path d="M80 226h362v24H80z" fill={SOMBRA} />
+      <rect x="78" y="198" width="20" height="14" rx="3" fill="#FFF8E1" />
+      <rect x="424" y="198" width="18" height="14" rx="3" fill="#FCA5A5" />
+      <Roda cx={150} cy={268} r={40} />
+      <Roda cx={374} cy={268} r={40} />
+    </g>
+  );
+}
+
 // ==== Pontos por família ===================================================
 
 /**
@@ -418,6 +503,63 @@ const FAMILIAS: Record<string, Familia> = {
       { numero: 4, nome: 'Pneus e aperto de porcas', x: 412, y: 290, accao: 'Pressão, piso e reaperto das porcas ao binário.', intervaloHoras: 24, critico: true },
       { numero: 5, nome: 'Estrutura da caixa', x: 300, y: 200, accao: 'Trincas, corrosão e fixações da caixa ao chassi.', intervaloHoras: 500 },
       { numero: 6, nome: 'Luzes e refletores', x: 478, y: 241, accao: 'Confirmar luzes, stops e refletores ligados ao trator.', intervaloHoras: 24, critico: true },
+    ],
+  },
+  JIPE: {
+    nome: 'Jipe / SUV 4x4',
+    desenho: DesenhoJipe,
+    vista: '80 114 400 216',
+    nota:
+      'Um jipe tem três coisas que um carro normal não tem e que ninguém olha até partirem: '
+      + 'caixa de transferência, diferencial dianteiro e semieixos com foles. Em estrada de terra, '
+      + 'é por aí que a avaria começa.',
+    pontos: [
+      { numero: 1, nome: 'Nível do óleo do motor', x: 150, y: 196, accao: 'Verificar na vareta com a viatura nivelada e o motor frio.', intervaloHoras: 168, critico: true },
+      { numero: 2, nome: 'Líquido de arrefecimento', x: 112, y: 210, accao: 'Verificar a frio, entre as marcas do depósito.', intervaloHoras: 168, critico: true },
+      { numero: 3, nome: 'Foles dos semieixos', x: 236, y: 258, accao: 'Procurar foles rasgados: rasgado entra areia e a junta parte-se em semanas.', intervaloHoras: 720, critico: true },
+      { numero: 4, nome: 'Caixa de transferência', x: 272, y: 240, accao: 'Verificar o nível e procurar fugas; engatar a tração para confirmar que engata.', intervaloHoras: 1000, critico: true },
+      { numero: 5, nome: 'Diferencial dianteiro', x: 186, y: 250, accao: 'Verificar o nível e os retentores.', intervaloHoras: 1000 },
+      { numero: 6, nome: 'Travões dianteiros', x: 172, y: 292, accao: 'Medir a espessura das pastilhas e dos discos.', intervaloHoras: 1000, critico: true },
+      { numero: 7, nome: 'Pneus e pressões', x: 372, y: 300, accao: 'Pressão a frio e piso nas quatro posições, e no suplente.', intervaloHoras: 168, critico: true },
+      { numero: 8, nome: 'Proteções inferiores', x: 300, y: 262, accao: 'Cárter e proteções por baixo: pancadas, amolgadelas e parafusos em falta.', intervaloHoras: 2000 },
+      { numero: 9, nome: 'Filtro de ar', x: 130, y: 178, accao: 'Em terra batida entope a meio do intervalo do manual: verificar sempre.', intervaloHoras: 500, critico: true },
+      { numero: 10, nome: 'Roda suplente', x: 436, y: 212, accao: 'Confirmar pressão e fixação: um suplente vazio é peso morto.', intervaloHoras: 720, critico: true },
+    ],
+  },
+  PICKUP: {
+    nome: 'Pick-up',
+    desenho: DesenhoPickup,
+    vista: '80 118 390 214',
+    nota:
+      'Uma pick-up de obra anda sempre carregada e em piso mau: as molas traseiras, os '
+      + 'amortecedores e os apoios da caixa sofrem o que num carro normal nunca sofreriam.',
+    pontos: [
+      { numero: 1, nome: 'Nível do óleo do motor', x: 140, y: 200, accao: 'Verificar na vareta, motor frio e viatura nivelada.', intervaloHoras: 168, critico: true },
+      { numero: 2, nome: 'Líquido de arrefecimento', x: 106, y: 212, accao: 'Verificar a frio e procurar fugas nas mangueiras.', intervaloHoras: 168, critico: true },
+      { numero: 3, nome: 'Foles e semieixos', x: 210, y: 258, accao: 'Foles rasgados deixam entrar areia e matam a junta.', intervaloHoras: 720, critico: true },
+      { numero: 4, nome: 'Molas e amortecedores traseiros', x: 352, y: 262, accao: 'Medir a altura em vazio e procurar folhas partidas: é o que a carga estraga.', intervaloHoras: 1000, critico: true },
+      { numero: 5, nome: 'Fixações da caixa', x: 392, y: 208, accao: 'Reapertar os parafusos ao binário e procurar trincas no fundo da caixa.', intervaloHoras: 1000 },
+      { numero: 6, nome: 'Amarradores e taipal', x: 424, y: 232, accao: 'Ganchos, amarradores e travamento do taipal traseiro.', intervaloHoras: 500 },
+      { numero: 7, nome: 'Travões dianteiros', x: 166, y: 292, accao: 'Pastilhas e discos: com carga, gastam-se mais depressa.', intervaloHoras: 1000, critico: true },
+      { numero: 8, nome: 'Pneus e pressões', x: 386, y: 300, accao: 'Pressão a frio conforme a carga, e piso em cada posição.', intervaloHoras: 168, critico: true },
+    ],
+  },
+  CARRINHA: {
+    nome: 'Carrinha',
+    desenho: DesenhoCarrinha,
+    vista: '66 106 400 226',
+    nota:
+      'Uma carrinha trava com peso em cima e abre e fecha portas o dia inteiro. É aí que se '
+      + 'gasta: travões, suspensão traseira e corrediças das portas.',
+    pontos: [
+      { numero: 1, nome: 'Nível do óleo do motor', x: 116, y: 196, accao: 'Verificar na vareta com o motor frio.', intervaloHoras: 168, critico: true },
+      { numero: 2, nome: 'Líquido de arrefecimento', x: 94, y: 212, accao: 'Verificar a frio, entre as marcas.', intervaloHoras: 168, critico: true },
+      { numero: 3, nome: 'Travões traseiros com carga', x: 374, y: 296, accao: 'Pastilhas ou maxilas e regulador de travagem por carga.', intervaloHoras: 1000, critico: true },
+      { numero: 4, nome: 'Suspensão traseira', x: 330, y: 258, accao: 'Molas, amortecedores e buchas: é o que primeiro cansa numa viatura sempre cheia.', intervaloHoras: 1000 },
+      { numero: 5, nome: 'Porta lateral de correr', x: 246, y: 200, accao: 'Lubrificar corrediças e rolamentos; confirmar que tranca.', intervaloHoras: 500, critico: true },
+      { numero: 6, nome: 'Cintos e bancos', x: 300, y: 160, accao: 'Estado dos cintos de todos os lugares e fixação dos bancos.', intervaloHoras: 720, critico: true },
+      { numero: 7, nome: 'Ar condicionado (frente e trás)', x: 200, y: 150, accao: 'Carga de gás e higienização; num transporte de pessoas, não é conforto.', intervaloHoras: 2000 },
+      { numero: 8, nome: 'Pneus e pressões', x: 150, y: 300, accao: 'Pressão a frio conforme a carga e piso em cada posição.', intervaloHoras: 168, critico: true },
     ],
   },
   RETROESCAVADORA: {
@@ -758,6 +900,10 @@ const DO_SERVIDOR: Record<string, string> = {
   RETROESCAVADORA: 'RETROESCAVADORA',
   TRUCK_HEAVY: 'CAMIAO',
   LIGHT_VEHICLE: 'LIGEIRO',
+  SEDAN: 'LIGEIRO',
+  SUV: 'JIPE',
+  PICKUP: 'PICKUP',
+  VAN: 'CARRINHA',
   BUS: 'AUTOCARRO',
   FORKLIFT: 'EMPILHADORA',
   IMPLEMENT: 'REBOQUE',
@@ -774,6 +920,9 @@ function familiaDe(tipo?: string | null): Familia {
   if (/(autocarro|onibus|ónibus|bus|minibus|passageir)/.test(t)) return FAMILIAS.AUTOCARRO;
   if (/(empilhad|forklift)/.test(t)) return FAMILIAS.EMPILHADORA;
   if (/(alfaia|implemento|reboque|atrelado|semirreboque|cisterna)/.test(t)) return FAMILIAS.REBOQUE;
+  if (/(pick|hilux|ranger|d-max|dmax|navara|amarok|l200|triton)/.test(t)) return FAMILIAS.PICKUP;
+  if (/(jipe|suv|4x4|land cruiser|prado|fortuner|pajero|patrol)/.test(t)) return FAMILIAS.JIPE;
+  if (/(carrinha|van|hiace|sprinter|transit|ducato|furg)/.test(t)) return FAMILIAS.CARRINHA;
   if (/(retro|escavad|backhoe|pá carreg|carregadora|bulldoz|trator|tractor|máquina|maquina)/.test(t)) {
     return FAMILIAS.RETROESCAVADORA;
   }

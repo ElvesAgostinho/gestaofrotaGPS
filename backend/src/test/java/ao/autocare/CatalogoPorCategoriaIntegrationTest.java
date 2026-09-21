@@ -52,8 +52,11 @@ class CatalogoPorCategoriaIntegrationTest extends AbstractIntegrationTest {
         assertThat(PlanCatalog.codigoPara("VEHICLE", "Camião basculante")).isEqualTo("TRUCK_HEAVY");
         // Uma viatura ligeira não leva o plano de um pesado só porque é «viatura».
         assertThat(PlanCatalog.codigoPara("VEHICLE", "Ligeiro de passageiros")).isEqualTo("LIGHT_VEHICLE");
-        assertThat(PlanCatalog.codigoPara("VEHICLE", "Pick-up 4x4")).isEqualTo("LIGHT_VEHICLE");
-        assertThat(PlanCatalog.codigoPara("VEHICLE", "Carrinha de caixa aberta")).isEqualTo("LIGHT_VEHICLE");
+        // Desde que o sistema passou a reconhecer marcas e modelos, uma
+        // pick-up deixou de ser «um ligeiro qualquer»: tem transferência,
+        // diferencial dianteiro e uma caixa que anda sempre carregada.
+        assertThat(PlanCatalog.codigoPara("VEHICLE", "Pick-up 4x4")).isEqualTo("PICKUP");
+        assertThat(PlanCatalog.codigoPara("VEHICLE", "Carrinha de caixa fechada")).isEqualTo("VAN");
         // Um gerador continua a ser um gerador mesmo com a categoria mal posta.
         assertThat(PlanCatalog.codigoPara("MACHINE", "Grupo electrogéneo")).isEqualTo("GENERATOR");
     }
@@ -123,11 +126,18 @@ class CatalogoPorCategoriaIntegrationTest extends AbstractIntegrationTest {
     void aInspecaoDiariaEDiferenteEmCadaFamilia() throws Exception {
         bearer = register("cat1@teste.ao", "Frota Mista").bearer();
 
-        String hilux = ativo("LIG-1", "Ligeiro 4x4 pick-up", "VEHICLE", "ODOMETER");
-        JsonNode fichaLigeiro = send(get("/api/v1/assets/" + hilux + "/daily-inspection"), null, 200);
+        // Um ligeiro de passageiros: a inspeção é a do carro.
+        String carro = ativo("LIG-1", "Ligeiro de passageiros", "VEHICLE", "ODOMETER");
+        JsonNode fichaLigeiro = send(get("/api/v1/assets/" + carro + "/daily-inspection"), null, 200);
         assertThat(fichaLigeiro.get("name").asText()).contains("ligeiro");
         assertThat(fichaLigeiro.toString()).contains("Triângulo");
         assertThat(fichaLigeiro.toString()).doesNotContain("Fixação da carga");
+
+        // Uma pick-up é outra coisa: leva os pontos do 4x4.
+        String pickup = ativo("PIC-1", "Pick-up 4x4 cabina dupla", "VEHICLE", "ODOMETER");
+        JsonNode fichaPickup = send(get("/api/v1/assets/" + pickup + "/daily-inspection"), null, 200);
+        assertThat(fichaPickup.get("name").asText()).contains("4x4");
+        assertThat(fichaPickup.toString()).contains("Foles");
 
         String camiao = ativo("CAM-1", "Camião basculante", "VEHICLE", "ODOMETER");
         JsonNode fichaCamiao = send(get("/api/v1/assets/" + camiao + "/daily-inspection"), null, 200);

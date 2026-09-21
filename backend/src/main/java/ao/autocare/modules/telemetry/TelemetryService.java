@@ -396,7 +396,8 @@ public class TelemetryService {
                     ao.autocare.modules.plan.PlanCatalog.codigoPara(
                             a.getAssetType() != null && a.getAssetType().getCategory() != null
                                     ? a.getAssetType().getCategory().name() : null,
-                            a.getAssetType() != null ? a.getAssetType().getName() : null),
+                            a.getAssetType() != null ? a.getAssetType().getName() : null,
+                            a.getManufacturer(), a.getModel(), a.getModelYear()),
                     a.getStatus() != null ? a.getStatus().name() : null,
                     a.getLatitude(), a.getLongitude(), at,
                     last != null ? last.getSpeedKph() : null,

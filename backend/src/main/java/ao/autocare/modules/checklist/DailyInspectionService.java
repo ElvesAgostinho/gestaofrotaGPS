@@ -56,7 +56,8 @@ public class DailyInspectionService {
         AssetCategory c = a.getAssetType() != null && a.getAssetType().getCategory() != null
                 ? a.getAssetType().getCategory() : AssetCategory.MACHINE;
         String tipo = a.getAssetType() != null ? a.getAssetType().getName() : null;
-        return PlanCatalog.codigoPara(c.name(), tipo);
+        return PlanCatalog.codigoPara(c.name(), tipo,
+                a.getManufacturer(), a.getModel(), a.getModelYear());
     }
 
     @Transactional(readOnly = true)

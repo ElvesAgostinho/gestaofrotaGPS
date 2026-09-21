@@ -32,6 +32,21 @@ export interface EstadoViatura {
  */
 function silhueta(family?: string | null): string {
   switch (family) {
+    case 'PICKUP':
+      // Pick-up: cabina curta e caixa aberta atrás.
+      return `M9.4 2.6h5.2c1 0 1.7.6 2 1.5l.9 2.9h1.3c.6 0 1 .5 1 1.1v3.1h-1.9v8.2c0 .6-.4 1-1 1h-1.1
+              c-.6 0-1-.4-1-1v-1H9.2v1c0 .6-.4 1-1 1H7.1c-.6 0-1-.4-1-1V8.1c0-.6.4-1.1 1-1.1h1.3l.9-2.9
+              c.3-.9 1-1.5 2-1.5Zm-.5 2.8-.6 2.2h7.4l-.6-2.2H8.9Z`;
+    case 'VAN':
+      // Carrinha: volume único e alto.
+      return `M7.6 2.4h8.8c1.2 0 2.2 1 2.2 2.2v14.8c0 1.2-1 2.2-2.2 2.2H7.6c-1.2 0-2.2-1-2.2-2.2V4.6
+              c0-1.2 1-2.2 2.2-2.2Zm.2 3.4v4.2h8.4V5.8H7.8Z`;
+    case 'SUV':
+      // Jipe: corpo largo, tejadilho alto.
+      return `M8.4 2.8h7.2c1 0 1.8.7 2 1.7l.7 3h1c.6 0 1 .5 1 1.1v4.2h-1.6v6.4c0 .6-.4 1-1 1h-1.3
+              c-.6 0-1-.4-1-1v-.9H8.6v.9c0 .6-.4 1-1 1H6.3c-.6 0-1-.4-1-1V8.6c0-.6.4-1.1 1-1.1h1l.7-3
+              c.2-1 1-1.7 2-1.7Z`;
+    case 'SEDAN':
     case 'LIGHT_VEHICLE':
       // Ligeiro: corpo estreito, tejadilho marcado.
       return `M12 2.4c-1.7 0-2.6 1-3 2.4L8.2 7.6H7c-.6 0-1 .5-1 1.1v9.7c0 .6.4 1 1 1h1.2c.6 0 1-.4
