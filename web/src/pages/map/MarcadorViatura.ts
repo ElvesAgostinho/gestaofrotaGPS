@@ -18,6 +18,49 @@ export interface EstadoViatura {
   moving?: boolean | null;
   secondsSincePosition?: number | null;
   tag: string;
+  /** A família do catálogo: decide a silhueta desenhada no mapa. */
+  family?: string | null;
+}
+
+/**
+ * A silhueta de cada família, vista de cima e apontada para norte.
+ *
+ * <p>Num mapa com trinta pontos iguais ninguém distingue o autocarro de
+ * passageiros da retroescavadora parada na obra. Com a forma certa, distingue
+ * — e é a mesma família que decide o plano e a inspeção, por isso o mapa nunca
+ * discorda do resto do sistema.
+ */
+function silhueta(family?: string | null): string {
+  switch (family) {
+    case 'LIGHT_VEHICLE':
+      // Ligeiro: corpo estreito, tejadilho marcado.
+      return `M12 2.4c-1.7 0-2.6 1-3 2.4L8.2 7.6H7c-.6 0-1 .5-1 1.1v9.7c0 .6.4 1 1 1h1.2c.6 0 1-.4
+              1-1v-1h7.6v1c0 .6.4 1 1 1H19c.6 0 1-.4 1-1V8.7c0-.6-.4-1.1-1-1.1h-1.2l-.8-2.8c-.4-1.4
+              -1.3-2.4-3-2.4h-2Zm-1.4 2.9h4.8l.7 2.3H9.9l.7-2.3Z`;
+    case 'BUS':
+      // Autocarro: caixa comprida com faixa de janelas.
+      return `M7 2h10c1.1 0 2 .9 2 2v16c0 1.1-.9 2-2 2H7c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2Zm.4 3.2v3.6
+              h9.2V5.2H7.4Zm0 5.4v6.2h9.2v-6.2H7.4Z`;
+    case 'RETROESCAVADORA':
+    case 'FORKLIFT':
+      // Máquina: corpo com braço à frente.
+      return `M8 6h7c.7 0 1.2.6 1.2 1.3v3.1h2.3c.6 0 1 .5 1 1.1v6.1c0 .6-.4 1.1-1 1.1H5.5
+              c-.6 0-1-.5-1-1.1v-6.1c0-.6.4-1.1 1-1.1h1.3V7.3C6.8 6.6 7.3 6 8 6Zm8.6 1.6 3.8 2.2-.8 1.4
+              -3.8-2.2.8-1.4Z`;
+    case 'IMPLEMENT':
+      // Reboque: caixa sem cabina, com barra de tração.
+      return `M11.2 2h1.6v2.6h-1.6V2Zm-4 3.4h9.6c.8 0 1.4.6 1.4 1.4v12c0 .8-.6 1.4-1.4 1.4H7.2
+              c-.8 0-1.4-.6-1.4-1.4v-12c0-.8.6-1.4 1.4-1.4Z`;
+    case 'GENERATOR':
+      // Gerador: contentor com grelhas — não anda, mas aparece no mapa.
+      return `M4.6 6.6h14.8c.7 0 1.2.6 1.2 1.2v8.4c0 .7-.5 1.2-1.2 1.2H4.6c-.7 0-1.2-.5-1.2-1.2V7.8
+              c0-.6.5-1.2 1.2-1.2Zm1.5 2.6v1.4h5.6V9.2H6.1Zm0 3v1.4h5.6v-1.4H6.1Zm8 -3v4.4h3.8V9.2h-3.8Z`;
+    default:
+      // Camião pesado: cabina e caixa.
+      return `M12 2.2 8.9 6.1h1.6v4.2H6.2c-.7 0-1.2.5-1.2 1.2v6.9c0 .6.5 1.1 1.2 1.1h1.1
+              a1.9 1.9 0 0 0 3.7 0h2.1a1.9 1.9 0 0 0 3.7 0h1.1c.7 0 1.2-.5 1.2-1.1v-6.9
+              c0-.7-.5-1.2-1.2-1.2h-4.3V6.1h1.6L12 2.2Z`;
+  }
 }
 
 /** Sem notícias há mais de meia hora, a posição já não representa o presente. */
@@ -64,10 +107,9 @@ export function desenharMarcador(el: HTMLElement, a: EstadoViatura, seleccionado
           display:flex;align-items:center;justify-content:center;">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="#fff"
                style="transform:rotate(${rumo}deg);transition:transform .5s ease-out;">
-            <!-- Camião visto de cima, apontado para norte antes de rodar. -->
-            <path d="M12 2.2 8.9 6.1h1.6v4.2H6.2c-.7 0-1.2.5-1.2 1.2v6.9c0 .6.5 1.1 1.2 1.1h1.1
-                     a1.9 1.9 0 0 0 3.7 0h2.1a1.9 1.9 0 0 0 3.7 0h1.1c.7 0 1.2-.5 1.2-1.1v-6.9
-                     c0-.7-.5-1.2-1.2-1.2h-4.3V6.1h1.6L12 2.2Z"/>
+            <!-- O veículo da família, visto de cima e apontado para norte
+                 antes de rodar para o rumo em que segue. -->
+            <path d="${silhueta(a.family)}"/>
           </svg>
         </div>
         ${

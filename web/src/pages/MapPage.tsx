@@ -16,6 +16,8 @@ import { BASEMAPS, CENTRO_OMISSAO as DEFAULT_CENTER, styleFor } from './map/base
 import { HistoricoDoDia } from './map/HistoricoDoDia';
 
 export interface LiveAsset {
+  /** A família do catálogo: decide a silhueta no mapa. */
+  family?: string | null;
   assetId: string;
   tag: string;
   name: string;

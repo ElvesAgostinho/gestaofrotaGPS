@@ -157,6 +157,8 @@ public final class TelemetryDtos {
             String tag,
             String name,
             String category,
+            /** A família do catálogo: o mapa desenha o veículo certo, não um camião para tudo. */
+            String family,
             String status,
             BigDecimal latitude,
             BigDecimal longitude,

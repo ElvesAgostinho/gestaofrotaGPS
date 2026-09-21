@@ -140,6 +140,10 @@ public class RouteLiveService {
         }
 
         return new RouteLiveView(r.getId(), r.getName(), asset.getId(), asset.getTag(), asset.getName(),
+                ao.autocare.modules.plan.PlanCatalog.codigoPara(
+                        asset.getAssetType() != null && asset.getAssetType().getCategory() != null
+                                ? asset.getAssetType().getCategory().name() : null,
+                        asset.getAssetType() != null ? asset.getAssetType().getName() : null),
                 a.getDriver() != null ? a.getDriver().getName() : null,
                 p.getRecordedAt(), p.getLatitude(), p.getLongitude(), p.getSpeedKph(),
                 BigDecimal.valueOf(pos.progresso()).setScale(3, RoundingMode.HALF_UP),

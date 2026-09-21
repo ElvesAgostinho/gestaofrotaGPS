@@ -393,6 +393,10 @@ public class TelemetryService {
                     a.getId(), a.getTag(), a.getName(),
                     a.getAssetType() != null && a.getAssetType().getCategory() != null
                             ? a.getAssetType().getCategory().name() : null,
+                    ao.autocare.modules.plan.PlanCatalog.codigoPara(
+                            a.getAssetType() != null && a.getAssetType().getCategory() != null
+                                    ? a.getAssetType().getCategory().name() : null,
+                            a.getAssetType() != null ? a.getAssetType().getName() : null),
                     a.getStatus() != null ? a.getStatus().name() : null,
                     a.getLatitude(), a.getLongitude(), at,
                     last != null ? last.getSpeedKph() : null,

@@ -130,6 +130,19 @@ export function MRotaPage() {
           reais={trilho.length > 1 ? [{ coords: trilho, label: 'o que já andei' }] : []}
           altura={320}
           fundo="ruas"
+          viatura={
+            estado?.ultima
+              ? {
+                  latitude: estado.ultima.latitude,
+                  longitude: estado.ultima.longitude,
+                  heading: estado.ultima.heading ?? null,
+                  speedKph: estado.ultima.speedKph ?? null,
+                  moving: (estado.ultima.speedKph ?? 0) > 3,
+                  tag: data.assetTag ?? 'a minha viatura',
+                }
+              : null
+          }
+          seguir={estado?.aSeguir ?? false}
         />
         {vista === 'directo' && (
           <div style={{ padding: '8px 12px' }}>

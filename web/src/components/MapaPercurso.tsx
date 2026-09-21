@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BASEMAPS, CENTRO_OMISSAO, styleFor } from '../pages/map/basemaps';
+import { deslizar, desenharMarcador, type EstadoViatura } from '../pages/map/MarcadorViatura';
 
 export interface PontoRota {
   latitude: number;
@@ -32,6 +33,8 @@ export function MapaPercurso({
   reais = [],
   altura = 320,
   fundo = 'satelite',
+  viatura,
+  seguir = false,
 }: {
   /** GeoJSON da rota (LineString), vindo do motor de rotas. */
   pathGeojson?: string | null;
@@ -39,10 +42,16 @@ export function MapaPercurso({
   reais?: LinhaReal[];
   altura?: number | string;
   fundo?: keyof typeof BASEMAPS;
+  /** A viatura, onde ela está agora. Desliza sozinha quando a posição muda. */
+  viatura?: EstadoViatura | null;
+  /** Manter a viatura centrada — como quem vai a conduzir. */
+  seguir?: boolean;
 }) {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const marcadores = useRef<maplibregl.Marker[]>([]);
+  const marcadorViatura = useRef<maplibregl.Marker | null>(null);
+  const cancelarDeslize = useRef<(() => void) | null>(null);
   // O mapa nasce depois do primeiro render: sem este sinal, o desenho corria
   // uma vez com o mapa ainda por criar e a linha nunca aparecia.
   const [pronto, setPronto] = useState(false);
@@ -161,6 +170,53 @@ export function MapaPercurso({
     };
   }, [linhaPrevista, pontos, reais, pronto]);
 
+
+  /*
+   * A viatura a andar.
+   *
+   * <p>É a diferença entre um mapa e um mapa vivo: o mesmo veículo visto de
+   * cima do ecrã de rastreamento, apontado para onde vai, a deslizar até à
+   * posição nova em vez de saltar. As posições chegam de dez em dez segundos;
+   * sem o deslize, quem olha lê os saltos como avaria.
+   */
+  useEffect(() => {
+    const instance = map.current;
+    if (!instance || !pronto) return;
+
+    if (!viatura) {
+      marcadorViatura.current?.remove();
+      marcadorViatura.current = null;
+      return;
+    }
+
+    const destino: [number, number] = [viatura.longitude, viatura.latitude];
+
+    if (!marcadorViatura.current) {
+      const el = document.createElement('div');
+      desenharMarcador(el, viatura, false);
+      marcadorViatura.current = new maplibregl.Marker({ element: el })
+        .setLngLat(destino)
+        .addTo(instance);
+      if (seguir) {
+        instance.easeTo({ center: destino, zoom: Math.max(instance.getZoom(), 13), duration: 600 });
+      }
+      return;
+    }
+
+    const marcador = marcadorViatura.current;
+    desenharMarcador(marcador.getElement(), viatura, false);
+    const actual = marcador.getLngLat();
+    cancelarDeslize.current?.();
+    cancelarDeslize.current = deslizar(
+      (lng, lat) => marcador.setLngLat([lng, lat]),
+      [actual.lng, actual.lat],
+      destino,
+    );
+    if (seguir) {
+      instance.easeTo({ center: destino, duration: 900 });
+    }
+  }, [viatura, seguir, pronto]);
+
   const semNada = linhaPrevista.length < 2 && pontos.length === 0 && reais.length === 0;
 
   return (
@@ -183,6 +239,24 @@ export function MapaPercurso({
             <div style={{ width: 18, height: 3, background: '#2563eb', borderRadius: 2 }} />
             <Text size="xs" c="dimmed">
               andado pelo GPS
+            </Text>
+          </Group>
+        )}
+        {viatura && (
+          <Group gap={4}>
+            <div
+              style={{
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
+                background: viatura.moving ? '#16a34a' : '#2563eb',
+                border: '2px solid #fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,.4)',
+              }}
+            />
+            <Text size="xs" c="dimmed">
+              {viatura.tag}
+              {viatura.moving && viatura.speedKph != null ? ` · ${Math.round(viatura.speedKph)} km/h` : ' · parada'}
             </Text>
           </Group>
         )}

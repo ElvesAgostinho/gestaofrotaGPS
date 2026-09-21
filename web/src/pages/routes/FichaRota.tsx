@@ -52,6 +52,7 @@ interface AoVivo {
   assetId: string;
   assetTag: string;
   assetName: string;
+  assetFamily?: string | null;
   driverName?: string | null;
   positionAt: string;
   latitude: number;
@@ -110,7 +111,9 @@ export function FichaRota({ rotaId, fechar }: { rotaId: string; fechar: () => vo
   const { data: aovivo } = useQuery({
     queryKey: ['routes', rotaId, 'live'],
     queryFn: () => api<AoVivo[]>(`/routes/${rotaId}/live`),
-    refetchInterval: 30_000,
+    // De dez em dez segundos: com o deslize do marcador, o mapa lê-se como
+    // se a viatura andasse mesmo, em vez de saltar de meio em meio minuto.
+    refetchInterval: 10_000,
   });
   const { data: ativos } = useQuery({
     queryKey: ['assets', 'rotas'],
@@ -196,7 +199,24 @@ export function FichaRota({ rotaId, fechar }: { rotaId: string; fechar: () => vo
             )}
           </Group>
 
-          <MapaPercurso pathGeojson={rota.pathGeojson} pontos={pontos} reais={reais} altura={330} />
+          <MapaPercurso
+            pathGeojson={rota.pathGeojson}
+            pontos={pontos}
+            reais={reais}
+            altura={330}
+            viatura={
+              (aovivo ?? [])[0]
+                ? {
+                    latitude: (aovivo ?? [])[0].latitude,
+                    longitude: (aovivo ?? [])[0].longitude,
+                    speedKph: (aovivo ?? [])[0].speedKph,
+                    moving: ((aovivo ?? [])[0].speedKph ?? 0) > 3,
+                    tag: (aovivo ?? [])[0].assetTag,
+                    family: (aovivo ?? [])[0].assetFamily ?? null,
+                  }
+                : null
+            }
+          />
 
           {(aovivo ?? []).length > 0 && (
             <Stack gap={6}>

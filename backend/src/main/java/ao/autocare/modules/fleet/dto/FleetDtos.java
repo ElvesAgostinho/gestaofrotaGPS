@@ -244,6 +244,8 @@ public final class FleetDtos {
      */
     public record RouteLiveView(
             String routeId, String routeName, String assetId, String assetTag, String assetName,
+            /** A família do catálogo: o mapa desenha o veículo certo. */
+            String assetFamily,
             String driverName,
             java.time.Instant positionAt, BigDecimal latitude, BigDecimal longitude,
             BigDecimal speedKph,
