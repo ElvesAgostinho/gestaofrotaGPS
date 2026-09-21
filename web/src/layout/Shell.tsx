@@ -36,6 +36,7 @@ import { MARCA } from '../theme';
 import { NavLink as RouterLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth, type Role } from '../auth/AuthContext';
+import { temAppDoTelemovel } from '../pages/mobile/modo';
 
 interface NavItem {
   to: string;
@@ -272,19 +273,21 @@ export function Shell() {
                 </UnstyledButton>
               </Menu.Target>
               <Menu.Dropdown>
-                <Menu.Item
-                  leftSection={<IconDeviceMobile size={16} />}
-                  onClick={() => {
-                    try {
-                      localStorage.setItem('imbondeiro.modo', 'mobile');
-                    } catch {
-                      /* sem armazenamento local segue na mesma */
-                    }
-                    navigate('/m');
-                  }}
-                >
-                  Modo telemóvel
-                </Menu.Item>
+                {temAppDoTelemovel(org?.myRole) && (
+                  <Menu.Item
+                    leftSection={<IconDeviceMobile size={16} />}
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('imbondeiro.modo', 'mobile');
+                      } catch {
+                        /* sem armazenamento local segue na mesma */
+                      }
+                      navigate('/m');
+                    }}
+                  >
+                    Modo telemóvel
+                  </Menu.Item>
+                )}
                 <Menu.Item leftSection={<IconLogout size={16} />} onClick={signOut}>
                   Terminar sessão
                 </Menu.Item>

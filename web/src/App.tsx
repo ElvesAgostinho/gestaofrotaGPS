@@ -46,7 +46,7 @@ import { MAbastecerPage } from './pages/mobile/MAbastecerPage';
 import { MRotaPage } from './pages/mobile/MRotaPage';
 import { MAtestarPage } from './pages/mobile/MAtestarPage';
 import { MPerfilPage } from './pages/mobile/MPerfilPage';
-import { prefereTelemovel } from './pages/mobile/modo';
+import { prefereTelemovel, temAppDoTelemovel } from './pages/mobile/modo';
 import { PrimeirosPassosPage } from './pages/PrimeirosPassosPage';
 
 // O MapLibre pesa mais do que todo o resto da aplicação junta e só serve uma
@@ -107,6 +107,17 @@ function Router() {
     return <TrocarPalavraPasse />;
   }
 
+  // Sem empresa activa — o acesso foi bloqueado, ou a conta ainda não pertence
+  // a nenhuma — não há sistema para mostrar. Diz-se isso, em vez de um painel
+  // vazio a devolver 403 em cada canto.
+  if (!org && !user.admin) {
+    return (
+      <EmpresaBloqueadaPage
+        motivo="O seu acesso está bloqueado ou a sua conta ainda não está associada a nenhuma empresa. Fale com o seu gestor."
+      />
+    );
+  }
+
   // O administrador da plataforma sem empresa própria só tem a Plataforma.
   if (user.admin && !org) {
     return (
@@ -154,7 +165,10 @@ function Router() {
       <Route path="/entrar" element={<Navigate to="/" replace />} />
       <Route path="/verificar" element={<VerificarPage />} />
       <Route path="/verificar/:code" element={<VerificarPage />} />
-      <Route path="/m" element={<MobileShell />}>
+      {/* A app do telemóvel é do motorista e do mecânico. Um dono ou gestor que
+          escreva /m à mão volta ao painel: o que veria ali é a área de outra
+          pessoa, com «a sua viatura» e «a sua rota» a apontar para ninguém. */}
+      <Route path="/m" element={temAppDoTelemovel(org?.myRole) ? <MobileShell /> : <Navigate to="/" replace />}>
         <Route index element={<MInicioPage />} />
         <Route path="avaria" element={<MAvariaPage />} />
         <Route path="inspecao" element={<MInspecaoPage />} />
