@@ -317,8 +317,17 @@ function NewDriverModal({ opened, onClose }: { opened: boolean; onClose: () => v
   const queryClient = useQueryClient();
   const [form, setForm] = useState<Record<string, string>>({});
 
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.currentTarget.value }));
+  // O valor tem de ser lido AQUI, e não lá dentro.
+  //
+  // A função que se passa ao `setState` não corre no momento do evento: corre
+  // na renderização seguinte, e nessa altura o React já reciclou o evento e
+  // `currentTarget` é nulo. Resultado: «Cannot read properties of null» à
+  // primeira letra escrita, e o ecrã em branco. Lê-se antes, guarda-se numa
+  // variável, e o actualizador só usa o que já está em mão.
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.currentTarget.value;
+    setForm((f) => ({ ...f, [k]: valor }));
+  };
 
   const create = useMutation({
     mutationFn: () =>

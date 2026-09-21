@@ -388,7 +388,10 @@ function ExecutarInspecao({
                     size="xs"
                     placeholder="O que está mal? (fica na ordem de serviço)"
                     value={notas[i.id] ?? ''}
-                    onChange={(e) => setNotas((n) => ({ ...n, [i.id]: e.currentTarget.value }))}
+                    onChange={(e) => {
+                      const valor = e.currentTarget.value;
+                      setNotas((n) => ({ ...n, [i.id]: valor }));
+                    }}
                   />
                 )}
               </div>

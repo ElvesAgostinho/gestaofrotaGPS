@@ -202,7 +202,11 @@ function DocumentosTab({ m, podeGerir }: { m: MotoristaFicha; podeGerir: boolean
       notes: m.notes ?? '',
     });
   }, [m]);
-  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setF((x) => ({ ...x, [k]: e.currentTarget.value }));
+  // Ler o valor antes do actualizador: lá dentro o evento já foi reciclado.
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.currentTarget.value;
+    setF((x) => ({ ...x, [k]: valor }));
+  };
 
   const guardar = useMutation({
     mutationFn: () =>
@@ -270,7 +274,10 @@ function DocumentosTab({ m, podeGerir }: { m: MotoristaFicha; podeGerir: boolean
         <TextInput label="Validade do cartão" type="date" value={f.cardExpiresAt ?? ''} onChange={set('cardExpiresAt')} readOnly={ro} />
         <TextInput label="Validade do exame médico" type="date" value={f.medicalExpiresAt ?? ''} onChange={set('medicalExpiresAt')} readOnly={ro} />
       </Group>
-      <Textarea label="Notas" value={f.notes ?? ''} onChange={(e) => setF((x) => ({ ...x, notes: e.currentTarget.value }))} autosize minRows={2} readOnly={ro} />
+      <Textarea label="Notas" value={f.notes ?? ''} onChange={(e) => {
+          const valor = e.currentTarget.value;
+          setF((x) => ({ ...x, notes: valor }));
+        }} autosize minRows={2} readOnly={ro} />
       <Text size="xs" c="dimmed">
         O sistema avisa os gestores 30, 15 e 7 dias antes de cada validade e no dia em que caduca. Com um documento
         caducado o motorista deixa de poder ser atribuído a viaturas.
