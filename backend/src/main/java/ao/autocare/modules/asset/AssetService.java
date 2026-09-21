@@ -371,6 +371,10 @@ public class AssetService {
                 .orElse(null);
         return new AssetSummary(
                 a.getId(), a.getTag(), a.getName(), a.getAssetType().getName(),
+                ao.autocare.modules.plan.PlanCatalog.codigoPara(
+                        a.getAssetType().getCategory() != null
+                                ? a.getAssetType().getCategory().name() : null,
+                        a.getAssetType().getName()),
                 familia.name(), familia.label(), familia.sortOrder(),
                 a.getLocation() != null ? a.getLocation().getName() : null,
                 a.getStatus().name(), crit, a.isArchived(),

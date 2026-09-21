@@ -108,4 +108,17 @@ public interface WorkOrderRepository extends JpaRepository<WorkOrder, String> {
             """)
     long countCorrectiveOnSystemSince(
             String assetId, String systemCode, java.time.Instant desde, String excludeId);
+
+    /** Ordens por fechar nesta viatura — não se abate por cima de trabalho em curso. */
+    @Query("select count(w) from WorkOrder w where w.asset.id = :assetId "
+            + "and w.status not in (ao.autocare.domain.enums.Enums.WorkOrderStatus.CLOSED, "
+            + "ao.autocare.domain.enums.Enums.WorkOrderStatus.CANCELLED, "
+            + "ao.autocare.domain.enums.Enums.WorkOrderStatus.DONE)")
+    long countOpenForAsset(String assetId);
+
+    /** O que se gastou nesta viatura em toda a vida. */
+    @Query("select coalesce(sum(w.totalCost), 0) from WorkOrder w where w.asset.id = :assetId")
+    java.math.BigDecimal totalCostForAsset(String assetId);
+
+    long countByAssetId(String assetId);
 }

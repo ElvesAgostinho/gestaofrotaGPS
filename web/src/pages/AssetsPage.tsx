@@ -180,7 +180,7 @@ export function AssetsPage() {
                     color: 'var(--erp-dourado)',
                   }}
                 >
-                  <IconeAtivo tipo={a.assetTypeName} size={20} />
+                  <IconeAtivo tipo={a.assetTypeName} familia={a.family} size={20} />
                 </div>
               ),
             },

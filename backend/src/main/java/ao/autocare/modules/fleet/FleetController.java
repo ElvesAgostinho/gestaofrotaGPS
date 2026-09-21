@@ -47,15 +47,18 @@ public class FleetController {
     private final RouteService routesService;
     private final RouteLiveService routesLiveService;
     private final DriverAccessService driverAccess;
+    private final FluidTopUpService fluids;
     private final OrgContext orgContext;
 
     public FleetController(
             DriverAccessService driverAccess,
+            FluidTopUpService fluids,
             DriverService driversService, RouteService routesService, OrgContext orgContext, RouteLiveService routesLiveService) {
         this.driversService = driversService;
         this.routesService = routesService;
         this.routesLiveService = routesLiveService;
         this.driverAccess = driverAccess;
+        this.fluids = fluids;
         this.orgContext = orgContext;
     }
 
@@ -73,6 +76,48 @@ public class FleetController {
             @RequestParam(defaultValue = "30") int size) {
         return driversService.list(org(p), search,
                 PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 200)));
+    }
+
+    // ==== Atestos de fluidos ===============================================
+
+    /** O que a aplicação envia quando alguém atesta água, óleo ou travões. */
+    public record AtestoRequest(
+            String kind,
+            java.math.BigDecimal liters,
+            java.math.BigDecimal meterValue,
+            String note,
+            java.time.Instant recordedAt) {}
+
+    @Operation(summary = "Atestos de fluidos de uma viatura",
+            description = "Água, óleo, hidráulico e travões. Fluido que se atesta é fluido "
+                    + "que se perdeu: a lista mostra a tendência.")
+    @GetMapping("/api/v1/assets/{assetId}/fluid-topups")
+    public java.util.List<FluidTopUpService.Registo> fluidTopUps(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String assetId) {
+        return fluids.list(org(p), assetId);
+    }
+
+    @Operation(summary = "Registar um atesto de fluido",
+            description = "Ao terceiro atesto de arrefecimento em 30 dias — ou aos cinco "
+                    + "litros — os gestores são avisados de que há fuga. No líquido de "
+                    + "travões avisa-se logo ao primeiro.")
+    @RequireRole(MembershipRole.DRIVER)
+    @PostMapping("/api/v1/assets/{assetId}/fluid-topups")
+    @ResponseStatus(HttpStatus.CREATED)
+    public FluidTopUpService.Resultado recordFluidTopUp(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @PathVariable String assetId,
+            @RequestBody AtestoRequest req) {
+        ao.autocare.domain.FluidTopUp.Kind kind;
+        try {
+            kind = req.kind() == null || req.kind().isBlank()
+                    ? ao.autocare.domain.FluidTopUp.Kind.COOLANT
+                    : ao.autocare.domain.FluidTopUp.Kind.valueOf(req.kind().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw ao.autocare.common.ApiException.badRequest("Fluido desconhecido: " + req.kind());
+        }
+        return fluids.record(org(p), p.id(), assetId, kind, req.liters(), req.meterValue(),
+                req.note(), req.recordedAt());
     }
 
     // ==== Acesso do motorista à aplicação ==================================

@@ -57,6 +57,19 @@ public final class PlanCatalog {
                         "Revisões por quilometragem: 10.000, 20.000, 40.000 e 60.000 km, "
                                 + "mais o que se faz por tempo e não por quilómetros.",
                         lightVehicleTasks().size()),
+                new Modelo("BUS",
+                        "Autocarro de passageiros",
+                        "Revisões por quilometragem com o que evita o que mais mata em "
+                                + "Angola: sobreaquecimento, curto-circuito e incêndio a bordo.",
+                        busTasks().size()),
+                new Modelo("FORKLIFT",
+                        "Empilhadora",
+                        "Revisões por horas: mastro, correntes, garfos, hidráulico e bateria.",
+                        forkliftTasks().size()),
+                new Modelo("IMPLEMENT",
+                        "Alfaia ou reboque",
+                        "Equipamento sem motor: estrutura, engates, rolamentos e travagem.",
+                        implementTasks().size()),
                 new Modelo("GENERATOR",
                         "Gerador diesel",
                         "Ensaio semanal, revisões às 250, 500 e 1000 horas.",
@@ -80,6 +93,27 @@ public final class PlanCatalog {
         if ("GENERATOR".equals(categoria) || n.contains("gerador") || n.contains("electrog")
                 || n.contains("eletrog") || n.contains("generator")) {
             return "GENERATOR";
+        }
+        // Um autocarro não é um camião: leva pessoas, e é isso que muda tudo —
+        // da inspeção diária à criticidade. Vem antes dos outros veículos
+        // porque «autocarro de passageiros» também contém «passageiros».
+        // «Ligeiro de passageiros» é um carro, não um autocarro: a palavra
+        // «passageiros» sozinha não chega para decidir.
+        boolean autocarro = n.contains("autocarro") || n.contains("onibus")
+                || n.contains("minibus") || n.matches(".*\bbus\b.*")
+                || (n.contains("passageiro") && !n.contains("ligeir"));
+        if (autocarro) {
+            return "BUS";
+        }
+        if (n.contains("empilhad") || n.contains("forklift")) {
+            return "FORKLIFT";
+        }
+        // Alfaias e implementos não têm motor: são rebocados e é a estrutura,
+        // os engates e os rolamentos que se verificam.
+        if ("IMPLEMENT".equals(categoria) || n.contains("alfaia") || n.contains("implemento")
+                || n.contains("reboque") || n.contains("atrelado") || n.contains("semirreboque")
+                || n.contains("semi-reboque") || n.contains("cisterna")) {
+            return "IMPLEMENT";
         }
         if ("VEHICLE".equals(categoria)) {
             boolean ligeiro = n.contains("ligeir") || n.contains("carro") || n.contains("autom")
@@ -138,6 +172,43 @@ public final class PlanCatalog {
                             + "do fabricante, sobretudo a correia de distribuição.",
                     "Departamento de Manutenção",
                     lightVehicleTasks());
+            case "BUS" -> new SavePlanRequest(
+                    "Autocarro — plano preventivo",
+                    assetTypeId,
+                    "Revisões por quilometragem para autocarro de passageiros, com o sistema "
+                            + "de arrefecimento e o sistema elétrico tratados como o que são "
+                            + "num autocarro: risco de vida.",
+                    "Um autocarro que arde em viagem não arde de repente. Arde depois de "
+                            + "semanas a perder água, de um radiador entupido, de um cabo a "
+                            + "roçar no chassi ou de uma ligação frouxa a aquecer. Todas essas "
+                            + "coisas se veem antes — e é para isso que serve este plano.",
+                    "Transportar pessoas em segurança, com a viatura disponível e sem "
+                            + "paragens em estrada.",
+                    "Intervalos habituais de frota de passageiros. Confirmar com o manual do "
+                            + "fabricante e com a legislação de transporte de passageiros.",
+                    "Departamento de Manutenção",
+                    busTasks());
+            case "FORKLIFT" -> new SavePlanRequest(
+                    "Empilhadora — plano preventivo",
+                    assetTypeId,
+                    "Revisões por horas de funcionamento para empilhadora.",
+                    "Os garfos e as correntes são peças de segurança: uma corrente partida "
+                            + "com carga em cima é um acidente grave, não uma avaria.",
+                    "Manter a empilhadora disponível e segura para quem trabalha à volta dela.",
+                    "Intervalos habituais de equipamento de movimentação de cargas.",
+                    "Departamento de Manutenção",
+                    forkliftTasks());
+            case "IMPLEMENT" -> new SavePlanRequest(
+                    "Alfaia ou reboque — plano preventivo",
+                    assetTypeId,
+                    "Equipamento rebocado: estrutura, engates, rolamentos e travagem.",
+                    "Sem motor não há óleo para trocar — o que parte um reboque é a "
+                            + "estrutura, o engate e os rolamentos de roda, que ninguém olha "
+                            + "até ao dia em que a roda sai.",
+                    "Manter o equipamento rebocado em condições de ser usado com segurança.",
+                    "Intervalos habituais; ajustar ao uso e ao tipo de piso.",
+                    "Departamento de Manutenção",
+                    implementTasks());
             case "GENERATOR" -> new SavePlanRequest(
                     "Gerador diesel — plano preventivo",
                     assetTypeId,
@@ -704,6 +775,246 @@ public final class PlanCatalog {
         return t;
     }
 
+    // ==== Autocarro ========================================================
+
+    /**
+     * O plano do autocarro, por quilometragem.
+     *
+     * <p>É o plano de um pesado, mas com duas diferenças que não são de
+     * detalhe: o <b>arrefecimento</b> e o <b>sistema elétrico</b> aparecem em
+     * todos os intervalos, e não de vez em quando. Um autocarro que pega fogo
+     * em viagem não pegou fogo de repente: perdeu água durante semanas, teve o
+     * radiador entupido de poeira, um cabo a roçar no chassi ou uma ligação
+     * frouxa a aquecer. Tudo isso se vê antes, e é isso que aqui está.
+     */
+    private static List<TaskInput> busTasks() {
+        List<TaskInput> t = new ArrayList<>();
+
+        // --- 10 000 km -------------------------------------------------------
+        t.add(tarefa("MOTOR", "Motor", "Motor — óleo, filtros e fugas (10.000 km)",
+                "· Trocar o óleo do motor e o filtro de óleo\n"
+                        + "· Substituir o filtro de ar\n"
+                        + "· Procurar fugas de óleo e de gasóleo, sobretudo junto ao escape\n\n"
+                        + "Gasóleo a pingar em cima de um escape quente é a causa mais comum "
+                        + "de incêndio num autocarro. Registar qualquer fuga, por pequena que "
+                        + "pareça.",
+                150, "Chave de filtros, recipiente, lanterna, EPIs",
+                km(10_000), List.of(
+                        peca("Filtro de óleo", "1", "un"),
+                        peca("Filtro de ar", "1", "un"),
+                        peca("Óleo do motor 15W-40", "34", "L"))));
+
+        t.add(tarefa("ARREFECIMENTO", "Sistema de arrefecimento",
+                "Arrefecimento — nível, estanquidade e radiador (10.000 km)",
+                "· Verificar o nível a frio e a concentração do líquido\n"
+                        + "· Procurar fugas: mangueiras, abraçadeiras, bomba de água, radiador\n"
+                        + "· Lavar o radiador por fora e limpar as grelhas\n"
+                        + "· Confirmar a tampa do radiador (a pressão é o que impede a fervura)\n\n"
+                        + "Registar quantos litros foram atestados. Um autocarro que precisa "
+                        + "de água todas as semanas tem uma fuga — e uma fuga acaba em motor "
+                        + "gripado ou em incêndio.",
+                90, "Refratómetro, lanterna, máquina de lavar a baixa pressão",
+                km(10_000), List.of(peca("Líquido de refrigeração", "5", "L"))));
+
+        t.add(tarefa("ELETRICO", "Sistema elétrico",
+                "Elétrico — cablagem, bateria e risco de incêndio (10.000 km)",
+                "· Inspecionar a cablagem em toda a extensão: cabos a roçar, isolamento "
+                        + "queimado, fita isolada de emendas antigas\n"
+                        + "· Reapertar os terminais da bateria e do corta-corrente\n"
+                        + "· Confirmar que não há ligações feitas «à pressa» sem fusível\n\n"
+                        + "A maior parte dos incêndios em autocarros começa num cabo que "
+                        + "ninguém emendou como devia.",
+                90, "Multímetro, alicate, abraçadeiras, fita de auto-fusão",
+                km(10_000), List.of()));
+
+        t.add(tarefa("SEGURANCA", "Segurança a bordo",
+                "Segurança — extintores, saídas e martelos (10.000 km)",
+                "· Extintores: carga, validade, fixação e acesso desimpedido\n"
+                        + "· Saídas de emergência: abrem, e o corredor está livre\n"
+                        + "· Martelos de emergência no sítio\n"
+                        + "· Caixa de primeiros socorros completa",
+                45, "—", km(10_000), List.of()));
+
+        t.add(tarefa("RODADO", "Pneus e rodado",
+                "Rodado — pressões, piso e aperto (10.000 km)",
+                "Medir pressão a frio e piso em cada posição; reapertar as porcas ao "
+                        + "binário. Num autocarro, um rebentamento é um acidente com pessoas.",
+                60, "Manómetro, medidor de piso, chave dinamométrica", km(10_000), List.of()));
+
+        // --- 20 000 km -------------------------------------------------------
+        t.add(tarefa("TRAVAGEM", "Sistema de travagem",
+                "Travagem — pastilhas, tambores e circuito (20.000 km)",
+                "Medir e registar pastilhas ou maxilas em cada eixo, ensaiar a travagem e "
+                        + "purgar a água dos reservatórios de ar.",
+                180, "Paquímetro, manómetro, macaco",
+                km(20_000), List.of(peca("Pastilhas de travão", "1", "jogo"))));
+
+        t.add(tarefa("ARREFECIMENTO", "Sistema de arrefecimento",
+                "Arrefecimento — termostato, ventoinha e sensores (20.000 km)",
+                "Ensaiar o termostato, confirmar que a ventoinha (ou a embraiagem "
+                        + "viscosa) engata, e verificar o sensor e o indicador de temperatura "
+                        + "no painel. Um indicador avariado é pior do que não ter nenhum: o "
+                        + "motorista conduz a ferver e não sabe.",
+                120, "Termómetro, multímetro", km(20_000), List.of()));
+
+        t.add(tarefa("SUSPENSAO", "Suspensão e direção",
+                "Suspensão — molas, amortecedores e direção (20.000 km)",
+                "Lubrificar pinos, procurar molas partidas e fugas nos amortecedores, "
+                        + "verificar folgas na direção. Numa via degradada é o que mais sofre.",
+                120, "Bomba de massa, pé de cabra",
+                km(20_000), List.of(peca("Massa lubrificante EP2", "1", "kg"))));
+
+        t.add(tarefa("CONFORTO", "Conforto dos passageiros",
+                "Interior — ar condicionado, bancos e iluminação (20.000 km)",
+                "Higienizar o evaporador e verificar a carga de gás, o estado dos bancos "
+                        + "e cintos, e a iluminação interior. Num autocarro de viagem isto é "
+                        + "o produto, não um extra.",
+                120, "Máquina de recuperação de gás, produto de higienização",
+                km(20_000), List.of()));
+
+        // --- 40 000 km -------------------------------------------------------
+        t.add(tarefa("MOTOR", "Motor", "Motor — injeção, turbo e escape (40.000 km)",
+                "Ensaiar injetores, inspecionar o turbo e verificar o escape em toda a "
+                        + "extensão: tubos, fixações e proteções térmicas. Uma proteção térmica "
+                        + "em falta põe o escape a aquecer o que está à volta.",
+                240, "Kit de ensaio de injeção, lanterna", km(40_000), List.of()));
+
+        t.add(tarefa("ARREFECIMENTO", "Sistema de arrefecimento",
+                "Arrefecimento — substituir o líquido e lavar o circuito (40.000 km)",
+                "Substituir o líquido, lavar o circuito por dentro e substituir mangueiras "
+                        + "que estejam moles ou esponjosas ao apalpar.",
+                180, "Kit de lavagem, refratómetro",
+                km(40_000), List.of(
+                        peca("Líquido de refrigeração", "40", "L"),
+                        peca("Mangueiras do radiador", "1", "jogo"))));
+
+        t.add(tarefa("ELETRICO", "Sistema elétrico",
+                "Elétrico — termografia do quadro e do alternador (40.000 km)",
+                "Medir com câmara térmica o quadro elétrico, o alternador e os cabos de "
+                        + "potência com o motor a trabalhar. Uma ligação a aquecer aparece na "
+                        + "câmara semanas antes de arder.",
+                120, "Câmara termográfica, chave dinamométrica", km(40_000), List.of()));
+
+        t.add(tarefa("TRANSMISSAO", "Sistema de transmissão",
+                "Transmissão — óleo da caixa e diferenciais (40.000 km)",
+                "Trocar o óleo da caixa e dos diferenciais; verificar cruzetas e apoios.",
+                240, "Chave de bujões, funil",
+                km(40_000), List.of(
+                        peca("Óleo da caixa", "14", "L"),
+                        peca("Óleo do diferencial SAE 80W-90", "16", "L"))));
+
+        // --- 80 000 km -------------------------------------------------------
+        t.add(tarefa("MOTOR", "Motor", "Motor — revisão maior (80.000 km)",
+                "Regulação de válvulas, correias, bomba de água e revisão do sistema de "
+                        + "arrefecimento completo.",
+                480, "Apalpa-folgas, chave dinamométrica",
+                km(80_000), List.of(
+                        peca("Correias", "1", "jogo"),
+                        peca("Bomba de água", "1", "un"))));
+
+        t.add(tarefa("ESTRUTURA", "Estrutura e carroçaria",
+                "Estrutura — chassi, carroçaria e corrosão (80.000 km)",
+                "Inspeção de soldas, trincas e corrosão no chassi e na estrutura da "
+                        + "carroçaria, incluindo os apoios dos bancos e as fixações dos cintos.",
+                300, "Lanterna, líquidos penetrantes", km(80_000), List.of()));
+
+        t.add(tarefa("SEGURANCA", "Segurança a bordo",
+                "Segurança — revisão completa do sistema anti-incêndio (80.000 km)",
+                "Rever extintores (ensaio hidrostático quando devido), detetores, corta-"
+                        + "corrente geral e, se existir, o sistema automático de extinção do "
+                        + "compartimento do motor.",
+                180, "—", km(80_000), List.of()));
+
+        return t;
+    }
+
+    // ==== Empilhadora ======================================================
+
+    private static List<TaskInput> forkliftTasks() {
+        List<TaskInput> t = new ArrayList<>();
+
+        t.add(tarefa("SEGURANCA", "Segurança",
+                "Garfos, correntes e mastro (250 h)",
+                "· Medir o desgaste dos garfos (o talão não pode estar gasto além de 10 %)\n"
+                        + "· Verificar a tensão e o estado das correntes de elevação\n"
+                        + "· Confirmar as travas dos garfos e a proteção do condutor\n\n"
+                        + "São peças de segurança: uma corrente partida com carga em cima é um "
+                        + "acidente grave, não uma avaria.",
+                90, "Paquímetro, calibrador de correntes, EPIs", horas(250), List.of()));
+
+        t.add(tarefa("HIDRAULICO", "Sistema hidráulico",
+                "Hidráulico — nível, mangueiras e cilindros (250 h)",
+                "Verificar o nível, procurar fugas nos cilindros de elevação e inclinação "
+                        + "e inspecionar mangueiras.",
+                45, "Lanterna, EPIs", horas(250), List.of()));
+
+        t.add(tarefa("MOTOR", "Motor", "Motor ou bateria de tração (250 h)",
+                "Nas térmicas: óleo, filtros e escape. Nas elétricas: nível do "
+                        + "eletrólito, limpeza e aperto dos terminais e estado do carregador.",
+                120, "Chave de filtros, densímetro, multímetro",
+                horas(250), List.of(peca("Filtro de óleo", "1", "un"))));
+
+        t.add(tarefa("TRAVAGEM", "Sistema de travagem",
+                "Travagem e travão de estacionamento (500 h)",
+                "Ensaiar a travagem com e sem carga e afinar o travão de estacionamento.",
+                60, "—", horas(500), List.of()));
+
+        t.add(tarefa("HIDRAULICO", "Sistema hidráulico",
+                "Hidráulico — filtro e óleo (1000 h)",
+                "Substituir o filtro e o óleo hidráulico; limpar o respiro do reservatório.",
+                180, "Chave de filtros, funil",
+                horas(1000), List.of(
+                        peca("Filtro hidráulico", "1", "un"),
+                        peca("Óleo hidráulico", "30", "L"))));
+
+        t.add(tarefa("ESTRUTURA", "Estrutura",
+                "Mastro, rolamentos e estrutura (1000 h)",
+                "Inspecionar os rolamentos do mastro, a folga lateral e as soldas da "
+                        + "estrutura e da proteção do condutor.",
+                120, "Paquímetro, lanterna", horas(1000), List.of()));
+
+        return t;
+    }
+
+    // ==== Alfaia ou reboque ================================================
+
+    private static List<TaskInput> implementTasks() {
+        List<TaskInput> t = new ArrayList<>();
+
+        t.add(tarefa("ESTRUTURA", "Estrutura e engate",
+                "Engate, cavilhas e estrutura (250 h)",
+                "· Verificar o engate, a cavilha e a corrente de segurança\n"
+                        + "· Procurar trincas nas soldas e na barra de tração\n"
+                        + "· Confirmar o aperto dos parafusos estruturais",
+                45, "Chave dinamométrica, lanterna", horas(250), List.of()));
+
+        t.add(tarefa("LUBRIFICACAO", "Lubrificação",
+                "Lubrificar pontos e rolamentos de roda (250 h)",
+                "Lubrificar todos os copos de massa e verificar a folga dos rolamentos "
+                        + "das rodas. Um rolamento seco aquece, gripa e a roda sai.",
+                45, "Bomba de massa, macaco",
+                horas(250), List.of(peca("Massa lubrificante EP2", "1", "kg"))));
+
+        t.add(tarefa("RODADO", "Pneus e rodado",
+                "Pressões, piso e aperto de rodas (250 h)",
+                "Medir pressão e piso, e reapertar as porcas ao binário.",
+                30, "Manómetro, chave dinamométrica", horas(250), List.of()));
+
+        t.add(tarefa("TRAVAGEM", "Sistema de travagem",
+                "Travagem e sinalização (500 h)",
+                "Ensaiar a travagem do reboque, verificar as ligações pneumáticas ou "
+                        + "elétricas e confirmar luzes e refletores.",
+                60, "Manómetro, multímetro", horas(500), List.of()));
+
+        t.add(tarefa("ESTRUTURA", "Estrutura e engate",
+                "Revisão geral da estrutura (2000 h)",
+                "Inspeção completa de soldas, corrosão e deformações; revisão dos "
+                        + "rolamentos e substituição dos vedantes.",
+                240, "Líquidos penetrantes, extractor de rolamentos", horas(2000), List.of()));
+
+        return t;
+    }
+
     // ==== Gerador ==========================================================
 
     /**
@@ -950,6 +1261,53 @@ public final class PlanCatalog {
                             item("Água do limpa-vidros e estado das escovas", VERIFY, false),
                             item("Triângulo, colete e macaco a bordo", VERIFY, true),
                             item("Documentos da viatura e do condutor", VERIFY, true)));
+            case "BUS" -> new SaveTemplateRequest(
+                    "Inspeção diária — autocarro",
+                    assetTypeId,
+                    "A fazer antes de cada viagem. Leva dez minutos e é o que separa uma "
+                            + "avaria de um acidente com pessoas a bordo.",
+                    15,
+                    List.of(
+                            item("Nível do líquido de arrefecimento (motor frio)", VERIFY, true),
+                            item("Nível do óleo do motor", VERIFY, true),
+                            item("Manchas de óleo, gasóleo ou água por baixo", INSPECT, true),
+                            item("Cheiro a queimado, a gasóleo ou a borracha", INSPECT, true),
+                            item("Temperatura no painel sobe e estabiliza ao ralenti", TEST, true),
+                            item("Pressão e piso dos pneus, incluindo os rodados duplos", INSPECT, true),
+                            item("Travões, travão de mão e pressão de ar", TEST, true),
+                            item("Luzes, piscas, stops e sinalização", TEST, true),
+                            item("Extintores: carga, validade e acesso livre", VERIFY, true),
+                            item("Saídas de emergência e martelos no sítio", VERIFY, true),
+                            item("Cintos de segurança e estado dos bancos", INSPECT, false),
+                            item("Ar condicionado a funcionar", TEST, false),
+                            item("Documentos da viatura e do condutor", VERIFY, true)));
+            case "FORKLIFT" -> new SaveTemplateRequest(
+                    "Inspeção diária — empilhadora",
+                    assetTypeId,
+                    "A fazer antes do turno, com a empilhadora no chão e o motor parado.",
+                    10,
+                    List.of(
+                            item("Garfos: trincas, empeno e travas", INSPECT, true),
+                            item("Correntes de elevação: tensão, lubrificação e elos", INSPECT, true),
+                            item("Fugas de óleo hidráulico no mastro e nos cilindros", INSPECT, true),
+                            item("Níveis: óleo do motor, hidráulico e arrefecimento", VERIFY, true),
+                            item("Pneus e rodados", INSPECT, false),
+                            item("Travões e travão de estacionamento", TEST, true),
+                            item("Buzina, luzes e alarme de marcha-atrás", TEST, true),
+                            item("Extintor e cinto do condutor", VERIFY, true)));
+            case "IMPLEMENT" -> new SaveTemplateRequest(
+                    "Inspeção antes do uso — alfaia ou reboque",
+                    assetTypeId,
+                    "A fazer antes de engatar. São três minutos e evita perder uma roda "
+                            + "ou um reboque em andamento.",
+                    5,
+                    List.of(
+                            item("Engate, cavilha e corrente de segurança", INSPECT, true),
+                            item("Pneus e aperto das porcas de roda", INSPECT, true),
+                            item("Folga dos rolamentos das rodas", INSPECT, true),
+                            item("Luzes e refletores ligados ao trator", TEST, true),
+                            item("Trincas em soldas e na barra de tração", INSPECT, true),
+                            item("Carga bem distribuída e amarrada", INSPECT, true)));
             case "GENERATOR" -> new SaveTemplateRequest(
                     "Inspeção diária — gerador",
                     assetTypeId,
@@ -997,6 +1355,23 @@ public final class PlanCatalog {
                     programa(PredictiveTechnique.ALIGNMENT, 12,
                             "Direção e rodado",
                             "Evitar desgaste irregular dos pneus"));
+            case "BUS" -> List.of(
+                    programa(PredictiveTechnique.THERMOGRAPHY, 3,
+                            "Quadro elétrico, alternador, cabos de potência, compartimento do motor",
+                            "Apanhar ligações e cabos a aquecer antes de arderem"),
+                    programa(PredictiveTechnique.OIL_ANALYSIS, 6,
+                            "Motor, caixa, diferenciais",
+                            "Avaliar desgaste interno e contaminação por água"),
+                    programa(PredictiveTechnique.ALIGNMENT, 6,
+                            "Direção e rodado",
+                            "Evitar desgaste irregular e rebentamentos"));
+            case "FORKLIFT" -> List.of(
+                    programa(PredictiveTechnique.OIL_ANALYSIS, 12,
+                            "Hidráulico e transmissão",
+                            "Avaliar contaminação do óleo hidráulico"),
+                    programa(PredictiveTechnique.THERMOGRAPHY, 6,
+                            "Bateria de tração, carregador e ligações",
+                            "Detetar ligações a aquecer no carregamento"));
             case "LIGHT_VEHICLE" -> List.of(
                     programa(PredictiveTechnique.OIL_ANALYSIS, 12,
                             "Motor",
@@ -1056,6 +1431,28 @@ public final class PlanCatalog {
                     parte("Filtro de combustível", "COMBUSTIVEL", "un", "2"),
                     parte("Pastilhas de travao", "TRAVAGEM", "jogo", "1"),
                     parte("Correias", "MOTOR", "jogo", "1"));
+            case "BUS" -> List.of(
+                    parte("Filtro de óleo", "MOTOR", "un", "2"),
+                    parte("Filtro de ar", "MOTOR", "un", "2"),
+                    parte("Filtro de combustível", "COMBUSTIVEL", "un", "2"),
+                    parte("Líquido de refrigeração", "ARREFECIMENTO", "L", "40"),
+                    parte("Mangueiras do radiador", "ARREFECIMENTO", "jogo", "1"),
+                    parte("Termostato", "ARREFECIMENTO", "un", "1"),
+                    parte("Correias", "MOTOR", "jogo", "1"),
+                    parte("Pastilhas de travão", "TRAVAGEM", "jogo", "2"),
+                    parte("Extintor 6 kg ABC", "SEGURANCA", "un", "2"),
+                    parte("Fusíveis e relés", "ELETRICO", "kit", "2"),
+                    parte("Lâmpadas", "ELETRICO", "un", "10"));
+            case "FORKLIFT" -> List.of(
+                    parte("Filtro hidráulico", "HIDRAULICO", "un", "1"),
+                    parte("Óleo hidráulico", "HIDRAULICO", "L", "30"),
+                    parte("Correntes de elevação", "SEGURANCA", "jogo", "1"),
+                    parte("Filtro de óleo", "MOTOR", "un", "1"));
+            case "IMPLEMENT" -> List.of(
+                    parte("Massa lubrificante EP2", "LUBRIFICACAO", "kg", "5"),
+                    parte("Rolamentos de roda", "RODADO", "jogo", "1"),
+                    parte("Cavilhas de engate", "ESTRUTURA", "un", "2"),
+                    parte("Lâmpadas e refletores", "ELETRICO", "kit", "1"));
             case "LIGHT_VEHICLE" -> List.of(
                     parte("Filtro de óleo", "MOTOR", "un", "2"),
                     parte("Filtro de ar", "MOTOR", "un", "2"),
@@ -1120,6 +1517,15 @@ public final class PlanCatalog {
             case "TRUCK_HEAVY" -> new CriticalityRequest(4, 4, 4, null,
                     "Veículo pesado de mercadorias: paragem afeta entregas e "
                             + "envolve risco rodoviário.");
+            case "BUS" -> new CriticalityRequest(4, 5, 4, null,
+                    "Transporte de passageiros: uma falha não é uma paragem, é um risco "
+                            + "para dezenas de pessoas. Impacto na segurança no máximo.");
+            case "FORKLIFT" -> new CriticalityRequest(4, 4, 3, null,
+                    "Movimentação de cargas junto de pessoas: garfos e correntes são "
+                            + "peças de segurança.");
+            case "IMPLEMENT" -> new CriticalityRequest(2, 3, 2, null,
+                    "Equipamento rebocado: substitui-se com facilidade, mas uma roda "
+                            + "que sai em andamento é um acidente.");
             case "LIGHT_VEHICLE" -> new CriticalityRequest(3, 4, 2, null,
                     "Ligeiro de frota: a paragem resolve-se com outra viatura, mas o risco "
                             + "rodoviário de quem a conduz é o mesmo de um pesado.");

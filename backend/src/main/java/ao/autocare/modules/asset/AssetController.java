@@ -41,12 +41,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class AssetController {
 
     private final AssetService service;
+    private final AssetRetirementService retirement;
     private final OrgContext orgContext;
     private final AssetSheetPdfService sheetPdf;
     private final AssetHistoryPdfService historyPdf;
     private final ao.autocare.modules.org.DocumentSealService seals;
 
     public AssetController(AssetService service, OrgContext orgContext,
+            AssetRetirementService retirement,
             AssetSheetPdfService sheetPdf,
             AssetHistoryPdfService historyPdf,
             ao.autocare.modules.org.DocumentSealService seals) {
@@ -54,6 +56,7 @@ public class AssetController {
         this.historyPdf = historyPdf;
         this.seals = seals;
         this.service = service;
+        this.retirement = retirement;
         this.orgContext = orgContext;
     }
 
@@ -133,6 +136,47 @@ public class AssetController {
             @PathVariable String id,
             @Valid @RequestBody UpdateAssetRequest req) {
         return service.update(orgContext.requireOrganizationId(principal), principal.id(), id, req);
+    }
+
+
+    // ==== Abate ============================================================
+
+    /** O que o ecrã envia ao abater. */
+    public record AbateRequest(
+            String reason,
+            java.time.Instant retiredAt,
+            java.math.BigDecimal finalMeter,
+            java.math.BigDecimal residualValue,
+            String notes) {}
+
+    @Operation(summary = "Ativos abatidos",
+            description = "Os que saíram da frota, com o motivo, o contador final, quanto "
+                    + "renderam e quanto custaram em manutenção ao longo da vida.")
+    @GetMapping("/retired")
+    public java.util.List<AssetRetirementService.Abate> retired(
+            @AuthenticationPrincipal AuthPrincipal principal) {
+        return retirement.listar(orgContext.requireOrganizationId(principal));
+    }
+
+    @Operation(summary = "Abater um ativo",
+            description = "Sai das listas e dos indicadores, mas o histórico fica: é ele "
+                    + "que diz se valeu a pena. Não se abate com ordens por fechar.")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PostMapping("/{id}/retire")
+    public AssetRetirementService.Abate retire(
+            @AuthenticationPrincipal AuthPrincipal principal,
+            @PathVariable String id,
+            @RequestBody AbateRequest req) {
+        return retirement.abater(orgContext.requireOrganizationId(principal), principal.id(), id,
+                req.reason(), req.retiredAt(), req.finalMeter(), req.residualValue(), req.notes());
+    }
+
+    @Operation(summary = "Reverter o abate de um ativo")
+    @RequirePermission(Permission.ASSETS_MANAGE)
+    @PostMapping("/{id}/unretire")
+    public AssetRetirementService.Abate unretire(
+            @AuthenticationPrincipal AuthPrincipal principal, @PathVariable String id) {
+        return retirement.reverter(orgContext.requireOrganizationId(principal), principal.id(), id);
     }
 
     @Operation(summary = "Arquivar / desarquivar um ativo")

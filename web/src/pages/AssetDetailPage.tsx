@@ -20,6 +20,7 @@ import {
 } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
+  IconTrashOff,
   IconAlertTriangle,
   IconArrowLeft,
   IconClipboardList,
@@ -54,6 +55,7 @@ import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
 import { PneusTab } from './assets/PneusTab';
 import { InspecoesTab } from './assets/InspecoesTab';
+import { AbaterAtivoModal, ReverterAbate } from './assets/AbaterAtivo';
 import { IndicadoresFicha, ProgramaPreditivoFicha } from './assets/FichaPreditiva';
 import { PrevisaoAvarias } from '../components/PrevisaoAvarias';
 import { EstadoTarefa, LimiteManutencaoModal, PainelProximaManutencao, unidade } from './assets/LimiteManutencao';
@@ -73,6 +75,7 @@ export function AssetDetailPage() {
   const [reading, setReading] = useState<number | ''>('');
   const [novaOrdem, setNovaOrdem] = useState(false);
   const [editar, setEditar] = useState(false);
+  const [abater, setAbater] = useState(false);
   const navigate = useNavigate();
 
   const { data: asset, isLoading } = useQuery({
@@ -125,6 +128,14 @@ export function AssetDetailPage() {
   return (
     <Stack gap="lg">
       <NovaOrdemForm aberto={novaOrdem} fechar={() => setNovaOrdem(false)} assetIdFixo={id} />
+      <AbaterAtivoModal
+        assetId={id}
+        tag={asset.tag}
+        contadorActual={meter?.currentValue ?? null}
+        unidade={meter?.kind === 'HOURMETER' ? 'h' : 'km'}
+        aberto={abater}
+        fechar={() => setAbater(false)}
+      />
       <EditarAtivoForm ativo={asset} aberto={editar} fechar={() => setEditar(false)} />
 
       <CabecalhoFicha
@@ -139,7 +150,7 @@ export function AssetDetailPage() {
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
           ) : (
-            <IconeAtivo tipo={asset.assetTypeName} size={54} />
+            <IconeAtivo tipo={asset.assetTypeName} familia={asset.family} size={54} />
           )
         }
         identificador={asset.tag}
@@ -176,6 +187,16 @@ export function AssetDetailPage() {
             {has('ASSETS_MANAGE') && (
               <BotaoBarra icone={<IconPencil size={13} />} onClick={() => setEditar(true)}>
                 Editar
+              </BotaoBarra>
+            )}
+            {has('ASSETS_MANAGE') && asset.retiredAt && <ReverterAbate assetId={id} tag={asset.tag} />}
+            {has('ASSETS_MANAGE') && !asset.retiredAt && (
+              <BotaoBarra
+                icone={<IconTrashOff size={13} />}
+                titulo="Sai da frota: deixa de contar nas listas e nos indicadores, mas o histórico fica"
+                onClick={() => setAbater(true)}
+              >
+                Abater
               </BotaoBarra>
             )}
             <BotaoBarra

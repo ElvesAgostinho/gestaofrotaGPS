@@ -4,6 +4,7 @@ import {
   IconChecklist,
   IconChevronRight,
   IconClipboardList,
+  IconDroplet,
   IconGasStation,
   IconGauge,
   IconRoute,
@@ -186,7 +187,12 @@ export function MInicioPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <Atalho to="/m/abastecer" icone={<IconGasStation size={26} />} titulo="Abastecer" sub="Litros e contador" />
           <Atalho to="/m/avaria" icone={<IconAlertTriangle size={26} />} titulo="Ocorrência" sub="Avaria, acidente, foto" cor={VERMELHO} />
-          <Atalho to="/m/inspecao" icone={<IconChecklist size={26} />} titulo="Inspeção" sub="Antes de arrancar" />
+          <Atalho
+            to="/m/atestar"
+            icone={<IconDroplet size={26} />}
+            titulo="Atestar"
+            sub="Água, óleo, travões"
+          />
           {mecanico ? (
             <Atalho
               to="/m/ordens"

@@ -263,6 +263,99 @@ function DesenhoGerador() {
   );
 }
 
+/** Autocarro de passageiros, visto de lado. */
+function DesenhoAutocarro() {
+  return (
+    <g>
+      <Solo y={332} />
+      {/* carroçaria */}
+      <path d="M70 120h420a14 14 0 0 1 14 14v106a14 14 0 0 1-14 14H70a14 14 0 0 1-14-14V134a14 14 0 0 1 14-14Z"
+        fill={CHAPA} />
+      {/* faixa de janelas */}
+      <path d="M72 138h150v58H72z" fill={VIDRO} />
+      <path d="M236 138h118v58H236z" fill={VIDRO} />
+      <path d="M368 138h118v58H368z" fill={VIDRO} />
+      {/* para-brisas e porta */}
+      <path d="M56 140h14v56H56z" fill={VIDRO} />
+      <path d="M228 138h8v116h-8z" fill={SOMBRA} />
+      <path d="M356 138h8v116h-8z" fill={SOMBRA} />
+      {/* saia e bagageira */}
+      <path d="M56 212h434v42H56z" fill={SOMBRA} />
+      <g opacity=".5">
+        <line x1="120" y1="220" x2="120" y2="248" strokeWidth="1.2" />
+        <line x1="300" y1="220" x2="300" y2="248" strokeWidth="1.2" />
+      </g>
+      {/* farol e grelha de arrefecimento traseira — onde o motor vive */}
+      <rect x="52" y="222" width="18" height="12" rx="3" fill="#FFF8E1" />
+      <g fill={METAL}>
+        {[0, 1, 2].map((i) => (
+          <rect key={i} x="430" y={218 + i * 12} width="56" height="7" rx="3" />
+        ))}
+      </g>
+      <Roda cx={140} cy={272} r={36} />
+      <Roda cx={396} cy={272} r={36} />
+      <Roda cx={452} cy={272} r={36} />
+    </g>
+  );
+}
+
+/** Empilhadora, vista de lado. */
+function DesenhoEmpilhadora() {
+  return (
+    <g>
+      <Solo y={330} />
+      {/* mastro e garfos */}
+      <path d="M120 96h16v190h-16z" fill={METAL} />
+      <path d="M146 96h12v190h-12z" fill={METAL} />
+      <g opacity=".6">
+        <line x1="128" y1="110" x2="128" y2="280" strokeWidth="1.4" />
+        <line x1="152" y1="110" x2="152" y2="280" strokeWidth="1.4" />
+      </g>
+      <path d="M158 210h20v76h-20z" fill={SOMBRA} />
+      <path d="M96 278h84v12H96z" fill={METAL} />
+      <path d="M96 246h10v44H96z" fill={METAL} />
+      {/* corpo e contrapeso */}
+      <path d="M196 200h150a12 12 0 0 1 12 12v74H196z" fill={CHAPA} />
+      <path d="M346 214h44a10 10 0 0 1 10 10v62h-54z" fill={SOMBRA} />
+      {/* proteção do condutor */}
+      <path d="M210 110h130v10H210z" fill={METAL} />
+      <path d="M212 110h10v92h-10z" fill={METAL} />
+      <path d="M330 110h10v92h-10z" fill={METAL} />
+      <path d="M246 150h70v52h-70z" fill={VIDRO} opacity=".5" />
+      <Roda cx={232} cy={288} r={30} />
+      <Roda cx={368} cy={292} r={22} />
+    </g>
+  );
+}
+
+/** Reboque ou alfaia, visto de lado. */
+function DesenhoReboque() {
+  return (
+    <g>
+      <Solo y={328} />
+      {/* barra de tração e engate */}
+      <path d="M60 236h120v14H60z" fill={METAL} />
+      <circle cx="58" cy="243" r="12" fill={METAL} />
+      <circle cx="58" cy="243" r="5" fill="#fff" />
+      {/* caixa */}
+      <path d="M176 150h300a12 12 0 0 1 12 12v96H176z" fill={CHAPA} />
+      <path d="M176 150h300v16H176z" fill={SOMBRA} />
+      <g opacity=".5">
+        {[236, 296, 356, 416].map((x) => (
+          <line key={x} x1={x} y1="166" x2={x} y2="258" strokeWidth="1.2" />
+        ))}
+      </g>
+      {/* chassi e pé de apoio */}
+      <path d="M164 258h324v16H164z" fill={METAL} />
+      <path d="M196 274h12v40h-12z" fill={METAL} />
+      {/* refletores */}
+      <rect x="470" y="236" width="16" height="10" rx="2" fill="#FCA5A5" />
+      <Roda cx={330} cy={290} r={34} />
+      <Roda cx={412} cy={290} r={34} />
+    </g>
+  );
+}
+
 // ==== Pontos por família ===================================================
 
 /**
@@ -273,6 +366,60 @@ function DesenhoGerador() {
  * dianteiro — mais os de nível que se verificam na mesma passagem.
  */
 const FAMILIAS: Record<string, Familia> = {
+  AUTOCARRO: {
+    nome: 'Autocarro',
+    desenho: DesenhoAutocarro,
+    vista: '36 86 480 276',
+    nota:
+      'Num autocarro, o arrefecimento e o sistema elétrico não são manutenção — são segurança. '
+      + 'Um autocarro que arde em viagem perdeu água durante semanas, teve o radiador entupido ou '
+      + 'um cabo a roçar no chassi. Tudo isso se vê antes.',
+    pontos: [
+      { numero: 1, nome: 'Líquido de arrefecimento', x: 452, y: 232, accao: 'Verificar o nível a frio, a concentração e a tampa do radiador. Registar quantos litros atestou.', intervaloHoras: 24, critico: true },
+      { numero: 2, nome: 'Radiador e grelhas', x: 492, y: 196, accao: 'Lavar por fora e desobstruir as grelhas. Radiador entupido de poeira é motor a ferver.', intervaloHoras: 168, critico: true },
+      { numero: 3, nome: 'Nível do óleo do motor', x: 414, y: 206, accao: 'Verificar na vareta, com o autocarro nivelado e o motor frio.', intervaloHoras: 24, critico: true },
+      { numero: 4, nome: 'Fugas de gasóleo junto ao escape', x: 352, y: 244, accao: 'Procurar pingos e humidade. Gasóleo em cima de um escape quente é a causa mais comum de incêndio.', intervaloHoras: 24, critico: true },
+      { numero: 5, nome: 'Cablagem e bateria', x: 96, y: 236, accao: 'Cabos a roçar, isolamento queimado, emendas sem fusível, terminais frouxos.', intervaloHoras: 168, critico: true },
+      { numero: 6, nome: 'Extintores', x: 236, y: 232, accao: 'Carga, validade, fixação e acesso desimpedido. Um à frente e outro na cabina.', intervaloHoras: 24, critico: true },
+      { numero: 7, nome: 'Saídas de emergência e martelos', x: 300, y: 166, accao: 'Confirmar que abrem, que o corredor está livre e que os martelos estão no sítio.', intervaloHoras: 24, critico: true },
+      { numero: 8, nome: 'Travões e pressão de ar', x: 196, y: 286, accao: 'Ensaiar a travagem, medir pastilhas e purgar a água dos reservatórios.', intervaloHoras: 500, critico: true },
+      { numero: 9, nome: 'Pneus e rodados duplos', x: 424, y: 316, accao: 'Pressão a frio e piso em cada posição, incluindo os interiores dos rodados duplos.', intervaloHoras: 24, critico: true },
+      { numero: 10, nome: 'Ar condicionado', x: 260, y: 138, accao: 'Higienizar o evaporador e verificar a carga de gás. Num autocarro de viagem isto é o produto.', intervaloHoras: 2000 },
+    ],
+  },
+  EMPILHADORA: {
+    nome: 'Empilhadora',
+    desenho: DesenhoEmpilhadora,
+    vista: '80 88 350 258',
+    nota:
+      'Garfos e correntes são peças de segurança, não peças de desgaste: uma corrente partida com '
+      + 'carga em cima é um acidente grave.',
+    pontos: [
+      { numero: 1, nome: 'Garfos', x: 128, y: 282, accao: 'Medir o desgaste do talão (máximo 10 %) e procurar trincas e empeno.', intervaloHoras: 250, critico: true },
+      { numero: 2, nome: 'Correntes de elevação', x: 140, y: 150, accao: 'Verificar tensão, lubrificação e elos gastos ou torcidos.', intervaloHoras: 250, critico: true },
+      { numero: 3, nome: 'Cilindros do mastro', x: 168, y: 216, accao: 'Procurar fugas nos cilindros de elevação e inclinação.', intervaloHoras: 250, critico: true },
+      { numero: 4, nome: 'Óleo hidráulico', x: 300, y: 224, accao: 'Verificar o nível e o estado do óleo; limpar o respiro do reservatório.', intervaloHoras: 250 },
+      { numero: 5, nome: 'Motor ou bateria de tração', x: 370, y: 240, accao: 'Nas térmicas: óleo e filtros. Nas elétricas: eletrólito, terminais e carregador.', intervaloHoras: 250, critico: true },
+      { numero: 6, nome: 'Proteção do condutor', x: 266, y: 120, accao: 'Confirmar fixações e ausência de trincas na estrutura de proteção.', intervaloHoras: 1000, critico: true },
+      { numero: 7, nome: 'Travões e travão de mão', x: 232, y: 288, accao: 'Ensaiar com e sem carga; afinar o travão de estacionamento.', intervaloHoras: 500, critico: true },
+    ],
+  },
+  REBOQUE: {
+    nome: 'Alfaia ou reboque',
+    desenho: DesenhoReboque,
+    vista: '40 130 470 210',
+    nota:
+      'Sem motor não há óleo para trocar. O que parte um reboque é a estrutura, o engate e os '
+      + 'rolamentos de roda — que ninguém olha até ao dia em que a roda sai.',
+    pontos: [
+      { numero: 1, nome: 'Engate e cavilha', x: 58, y: 243, accao: 'Verificar o engate, a cavilha e a corrente de segurança antes de cada utilização.', intervaloHoras: 24, critico: true },
+      { numero: 2, nome: 'Barra de tração', x: 120, y: 243, accao: 'Procurar trincas nas soldas e deformações na barra.', intervaloHoras: 250, critico: true },
+      { numero: 3, nome: 'Rolamentos de roda', x: 330, y: 290, accao: 'Verificar folga e temperatura; lubrificar. Rolamento seco gripa e a roda sai.', intervaloHoras: 250, critico: true },
+      { numero: 4, nome: 'Pneus e aperto de porcas', x: 412, y: 290, accao: 'Pressão, piso e reaperto das porcas ao binário.', intervaloHoras: 24, critico: true },
+      { numero: 5, nome: 'Estrutura da caixa', x: 300, y: 200, accao: 'Trincas, corrosão e fixações da caixa ao chassi.', intervaloHoras: 500 },
+      { numero: 6, nome: 'Luzes e refletores', x: 478, y: 241, accao: 'Confirmar luzes, stops e refletores ligados ao trator.', intervaloHoras: 24, critico: true },
+    ],
+  },
   RETROESCAVADORA: {
     nome: 'Retroescavadora',
     desenho: DesenhoRetroescavadora,
@@ -611,6 +758,9 @@ const DO_SERVIDOR: Record<string, string> = {
   RETROESCAVADORA: 'RETROESCAVADORA',
   TRUCK_HEAVY: 'CAMIAO',
   LIGHT_VEHICLE: 'LIGEIRO',
+  BUS: 'AUTOCARRO',
+  FORKLIFT: 'EMPILHADORA',
+  IMPLEMENT: 'REBOQUE',
   GENERATOR: 'GERADOR',
 };
 
@@ -621,7 +771,10 @@ const DO_SERVIDOR: Record<string, string> = {
 function familiaDe(tipo?: string | null): Familia {
   const t = (tipo ?? '').toLowerCase();
   if (/(gerador|generator|grupo eletrog|electrog)/.test(t)) return FAMILIAS.GERADOR;
-  if (/(retro|escavad|backhoe|pá carreg|carregadora|bulldoz|trator|tractor|máquina|maquina|empilhad)/.test(t)) {
+  if (/(autocarro|onibus|ónibus|bus|minibus|passageir)/.test(t)) return FAMILIAS.AUTOCARRO;
+  if (/(empilhad|forklift)/.test(t)) return FAMILIAS.EMPILHADORA;
+  if (/(alfaia|implemento|reboque|atrelado|semirreboque|cisterna)/.test(t)) return FAMILIAS.REBOQUE;
+  if (/(retro|escavad|backhoe|pá carreg|carregadora|bulldoz|trator|tractor|máquina|maquina)/.test(t)) {
     return FAMILIAS.RETROESCAVADORA;
   }
   // O ligeiro vem antes do camião: «pick-up» e «carrinha» não são pesados, e

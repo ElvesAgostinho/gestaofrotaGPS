@@ -44,6 +44,7 @@ import { MOrdensPage } from './pages/mobile/MOrdensPage';
 import { MOrdemPage } from './pages/mobile/MOrdemPage';
 import { MAbastecerPage } from './pages/mobile/MAbastecerPage';
 import { MRotaPage } from './pages/mobile/MRotaPage';
+import { MAtestarPage } from './pages/mobile/MAtestarPage';
 import { MPerfilPage } from './pages/mobile/MPerfilPage';
 import { prefereTelemovel } from './pages/mobile/modo';
 import { PrimeirosPassosPage } from './pages/PrimeirosPassosPage';
@@ -138,6 +139,7 @@ function Router() {
         <Route path="ordens/:id" element={<MOrdemPage />} />
         <Route path="abastecer" element={<MAbastecerPage />} />
         <Route path="rota" element={<MRotaPage />} />
+        <Route path="atestar" element={<MAtestarPage />} />
         <Route path="perfil" element={<MPerfilPage />} />
         <Route path="*" element={<Navigate to="/m" replace />} />
       </Route>

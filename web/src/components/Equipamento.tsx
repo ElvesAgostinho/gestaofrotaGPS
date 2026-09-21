@@ -139,6 +139,34 @@ export function IconeLigeiro(p: Props) {
   );
 }
 
+/** Autocarro de passageiros: a faixa de janelas é o que o distingue à distância. */
+export function IconeAutocarro({ size, color, title }: Props) {
+  return (
+    <Svg size={size} color={color} title={title ?? 'Autocarro'}>
+      <path
+        {...BASE}
+        d="M3 6.5C3 5.7 3.7 5 4.5 5h15c.8 0 1.5.7 1.5 1.5v8.2H3V6.5Zm1.6 1.1v3.1h4.1V7.6H4.6Zm5.4 0v3.1h4V7.6h-4Zm5.3 0v3.1h4.1V7.6h-4.1ZM3 15.6h18v1.9h-1.1a2.2 2.2 0 1 0-4.4 0H8.5a2.2 2.2 0 1 0-4.4 0H3v-1.9Z"
+      />
+      <circle {...BASE} cx="6.3" cy="17.8" r="1.5" />
+      <circle {...BASE} cx="17.7" cy="17.8" r="1.5" />
+    </Svg>
+  );
+}
+
+/** Reboque ou alfaia: sem cabina, com barra de tração. */
+export function IconeReboque({ size, color, title }: Props) {
+  return (
+    <Svg size={size} color={color} title={title ?? 'Reboque'}>
+      <path
+        {...BASE}
+        d="M2 12.6h3.4v1.3H2v-1.3Zm1.1-.7a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6ZM7 7.5h13.4c.9 0 1.6.7 1.6 1.6v6.2H7V7.5Zm-1.2 8.5H22v1.4h-1.5a2 2 0 1 0-4 0h-2.8a2 2 0 1 0-4 0H5.8v-1.4Z"
+      />
+      <circle {...BASE} cx="12.7" cy="18" r="1.4" />
+      <circle {...BASE} cx="18.5" cy="18" r="1.4" />
+    </Svg>
+  );
+}
+
 /**
  * Escolhe a silhueta a partir do que a máquina é.
  *
@@ -148,19 +176,47 @@ export function IconeLigeiro(p: Props) {
  */
 export function IconeAtivo({
   tipo,
+  familia,
   ...props
-}: Props & { tipo?: string | null }) {
-  const t = (tipo ?? '').toLowerCase();
-  if (/(retro|escavad|backhoe|pá carreg|carregadora|bulldoz|trator|tractor)/.test(t)) {
-    return <IconeRetroescavadora {...props} />;
+}: Props & { tipo?: string | null; familia?: string | null }) {
+  // A família decidida pelo servidor manda: é a mesma que escolhe o plano e a
+  // inspeção, e assim o ícone nunca discorda do resto do sistema.
+  switch (familia) {
+    case 'GENERATOR':
+      return <IconeGerador {...props} />;
+    case 'BUS':
+      return <IconeAutocarro {...props} />;
+    case 'FORKLIFT':
+      return <IconeEmpilhadora {...props} />;
+    case 'IMPLEMENT':
+      return <IconeReboque {...props} />;
+    case 'LIGHT_VEHICLE':
+      return <IconeLigeiro {...props} />;
+    case 'TRUCK_HEAVY':
+      return <IconeCamiao {...props} />;
+    case 'RETROESCAVADORA':
+      return <IconeRetroescavadora {...props} />;
+    default:
+      break;
   }
-  if (/(gerador|generator|grupo eletrog)/.test(t)) {
+  // Sem família (listas antigas em cache), adivinha-se pelo nome do tipo.
+  const t = (tipo ?? '').toLowerCase();
+  if (/(gerador|generator|grupo eletrog|electrog)/.test(t)) {
     return <IconeGerador {...props} />;
+  }
+  if (/(autocarro|onibus|ónibus|bus|minibus|passageir)/.test(t)) {
+    return <IconeAutocarro {...props} />;
   }
   if (/(empilhad|forklift)/.test(t)) {
     return <IconeEmpilhadora {...props} />;
   }
-  if (/(ligeiro|carro|autom|pick|jipe|viatura leve)/.test(t)) {
+  if (/(alfaia|implemento|reboque|atrelado|semirreboque|cisterna)/.test(t)) {
+    return <IconeReboque {...props} />;
+  }
+  if (/(retro|escavad|backhoe|pá carreg|carregadora|bulldoz|trator|tractor)/.test(t)) {
+    return <IconeRetroescavadora {...props} />;
+  }
+  if (/(ligeiro|carro|autom|pick|jipe|suv|carrinha|van|viatura leve)/.test(t)) {
     return <IconeLigeiro {...props} />;
   }
   return <IconeCamiao {...props} />;

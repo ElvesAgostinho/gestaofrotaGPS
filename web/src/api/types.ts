@@ -50,6 +50,8 @@ export interface AssetPhotoView {
 }
 
 export interface AssetSummary {
+  /** A família do catálogo (BUS, TRUCK_HEAVY…), decidida pelo servidor. */
+  family?: string | null;
   /** Família do ativo: viaturas, máquinas, geradores. Serve para agrupar. */
   category?: string | null;
   categoryLabel?: string | null;
@@ -119,6 +121,9 @@ export interface AssetView {
   /** Último nível do depósito lido pelo sensor do GPS. */
   fuelLevelLiters?: number | null;
   fuelLevelAt?: string | null;
+  /** Quando saiu da frota; ausente enquanto estiver ao serviço. */
+  retiredAt?: string | null;
+  retiredReason?: string | null;
 }
 
 export interface AssetTypeView {

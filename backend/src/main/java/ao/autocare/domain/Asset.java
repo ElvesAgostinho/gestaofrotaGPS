@@ -128,4 +128,34 @@ public class Asset extends VersionedEntity {
     /** Limite de velocidade deste ativo, em km/h. Vazio = usa o da empresa. */
     @jakarta.persistence.Column(name = "speed_limit_kph", precision = 6, scale = 2)
     private java.math.BigDecimal speedLimitKph;
+
+    // ==== Abate ============================================================
+
+    /**
+     * Quando o ativo saiu da frota.
+     *
+     * <p>Um ativo abatido não se apaga: apaga-se o histórico com ele, e é o
+     * histórico que diz se valeu a pena comprá-lo. Fica guardado, fora das
+     * listas e fora dos indicadores, com a data, o motivo e o contador final.
+     */
+    @Column(name = "retired_at")
+    private Instant retiredAt;
+
+    /** SOLD, SCRAPPED, ACCIDENT, THEFT, END_OF_LIFE, RETURNED, OTHER. */
+    @Column(name = "retired_reason", length = 30)
+    private String retiredReason;
+
+    @Column(name = "retired_notes", length = 1000)
+    private String retiredNotes;
+
+    /** O contador no dia em que saiu: os km ou as horas que fez na vida. */
+    @Column(name = "retired_meter", precision = 12, scale = 2)
+    private java.math.BigDecimal retiredMeter;
+
+    /** Quanto rendeu a venda ou a sucata. */
+    @Column(name = "residual_value", precision = 14, scale = 2)
+    private java.math.BigDecimal residualValue;
+
+    @Column(name = "retired_by", length = 36)
+    private String retiredBy;
 }

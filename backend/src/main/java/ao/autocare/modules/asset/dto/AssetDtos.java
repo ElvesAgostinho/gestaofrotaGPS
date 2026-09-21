@@ -123,6 +123,8 @@ public final class AssetDtos {
 
     public record AssetSummary(
             String id, String tag, String name, String assetTypeName,
+            /** A família do catálogo, a mesma que escolhe o plano e o desenho. */
+            String family,
             /** Familia do ativo, para agrupar a lista em vez de a misturar. */
             String category, String categoryLabel, int categoryOrder,
             String locationName, String status, String criticality,
@@ -198,7 +200,10 @@ public final class AssetDtos {
             Long version,
             /** Último nível do depósito pelo sensor do GPS, em litros. */
             BigDecimal fuelLevelLiters,
-            Instant fuelLevelAt) {
+            Instant fuelLevelAt,
+            /** Quando saiu da frota; nulo enquanto estiver ao serviço. */
+            Instant retiredAt,
+            String retiredReason) {
 
         /**
          * A mesma ficha sem os valores financeiros.
@@ -213,7 +218,7 @@ public final class AssetDtos {
                     objective, notes, status, archived, createdAt, primaryPhotoUrl, latitude,
                     longitude, positionAt, positionSource, speedLimitKph, tankCapacityLiters,
                     null, meters, criticality, photos,
-                    version, fuelLevelLiters, fuelLevelAt);
+                    version, fuelLevelLiters, fuelLevelAt, retiredAt, retiredReason);
         }
 
         public static AssetView of(
@@ -245,7 +250,8 @@ public final class AssetDtos {
                     meters.stream().map(MeterView::of).toList(),
                     CriticalityView.of(crit),
                     photos,
-                    a.getVersion(), a.getFuelLevelLiters(), a.getFuelLevelAt());
+                    a.getVersion(), a.getFuelLevelLiters(), a.getFuelLevelAt(),
+                    a.getRetiredAt(), a.getRetiredReason());
         }
     }
 }
