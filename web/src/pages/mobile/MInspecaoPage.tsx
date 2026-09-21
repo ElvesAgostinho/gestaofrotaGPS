@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api/client';
+import { enviarJson } from './envio';
 import { Erro, EscolherViatura, Feito, mensagemDe, useHome, viaturaInicial } from './comum';
 
 interface Template {
@@ -85,21 +86,35 @@ export function MInspecaoPage() {
 
   const enviar = useMutation({
     mutationFn: () =>
-      api<Execucao>(`/assets/${ativo}/checklist-executions`, {
-        method: 'POST',
-        body: {
+      enviarJson<Execucao>(
+        `/assets/${ativo}/checklist-executions`,
+        {
           templateId: modelo !== 'base' ? modelo : undefined,
           templateName: nomeModelo,
           meterValue: contador === '' ? undefined : Number(contador),
           notes: notas.trim() || undefined,
           items: itens.map((i) => ({ text: i.text, critical: i.critical, result: i.result, note: i.note.trim() || undefined })),
         },
-      }),
+        `Inspeção diária${reprovados.length > 0 ? ` · ${reprovados.length} reprovado(s)` : ''}`,
+      ),
     onError: (e) => setErro(mensagemDe(e)),
   });
 
-  if (enviar.isSuccess) {
-    const r = enviar.data;
+  if (enviar.isSuccess && !enviar.data.enviado) {
+    return (
+      <Feito
+        titulo="Guardada no telemóvel"
+        texto={
+          reprovados.length > 0
+            ? 'Não havia rede. A inspeção sobe assim que houver ligação — mas os pontos críticos reprovados impedem a viatura de sair já agora.'
+            : 'Não havia rede. A inspeção sobe sozinha assim que houver ligação. Boa viagem.'
+        }
+      />
+    );
+  }
+
+  if (enviar.isSuccess && enviar.data.enviado) {
+    const r = enviar.data.dados;
     return (
       <Feito
         titulo={r.outcome === 'OK' ? 'Inspeção sem problemas' : `Inspeção registada com ${r.itemsNotOk} ponto(s) reprovado(s)`}

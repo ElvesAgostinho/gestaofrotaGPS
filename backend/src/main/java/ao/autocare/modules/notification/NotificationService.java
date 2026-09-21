@@ -56,7 +56,10 @@ public class NotificationService {
     private final OrgEmailSender orgEmail;
     private final ao.autocare.modules.messaging.PhoneMessaging phone;
 
+    private final PushService push;
+
     public NotificationService(
+            PushService push,
             NotificationRepository notifications,
             NotificationPreferenceRepository preferences,
             MembershipRepository memberships,
@@ -65,6 +68,7 @@ public class NotificationService {
             EmailSender email,
             OrgEmailSender orgEmail,
             ao.autocare.modules.messaging.PhoneMessaging phone) {
+        this.push = push;
         this.notifications = notifications;
         this.preferences = preferences;
         this.memberships = memberships;
@@ -143,6 +147,17 @@ public class NotificationService {
         n.setSourceId(draft.sourceId());
         n.setLink(draft.link());
         notifications.save(n);
+
+        // O aviso vai ao telemóvel mesmo com a aplicação fechada: é aqui que
+        // deixa de ser um sino que ninguém vê e passa a ser um aviso a sério.
+        if (pref == null || pref.isPush()) {
+            try {
+                push.enviar(n);
+            } catch (RuntimeException e) {
+                // Um aviso que não sai não pode estragar o que o originou.
+                log.debug("Push não enviado: {}", e.getMessage());
+            }
+        }
 
         if ((pref == null || pref.isEmail()) && !draft.inAppOnly()) {
             deliverByEmail(user, n);

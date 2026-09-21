@@ -2,7 +2,7 @@ import { Button, NumberInput, Stack, Switch, Text, TextInput, Title } from '@man
 import { useMutation } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { api } from '../../api/client';
+import { enviarJson } from './envio';
 import { useAuth } from '../../auth/AuthContext';
 import { Erro, EscolherViatura, Feito, mensagemDe, useHome, viaturaInicial } from './comum';
 
@@ -36,9 +36,9 @@ export function MAbastecerPage() {
 
   const enviar = useMutation({
     mutationFn: () =>
-      api<Registo>(`/assets/${ativo}/fuel`, {
-        method: 'POST',
-        body: {
+      enviarJson<Registo>(
+        `/assets/${ativo}/fuel`,
+        {
           liters: Number(litros),
           meterValue: contador === '' ? undefined : Number(contador),
           pricePerLiter: preco === '' ? undefined : Number(preco),
@@ -46,12 +46,27 @@ export function MAbastecerPage() {
           station: posto.trim() || undefined,
           fullTank: cheio,
         },
-      }),
+        `Abastecimento · ${litros} L`,
+      ),
     onError: (e) => setErro(mensagemDe(e)),
   });
 
-  if (enviar.isSuccess) {
-    return <Feito titulo="Abastecimento registado" texto={`${enviar.data.liters} L na viatura ${enviar.data.assetTag}.`} />;
+  if (enviar.isSuccess && !enviar.data.enviado) {
+    return (
+      <Feito
+        titulo="Guardado no telemóvel"
+        texto="Não havia rede no posto. O abastecimento sobe sozinho assim que houver ligação."
+      />
+    );
+  }
+
+  if (enviar.isSuccess && enviar.data.enviado) {
+    return (
+      <Feito
+        titulo="Abastecimento registado"
+        texto={`${enviar.data.dados.liters} L na viatura ${enviar.data.dados.assetTag}.`}
+      />
+    );
   }
 
   return (

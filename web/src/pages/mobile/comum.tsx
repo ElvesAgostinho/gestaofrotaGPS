@@ -13,11 +13,45 @@ export interface AssetPick {
   mine: boolean;
 }
 
+/** A viatura do motorista, com o que interessa hoje. */
+export interface MinhaViatura {
+  id: string;
+  tag: string;
+  name: string;
+  plate?: string | null;
+  status: string;
+  meterLabel?: string | null;
+  meterUnit?: string | null;
+  meterValue?: number | null;
+  nextMaintenance?: string | null;
+  nextMaintenanceIn?: string | null;
+  nextMaintenanceStatus?: string | null;
+  inspectionDoneToday: boolean;
+  lastInspectionAt?: string | null;
+  fuelLevelLiters?: number | null;
+}
+
+/** A rota que o gestor marcou para hoje. */
+export interface RotaHoje {
+  assignmentId: string;
+  routeId: string;
+  name: string;
+  code?: string | null;
+  assetId?: string | null;
+  assetTag?: string | null;
+  distanceKm?: number | null;
+  expectedMinutes?: number | null;
+  hasPath: boolean;
+}
+
 export interface Home {
   userName: string;
   assets: AssetPick[];
   myOpenOrders: number;
   hasAssignedAssets: boolean;
+  myAssets?: MinhaViatura[];
+  route?: RotaHoje | null;
+  warnings?: string[];
 }
 
 export function useHome() {

@@ -37,6 +37,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 // A app instalável: só em produção, para o service worker não esconder
 // alterações durante o desenvolvimento.
+// O browser oferece a instalação uma única vez e num momento que não é o
+// nosso: guarda-se o convite para o mostrarmos quando fizer sentido — no
+// perfil, com um botão que diz o que faz.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  (window as unknown as { __instalar?: unknown }).__instalar = e;
+});
+
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {
