@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Planos de manutenção")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 @RequestMapping("/api/v1/maintenance-plans")
 public class PlanController {

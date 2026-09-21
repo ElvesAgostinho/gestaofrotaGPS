@@ -7,6 +7,8 @@ import ao.autocare.modules.document.dto.DocumentDtos.SaveDocumentRequest;
 import ao.autocare.modules.org.OrgContext;
 import ao.autocare.domain.enums.Enums.MembershipRole;
 import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
 import ao.autocare.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Documentos do ativo")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class DocumentController {
 

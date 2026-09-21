@@ -6,6 +6,8 @@ import ao.autocare.modules.audit.dto.AuditDtos.AuditActionView;
 import ao.autocare.modules.audit.dto.AuditDtos.AuditEntryView;
 import ao.autocare.modules.org.OrgContext;
 import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
 import ao.autocare.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "Auditoria")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class AuditController {
 

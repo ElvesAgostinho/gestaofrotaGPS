@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>E o que a autoridade pede na estrada e o que o cliente assina na entrega.
  */
 @Tag(name = "Guias de transporte")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 @RequestMapping("/api/v1/transport-notes")
 public class TransportNoteController {

@@ -12,6 +12,8 @@ import ao.autocare.repo.AssetRepository;
 import ao.autocare.repo.StockItemRepository;
 import ao.autocare.repo.WorkOrderRepository;
 import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Indicadores")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class DashboardController {
 

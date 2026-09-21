@@ -45,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Ordens de Manutenção")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class WorkOrderController {
 

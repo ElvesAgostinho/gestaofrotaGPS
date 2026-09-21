@@ -7,6 +7,8 @@ import ao.autocare.modules.asset.dto.AssetPhotoDtos.AssetPhotoView;
 import ao.autocare.modules.asset.dto.AssetPhotoDtos.UpdatePhotoRequest;
 import ao.autocare.modules.org.OrgContext;
 import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
 import ao.autocare.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -31,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "Fotografias de ativos")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 @RequestMapping("/api/v1/assets/{assetId}/photos")
 public class AssetPhotoController {

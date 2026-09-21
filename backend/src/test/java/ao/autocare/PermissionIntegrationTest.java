@@ -90,9 +90,11 @@ class PermissionIntegrationTest extends AbstractIntegrationTest {
         JsonNode org = send(dono, get("/api/v1/organization"), null, 200);
         assertThat(org.get("myPermissions").toString()).contains("COSTS_VIEW").contains("TEAM_MANAGE");
 
+        // Um leitor vê a frota — é isso que «consulta» quer dizer — e mais nada.
         String[] leitor = membro("leitor@teste.ao", "VIEWER", "Rui");
         JsonNode orgLeitor = send(leitor[0], get("/api/v1/organization"), null, 200);
-        assertThat(orgLeitor.get("myPermissions")).isEmpty();
+        assertThat(orgLeitor.get("myPermissions").toString()).contains("FLEET_VIEW");
+        assertThat(orgLeitor.get("myPermissions")).hasSize(1);
     }
 
     @Test

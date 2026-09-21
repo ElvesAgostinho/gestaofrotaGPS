@@ -113,6 +113,10 @@ export function MobileShell() {
               </ActionIcon>
             </Menu.Target>
             <Menu.Dropdown>
+              {/* A versão completa é o sistema de gestão: um motorista não
+                  tem lá nada a fazer, e o servidor também já não lho deixa
+                  ver. Esconder a opção evita a pergunta. */}
+              {org?.myRole !== 'DRIVER' && (
               <Menu.Item
                 leftSection={<IconDeviceDesktop size={16} />}
                 onClick={() => {
@@ -126,6 +130,7 @@ export function MobileShell() {
               >
                 Versão completa
               </Menu.Item>
+              )}
               <Menu.Item leftSection={<IconLogout size={16} />} onClick={signOut}>
                 Terminar sessão
               </Menu.Item>

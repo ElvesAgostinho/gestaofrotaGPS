@@ -119,6 +119,29 @@ function Router() {
     );
   }
 
+  // Um motorista não entra no sistema de gestão — nem escrevendo o endereço à
+  // mão. O servidor já recusa os dados; aqui evita-se o ecrã vazio e a
+  // impressão de que há alguma coisa a esconder-se atrás dele.
+  if (org?.myRole === 'DRIVER') {
+    return (
+      <Routes>
+        <Route path="/m" element={<MobileShell />}>
+          <Route index element={<MInicioPage />} />
+          <Route path="avaria" element={<MAvariaPage />} />
+          <Route path="inspecao" element={<MInspecaoPage />} />
+          <Route path="abastecer" element={<MAbastecerPage />} />
+          <Route path="atestar" element={<MAtestarPage />} />
+          <Route path="rota" element={<MRotaPage />} />
+          <Route path="perfil" element={<MPerfilPage />} />
+          <Route path="*" element={<Navigate to="/m" replace />} />
+        </Route>
+        <Route path="/verificar" element={<VerificarPage />} />
+        <Route path="/verificar/:code" element={<VerificarPage />} />
+        <Route path="*" element={<Navigate to="/m" replace />} />
+      </Routes>
+    );
+  }
+
   // O motorista, e o mecânico num ecrã pequeno, caem na app do telemóvel:
   // quatro botões grandes em vez de um painel de gestão.
   // Uma empresa nova, com o dono a entrar pela primeira vez, começa pelo assistente.

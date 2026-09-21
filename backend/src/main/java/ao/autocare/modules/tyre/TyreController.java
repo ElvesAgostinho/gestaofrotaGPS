@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Tag(name = "Pneus")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class TyreController {
 

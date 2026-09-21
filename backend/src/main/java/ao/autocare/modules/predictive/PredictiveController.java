@@ -11,6 +11,8 @@ import ao.autocare.modules.predictive.dto.PredictiveDtos.SaveProgramRequest;
 import ao.autocare.modules.predictive.dto.PredictiveDtos.TechniqueView;
 import ao.autocare.modules.predictive.dto.PredictiveDtos.UpdateProgramRequest;
 import ao.autocare.security.AuthPrincipal;
+import ao.autocare.security.Permission;
+import ao.autocare.security.RequirePermission;
 import ao.autocare.security.RequireRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -34,6 +36,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Manutenção preditiva")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class PredictiveController {
 

@@ -19,6 +19,20 @@ import java.util.Set;
  */
 public enum Permission {
 
+    // ---- leitura ------------------------------------------------------------
+    /**
+     * Ver a frota: equipamento, ordens, mapas, indicadores e relatórios.
+     *
+     * <p>Existe por causa de uma falha real: as permissões travavam quem
+     * escreve, mas quem estivesse autenticado lia tudo. Um motorista via a
+     * empresa inteira ao trocar para a versão completa — os outros veículos,
+     * os custos, a equipa. Um motorista vê o que é dele; para ver a frota é
+     * preciso esta permissão, que ele não tem.
+     */
+    FLEET_VIEW("Equipamento", "Ver a frota: equipamento, ordens, mapas e indicadores",
+            MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.TECHNICIAN,
+            MembershipRole.VIEWER),
+
     // ---- equipamento -------------------------------------------------------
     ASSETS_MANAGE("Equipamento", "Criar, editar e arquivar equipamento, tipos e locais",
             MembershipRole.OWNER, MembershipRole.MANAGER),

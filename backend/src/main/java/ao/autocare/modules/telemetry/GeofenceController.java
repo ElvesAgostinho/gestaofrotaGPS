@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Geocercas")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class GeofenceController {
 

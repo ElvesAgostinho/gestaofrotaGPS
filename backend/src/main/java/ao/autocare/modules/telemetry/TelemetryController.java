@@ -99,6 +99,7 @@ public class TelemetryController {
 
     // ---- Mapa ao vivo ------------------------------------------------
     @Operation(summary = "Posição atual de todos os ativos localizáveis")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/telemetry/live")
     public List<LiveAssetView> live(@AuthenticationPrincipal AuthPrincipal p) {
         return telemetry.live(org(p));
@@ -124,6 +125,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "Trajeto de um ativo num intervalo (por omissão, últimas 24 h)")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/assets/{assetId}/track")
     public TrackView track(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -134,6 +136,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "O dia de um ativo: percurso para repetir, paragens e ralenti (motor ligado parado)")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/assets/{assetId}/day")
     public DayHistoryService.DayView day(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -151,6 +154,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "Histórico de posições de um ativo")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/assets/{assetId}/positions")
     public PagedResponse<PositionView> positions(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -162,6 +166,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "Viagens de um ativo")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/assets/{assetId}/trips")
     public PagedResponse<TripView> assetTrips(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -173,6 +178,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "Viagens de toda a frota")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/trips")
     public PagedResponse<TripView> trips(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -195,6 +201,7 @@ public class TelemetryController {
 
     // ---- Alertas -----------------------------------------------------
     @Operation(summary = "Alertas de telemetria (excesso de velocidade, perda de comunicação)")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/telemetry/alerts")
     public PagedResponse<AlertView> alerts(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -209,6 +216,7 @@ public class TelemetryController {
     }
 
     @Operation(summary = "Alertas de um ativo")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/assets/{assetId}/telemetry-alerts")
     public PagedResponse<AlertView> assetAlerts(
             @AuthenticationPrincipal AuthPrincipal p,
@@ -229,12 +237,14 @@ public class TelemetryController {
 
     // ---- Aparelhos ---------------------------------------------------
     @Operation(summary = "Listar aparelhos de GPS")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/gps-devices")
     public List<DeviceView> devices(@AuthenticationPrincipal AuthPrincipal p) {
         return telemetry.listDevices(org(p));
     }
 
     @Operation(summary = "Obter um aparelho")
+    @RequirePermission(Permission.FLEET_VIEW)
     @GetMapping("/api/v1/gps-devices/{id}")
     public DeviceView device(@AuthenticationPrincipal AuthPrincipal p, @PathVariable String id) {
         return telemetry.getDevice(org(p), id);

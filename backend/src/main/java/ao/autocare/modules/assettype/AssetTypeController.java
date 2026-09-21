@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Tipos de ativo")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 @RequestMapping("/api/v1/asset-types")
 public class AssetTypeController {

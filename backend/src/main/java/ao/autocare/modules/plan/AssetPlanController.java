@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "Manutenção do ativo")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 @RequestMapping("/api/v1/assets/{assetId}")
 public class AssetPlanController {

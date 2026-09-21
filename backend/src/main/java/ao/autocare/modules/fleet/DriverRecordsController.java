@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 /** Infrações e escala dos motoristas. */
 @Tag(name = "Frota")
 @SecurityRequirement(name = "bearerAuth")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class DriverRecordsController {
 

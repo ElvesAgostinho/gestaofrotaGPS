@@ -41,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
  * medições nem assina trabalho.
  */
 @Tag(name = "Ordens — chão de oficina")
+@RequirePermission(Permission.FLEET_VIEW)
 @RestController
 public class WorkOrderShopFloorController {
 
