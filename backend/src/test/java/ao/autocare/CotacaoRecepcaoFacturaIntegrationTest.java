@@ -372,6 +372,57 @@ class CotacaoRecepcaoFacturaIntegrationTest extends AbstractIntegrationTest {
         assertThat(ficha.get("leitura").asText()).contains("falha em qualidade");
     }
 
+    // ==== O que a volta completa apanhou ====================================
+
+    @Test
+    void aOrdemHerdaOPrazoQueOFornecedorPrometeu() throws Exception {
+        // Encontrado a fazer a volta completa: a ordem nascia sem data de
+        // entrega e a pontualidade deste fornecedor nunca se chegava a medir,
+        // porque so se mede contra a data pedida.
+        montar("volta1@teste.ao");
+        String id = pedido("Filtros");
+        responder(id, rapido, 9200, 5);
+        JsonNode adj = send(post("/api/v1/rfqs/" + id + "/award"), Map.of(
+                "supplierId", rapido, "motivo", "Unico que respondeu"), 200);
+
+        JsonNode ordem = send(get("/api/v1/purchase-orders/"
+                + adj.get("awardedOrderId").asText()), null, 200);
+        assertThat(ordem.get("expectedAt").asText())
+                .as("cinco dias a partir de hoje, que foi o que ele prometeu")
+                .isEqualTo(LocalDate.now(ZoneOffset.UTC).plusDays(5).toString());
+        assertThat(ordem.get("notes").asText()).contains("prazo prometido: 5 dias");
+    }
+
+    @Test
+    void quemNaoRespondeContaMesmoQuandoSePedePorTelefone() throws Exception {
+        // Tambem da volta: a medida de resposta so contava pedidos enviados por
+        // email, e ficava vazia para sempre em quem pede preco por telefone --
+        // que e metade de Angola.
+        montar("volta2@teste.ao");
+        String id = pedido("Filtros");
+        responder(id, rapido, 9200, 5);
+        // O outro foi convidado e nunca respondeu.
+
+        // Quem respondeu conta logo; quem ficou calado so conta quando o pedido
+        // fecha -- ate la ainda pode responder, e penaliza-lo seria injusto.
+        assertThat(medida(send(get("/api/v1/suppliers/" + rapido + "/scorecard"), null, 200),
+                "Resposta a pedidos").get("valor").asInt()).isEqualTo(100);
+        assertThat(medida(send(get("/api/v1/suppliers/" + barato + "/scorecard"), null, 200),
+                "Resposta a pedidos").get("estado").asText()).isEqualTo("SEM_DADOS");
+
+        send(post("/api/v1/rfqs/" + id + "/award"),
+                Map.of("supplierId", rapido, "motivo", "O outro nem respondeu"), 200);
+
+        // Fechado o pedido, quem respondeu tem 100% e quem ficou calado tem 0%.
+        JsonNode quemRespondeu = send(get("/api/v1/suppliers/" + rapido + "/scorecard"), null, 200);
+        assertThat(medida(quemRespondeu, "Resposta a pedidos").get("valor").asInt()).isEqualTo(100);
+
+        JsonNode quemCalou = send(get("/api/v1/suppliers/" + barato + "/scorecard"), null, 200);
+        JsonNode m = medida(quemCalou, "Resposta a pedidos");
+        assertThat(m.get("valor").asInt()).isZero();
+        assertThat(m.get("detalhe").asText()).contains("0 de 1");
+    }
+
     // ==== Auxiliares ========================================================
 
     /** Uma ordem aprovada directamente, sem passar por cotação. */

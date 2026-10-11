@@ -388,9 +388,19 @@ public class RfqService {
             throw ApiException.badRequest(
                     "Este fornecedor não cotou nenhuma das linhas deste pedido.");
         }
+        // A data de entrega é a que ele próprio prometeu na cotação. Sem ela, a
+        // ordem nasce sem prazo e a pontualidade deste fornecedor nunca se
+        // chega a medir — foi o que esta volta mostrou.
+        LocalDate prometida = escolhido.getLeadTimeDays() != null
+                ? LocalDate.now(ZoneOffset.UTC).plusDays(escolhido.getLeadTimeDays())
+                : null;
         OrderDtos.OrdemView ordem = ordens.criar(orgId, userId, new OrderDtos.OrdemRequest(
-                req.supplierId(), null, null,
-                "Do pedido de cotação " + r.getNumber(), null, null, linhasDaOrdem));
+                req.supplierId(), prometida, null,
+                "Do pedido de cotação " + r.getNumber()
+                        + (prometida != null
+                                ? " · prazo prometido: " + escolhido.getLeadTimeDays() + " dias"
+                                : ""),
+                null, null, linhasDaOrdem));
         ordens.ligarAoPedido(orgId, ordem.id(), r.getId());
 
         // E o que ele cotou passa a ser o preço dele no sistema.
