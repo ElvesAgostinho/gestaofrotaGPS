@@ -9,7 +9,7 @@
  * campo mostra uma máscara, e gravar sem lhe tocar mantém a que lá está. Isso é
  * deliberado — se o segredo voltasse, este ecrã seria uma forma de o ler.
  */
-import { Alert, Badge, Button, Grid, Group, PasswordInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
+import { Alert, Badge, Button, Code, Grid, Group, PasswordInput, Select, Stack, Switch, Text, TextInput } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import {
   IconAlertTriangle,
@@ -67,6 +67,10 @@ interface TestResult {
   ok: boolean;
   message: string;
   checkedAt: string;
+  /** O que o servidor respondeu, em cru. É isto que resolve o problema. */
+  detail?: string | null;
+  /** O que fazer a seguir, quando o erro é um dos conhecidos. */
+  hint?: string | null;
 }
 
 export function CredenciaisCard() {
@@ -379,10 +383,13 @@ function EmailPainel({ s }: { s: Settings }) {
       notifications.show({ title: 'Não foi possível guardar', message: e.message, color: 'red' }),
   });
 
+  const [ultimo, setUltimo] = useState<TestResult | null>(null);
+
   const testar = useMutation({
     mutationFn: () =>
       api<TestResult>('/integrations/email/test', { method: 'POST', body: { to: destino } }),
     onSuccess: (r) => {
+      setUltimo(r);
       notifications.show({
         title: r.ok ? 'Email enviado' : 'O envio falhou',
         message: r.message,
@@ -513,8 +520,59 @@ function EmailPainel({ s }: { s: Settings }) {
         </Group>
       </SeccaoForm>
 
-      <ResultadoUltimoTeste ok={s.smtpOk} erro={s.smtpLastError} quando={s.smtpCheckedAt} />
+      {ultimo && !ultimo.ok ? (
+        <DiagnosticoEmail resultado={ultimo} />
+      ) : (
+        <ResultadoUltimoTeste ok={s.smtpOk} erro={s.smtpLastError} quando={s.smtpCheckedAt} />
+      )}
     </Painel>
+  );
+}
+
+/**
+ * O diagnóstico de um envio falhado.
+ *
+ * <p>Fica no ecrã e não num aviso que desaparece: configurar SMTP é uma
+ * sequência de tentativas, e ninguém resolve nada em doze segundos. São três
+ * blocos, nesta ordem — o que falhou, o que fazer, e a resposta do servidor em
+ * cru. O último é o que permite pedir ajuda: «deu erro» não se resolve, «535
+ * 5.7.8 Username and Password not accepted» resolve-se numa tarde.
+ */
+function DiagnosticoEmail({ resultado }: { resultado: TestResult }) {
+  return (
+    <Alert color="red" variant="light" p="sm" mt="xs" icon={<IconAlertTriangle size={18} />}>
+      <Stack gap={8}>
+        <Text size="sm" fw={600}>
+          {resultado.message}
+        </Text>
+
+        {resultado.hint && (
+          <Text size="xs" style={{ lineHeight: 1.45 }}>
+            <b>O que fazer:</b> {resultado.hint}
+          </Text>
+        )}
+
+        {resultado.detail && (
+          <div>
+            <Text size="xs" c="dimmed" mb={2}>
+              Resposta do servidor — copie isto se precisar de pedir ajuda:
+            </Text>
+            <Code
+              block
+              style={{ fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+            >
+              {resultado.detail}
+            </Code>
+          </div>
+        )}
+
+        <Text size="xs" c="dimmed" style={{ lineHeight: 1.45 }}>
+          Combinações que funcionam: <b>587 com STARTTLS</b> ou <b>465 com SSL</b>. O porto 25 está
+          bloqueado em praticamente todos os alojamentos. No Gmail é obrigatória uma palavra-passe
+          de aplicação; na Microsoft 365 o SMTP autenticado vem desligado em cada caixa.
+        </Text>
+      </Stack>
+    </Alert>
   );
 }
 

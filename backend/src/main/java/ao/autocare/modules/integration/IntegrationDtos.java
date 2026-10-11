@@ -40,7 +40,22 @@ public final class IntegrationDtos {
     public record TestRequest(
             @Email(message = "Indique um endereço de email válido.") String to) {}
 
-    public record TestResult(boolean ok, String message, Instant checkedAt) {}
+    /**
+     * O resultado de um teste de ligação.
+     *
+     * <p>{@code message} é a frase para quem lê. {@code detail} é o que o
+     * servidor respondeu, em cru — e é o campo que faz a diferença entre
+     * «deu erro» e «535 5.7.8 Username and Password not accepted», que se
+     * resolve numa tarde. {@code hint} é o que fazer a seguir, quando o erro
+     * é um dos conhecidos.
+     */
+    public record TestResult(boolean ok, String message, Instant checkedAt,
+                             String detail, String hint) {
+
+        public static TestResult of(boolean ok, String message) {
+            return new TestResult(ok, message, Instant.now(), null, null);
+        }
+    }
 
     /**
      * O que a API devolve.

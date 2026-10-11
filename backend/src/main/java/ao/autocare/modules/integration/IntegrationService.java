@@ -181,7 +181,7 @@ public class IntegrationService {
 
         audit.record(orgId, userId, "integration.traccar_test", "Organization", orgId,
                 ok ? "Ligação ao Traccar confirmada" : "Teste ao Traccar falhou: " + erro);
-        return new IntegrationDtos.TestResult(ok, ok ? detalhe : erro, Instant.now());
+        return IntegrationDtos.TestResult.of(ok, ok ? detalhe : erro);
     }
 
     // ==== Email ============================================================
@@ -239,7 +239,43 @@ public class IntegrationService {
             throw ApiException.badRequest("Indique o endereço para onde enviar o teste.");
         }
 
+        // Primeiro o que se sabe sem rede nenhuma. O porto e a segurança têm de
+        // combinar: pedir STARTTLS no 465 dá um silêncio até ao fim do tempo
+        // de espera, e esse erro não se parece nada com o problema que é.
+        String incoerente = incoerencia(s);
+        if (incoerente != null) {
+            s.setSmtpOk(false);
+            s.setSmtpCheckedAt(Instant.now());
+            s.setSmtpLastError(incoerente);
+            audit.record(orgId, userId, "integration.smtp_test", "Organization", orgId,
+                    "Teste de email falhou: " + incoerente);
+            return new IntegrationDtos.TestResult(false,
+                    "A configuração não é coerente, e o envio falharia sempre.",
+                    Instant.now(), null, incoerente);
+        }
+
+        // Antes de falar SMTP, ver se se chega lá. É a falha mais comum e a
+        // que o erro de SMTP descreve pior: num servidor de alojamento, a
+        // saída pelos portos de email vem bloqueada de origem, e a mensagem
+        // que se recebia era «não foi possível enviar, verifique as
+        // credenciais» — a mandar procurar onde não estava o problema.
+        String alcance = alcancavel(s.getSmtpHost(), s.getSmtpPort());
+        if (alcance != null) {
+            s.setSmtpOk(false);
+            s.setSmtpCheckedAt(Instant.now());
+            s.setSmtpLastError(alcance);
+            audit.record(orgId, userId, "integration.smtp_test", "Organization", orgId,
+                    "Teste de email falhou: " + alcance);
+            return new IntegrationDtos.TestResult(false, alcance, Instant.now(),
+                    "Não foi possível abrir ligação TCP a " + s.getSmtpHost() + ":" + s.getSmtpPort(),
+                    "Quase sempre é o alojamento a bloquear a saída de email. Peça ao suporte "
+                            + "para libertar os portos 587 e 465, ou experimente o porto 465 "
+                            + "com segurança SSL.");
+        }
+
         String erro = null;
+        String detalhe = null;
+        String sugestao = null;
         boolean ok = false;
 
         try {
@@ -263,11 +299,16 @@ public class IntegrationService {
         } catch (Exception e) {
             log.warn("Teste de email falhou para a empresa {}: {}", orgId, e.toString());
             erro = explicar(e);
+            detalhe = cru(e);
+            sugestao = sugerir(s, detalhe);
         }
 
         s.setSmtpOk(ok);
         s.setSmtpCheckedAt(Instant.now());
-        s.setSmtpLastError(erro);
+        // O detalhe fica junto da frase: quando alguém voltar ao ecrã dias
+        // depois, a resposta do servidor ainda está lá para ser lida.
+        s.setSmtpLastError(erro == null ? null
+                : (detalhe == null ? erro : erro + " · " + detalhe));
 
         audit.record(orgId, userId, "integration.smtp_test", "Organization", orgId,
                 ok ? "Email de teste enviado para " + destino
@@ -275,7 +316,7 @@ public class IntegrationService {
         return new IntegrationDtos.TestResult(ok,
                 ok ? "Mensagem entregue ao servidor. Verifique a caixa de " + destino + "."
                         : erro,
-                Instant.now());
+                Instant.now(), detalhe, sugestao);
     }
 
     /** Constrói o remetente a partir do que a empresa configurou. */
@@ -386,10 +427,140 @@ public class IntegrationService {
 
         audit.record(orgId, userId, "integration.routing_test", "Organization", orgId,
                 ok ? "Motor de rotas confirmado" : "Teste ao motor de rotas falhou: " + erro);
-        return new IntegrationDtos.TestResult(ok, ok ? detalhe : erro, Instant.now());
+        return IntegrationDtos.TestResult.of(ok, ok ? detalhe : erro);
     }
 
     /** Traduz a falha para algo que o utilizador possa corrigir. */
+    /**
+     * Incoerências que se apanham sem sair da aplicação.
+     *
+     * <p>São as duas que custam mais tempo a quem configura, porque o erro que
+     * o servidor devolve não aponta para elas: o porto 465 fala TLS desde o
+     * primeiro byte e o 587 começa em claro e sobe com STARTTLS. Trocar os dois
+     * dá um tempo de espera esgotado, que se parece com «o servidor está em
+     * baixo» e não com «a opção está trocada».
+     */
+    private static String incoerencia(IntegrationSettings s) {
+        int porto = s.getSmtpPort() != null ? s.getSmtpPort() : 587;
+        String seguranca = s.getSmtpSecurity() != null ? s.getSmtpSecurity() : "STARTTLS";
+        if (porto == 465 && !"SSL".equals(seguranca)) {
+            return "O porto 465 fala SSL desde o início. Mude a segurança para SSL, "
+                    + "ou use o porto 587 com STARTTLS.";
+        }
+        if (porto == 587 && "SSL".equals(seguranca)) {
+            return "O porto 587 usa STARTTLS, não SSL directo. Mude a segurança para STARTTLS, "
+                    + "ou use o porto 465 com SSL.";
+        }
+        if (porto == 25) {
+            return "O porto 25 está bloqueado em praticamente todos os alojamentos. "
+                    + "Use 587 com STARTTLS ou 465 com SSL.";
+        }
+        return null;
+    }
+
+    /**
+     * Chega-se ao servidor, antes de se tentar falar com ele?
+     *
+     * @return {@code null} quando a ligação abre; a frase do problema quando não
+     */
+    private static String alcancavel(String host, Integer porto) {
+        if (host == null || host.isBlank()) {
+            return null;
+        }
+        int p = porto != null ? porto : 587;
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress(host, p), 8000);
+            return null;
+        } catch (java.net.UnknownHostException e) {
+            return "O nome «" + host + "» não existe. Confirme o endereço do servidor de email.";
+        } catch (java.io.IOException e) {
+            return "O servidor da aplicação não consegue abrir ligação a " + host + ":" + p + ".";
+        }
+    }
+
+    /** A resposta do servidor, em cru e curta — é isto que resolve o problema. */
+    private static String cru(Exception e) {
+        StringBuilder sb = new StringBuilder();
+        Throwable t = e;
+        int voltas = 0;
+        while (t != null && voltas++ < 4) {
+            if (t.getMessage() != null && !t.getMessage().isBlank()) {
+                if (sb.length() > 0) {
+                    sb.append(" ← ");
+                }
+                sb.append(t.getMessage().replaceAll("\\s+", " ").trim());
+            }
+            t = t.getCause() == t ? null : t.getCause();
+        }
+        String texto = sb.toString();
+        return texto.isBlank() ? e.getClass().getSimpleName()
+                : (texto.length() > 400 ? texto.substring(0, 400) + "…" : texto);
+    }
+
+    /**
+     * O que fazer a seguir, quando o erro é um dos conhecidos.
+     *
+     * <p>Isto é conhecimento que não está no erro do servidor e que faz perder
+     * tardes: o Gmail não aceita a palavra-passe da conta desde 2022 — quer
+     * uma palavra-passe de aplicação; a Microsoft desliga o SMTP autenticado
+     * por omissão em cada caixa; e o porto 465 fala SSL desde o primeiro byte,
+     * portanto pedir-lhe STARTTLS dá um silêncio até ao fim do tempo de
+     * espera, que não se parece nada com o problema que é.
+     */
+    private static String sugerir(IntegrationSettings s, String detalhe) {
+        String d = detalhe == null ? "" : detalhe.toLowerCase();
+        String host = s.getSmtpHost() == null ? "" : s.getSmtpHost().toLowerCase();
+        int porto = s.getSmtpPort() != null ? s.getSmtpPort() : 587;
+        String seguranca = s.getSmtpSecurity() != null ? s.getSmtpSecurity() : "STARTTLS";
+
+        if (porto == 465 && !"SSL".equals(seguranca)) {
+            return "O porto 465 fala SSL desde o início. Mude a segurança para SSL, "
+                    + "ou use o porto 587 com STARTTLS.";
+        }
+        if (porto == 587 && "SSL".equals(seguranca)) {
+            return "O porto 587 usa STARTTLS, não SSL directo. Mude a segurança para STARTTLS, "
+                    + "ou use o porto 465 com SSL.";
+        }
+        if (porto == 25) {
+            return "O porto 25 está bloqueado em praticamente todos os alojamentos. "
+                    + "Use 587 com STARTTLS ou 465 com SSL.";
+        }
+        boolean autenticacao = d.contains("535") || d.contains("534") || d.contains("authentication")
+                || d.contains("username and password") || d.contains("not accepted")
+                || d.contains("invalid credentials") || d.contains("login");
+        if (autenticacao) {
+            if (host.contains("gmail") || host.contains("google")) {
+                return "O Gmail já não aceita a palavra-passe da conta. Ligue a verificação em "
+                        + "dois passos e crie uma «palavra-passe de aplicação» de 16 letras em "
+                        + "myaccount.google.com/apppasswords — é essa que se põe aqui, sem espaços.";
+            }
+            if (host.contains("office365") || host.contains("outlook") || host.contains("microsoft")) {
+                return "A Microsoft desliga o «SMTP autenticado» em cada caixa de correio por "
+                        + "omissão. Tem de o ligar no centro de administração (Utilizadores → "
+                        + "a conta → Correio → Gerir aplicações de email → SMTP autenticado) e, "
+                        + "se a conta tiver verificação em dois passos, usar uma palavra-passe "
+                        + "de aplicação.";
+            }
+            return "O utilizador ou a palavra-passe não foram aceites. Confirme que o utilizador "
+                    + "é o endereço completo e que a palavra-passe não tem espaços no fim.";
+        }
+        if (d.contains("relay") || d.contains("sender") || d.contains("553") || d.contains("550")) {
+            String utilizador = s.getSmtpUsername() == null ? "o utilizador" : s.getSmtpUsername();
+            return "O servidor recusou o remetente. A maior parte dos servidores só deixa enviar "
+                    + "em nome da própria conta: ponha no «endereço remetente» o mesmo que em "
+                    + "utilizador (" + utilizador + ").";
+        }
+        if (d.contains("timed out") || d.contains("timeout")) {
+            return "O servidor aceitou a ligação mas não respondeu. É o sintoma típico de "
+                    + "segurança trocada: confirme 587 com STARTTLS ou 465 com SSL.";
+        }
+        if (d.contains("certificate") || d.contains("ssl") || d.contains("handshake")) {
+            return "A ligação segura falhou. Experimente a outra opção de segurança; se o "
+                    + "servidor é do próprio alojamento, confirme o nome exacto com o suporte.";
+        }
+        return null;
+    }
+
     private static String explicar(Exception e) {
         String t = String.valueOf(e.getMessage()).toLowerCase();
         if (t.contains("authentication") || t.contains("535") || t.contains("password")) {
