@@ -239,6 +239,44 @@ public class IntegrationService {
             throw ApiException.badRequest("Indique o endereço para onde enviar o teste.");
         }
 
+        // Utilizador sem palavra-passe nenhuma: o servidor vai pedir autenticação
+        // e nós não temos o que dar. Dá 535, igual a uma palavra-passe errada —
+        // e é o que acontece quando o campo foi guardado com a máscara e nunca
+        // chegou a receber uma palavra-passe a sério.
+        if (s.getSmtpUsername() != null && !s.getSmtpUsername().isBlank()
+                && (s.getSmtpPasswordEnc() == null || s.getSmtpPasswordEnc().isBlank())) {
+            String aviso = "Há utilizador mas não há nenhuma palavra-passe guardada.";
+            s.setSmtpOk(false);
+            s.setSmtpCheckedAt(Instant.now());
+            s.setSmtpLastError(aviso);
+            audit.record(orgId, userId, "integration.smtp_test", "Organization", orgId,
+                    "Teste de email falhou: " + aviso);
+            return new IntegrationDtos.TestResult(false, aviso, Instant.now(),
+                    "utilizador: " + s.getSmtpUsername() + " | palavra-passe guardada: nenhuma",
+                    "Escreva a palavra-passe no campo e guarde. Se o campo mostra pontos, "
+                            + "apague-os primeiro: enquanto lá estiverem tal como vieram, o "
+                            + "sistema entende que não a quer mudar.");
+        }
+
+        // A palavra-passe está guardada cifrada. Se a chave de cifra mudou, o
+        // decrypt devolve null em silêncio e o envio segue com palavra-passe
+        // vazia — e o servidor responde «credenciais recusadas», que manda
+        // procurar onde não está o problema. Isto distingue as duas coisas.
+        if (s.getSmtpPasswordEnc() != null && !s.getSmtpPasswordEnc().isBlank()
+                && cofre.decrypt(s.getSmtpPasswordEnc()) == null) {
+            String aviso = "A palavra-passe está guardada mas o sistema já não a consegue ler.";
+            s.setSmtpOk(false);
+            s.setSmtpCheckedAt(Instant.now());
+            s.setSmtpLastError(aviso);
+            audit.record(orgId, userId, "integration.smtp_test", "Organization", orgId,
+                    "Teste de email falhou: " + aviso);
+            return new IntegrationDtos.TestResult(false, aviso, Instant.now(),
+                    "A decifragem do segredo guardado falhou.",
+                    "Escreva a palavra-passe outra vez neste ecrã e guarde. "
+                            + "Acontece quando a chave de cifra do servidor muda: os segredos "
+                            + "antigos deixam de ser legíveis, de propósito.");
+        }
+
         // Primeiro o que se sabe sem rede nenhuma. O porto e a segurança têm de
         // combinar: pedir STARTTLS no 465 dá um silêncio até ao fim do tempo
         // de espera, e esse erro não se parece nada com o problema que é.
@@ -301,6 +339,14 @@ public class IntegrationService {
             erro = explicar(e);
             detalhe = cru(e);
             sugestao = sugerir(s, detalhe);
+            // Quando o servidor recusa as credenciais, o que falta saber é o
+            // que foi mesmo enviado. Não se mostra a palavra-passe — mostra-se
+            // a forma dela, que chega para ver que está truncada, com pontos
+            // da máscara ou com um espaço no fim.
+            String forma = formaDasCredenciais(s);
+            if (forma != null) {
+                detalhe = detalhe + " | " + forma;
+            }
         }
 
         s.setSmtpOk(ok);
@@ -431,6 +477,36 @@ public class IntegrationService {
     }
 
     /** Traduz a falha para algo que o utilizador possa corrigir. */
+    /**
+     * A forma das credenciais enviadas, sem revelar nenhuma.
+     *
+     * <p>Quando o servidor diz «recusado» e quem configurou jura que a
+     * palavra-passe está certa, só há uma forma de avançar: ver o que foi
+     * realmente enviado. Mostrar a palavra-passe seria inaceitável — mas o
+     * comprimento, se tem acentos, se traz pontos da máscara ou um espaço no
+     * fim resolve o caso em segundos e não revela nada a ninguém.
+     */
+    private String formaDasCredenciais(IntegrationSettings s) {
+        String senha = cofre.decrypt(s.getSmtpPasswordEnc());
+        if (senha == null) {
+            return "palavra-passe guardada: nenhuma (o envio seguiu sem palavra-passe)";
+        }
+        StringBuilder sb = new StringBuilder("utilizador: ")
+                .append(s.getSmtpUsername() == null ? "(vazio)" : s.getSmtpUsername())
+                .append(" | palavra-passe guardada: ").append(senha.length()).append(" caracteres");
+        if (senha.indexOf('\u2022') >= 0) {
+            sb.append(", COM PONTOS DA MÁSCARA — foi escrita por cima dos pontos do campo");
+        }
+        if (!senha.equals(senha.trim())) {
+            sb.append(", com espaço no início ou no fim");
+        }
+        boolean soAscii = senha.chars().allMatch(c -> c >= 32 && c < 127);
+        if (!soAscii) {
+            sb.append(", com caracteres fora do ASCII");
+        }
+        return sb.toString();
+    }
+
     /**
      * Tira a máscara que o ecrã mostra, quando ela vem colada ao que foi escrito.
      *

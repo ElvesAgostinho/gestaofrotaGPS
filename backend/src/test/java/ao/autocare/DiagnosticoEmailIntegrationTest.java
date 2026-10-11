@@ -213,6 +213,43 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
                 .doesNotContain("•");
     }
 
+    // ==== O que foi realmente enviado =======================================
+
+    @Test
+    void utilizadorSemPalavraPasseNaoSeConfundeComPalavraPasseErrada() throws Exception {
+        // Guardar com a máscara no campo significa «não mudar». Se nunca houve
+        // palavra-passe, fica utilizador sem palavra-passe — e o servidor
+        // responde 535, igual a uma palavra-passe errada. São coisas
+        // diferentes e o sistema tem de as separar.
+        Map<String, Object> cfg = base(47402, "NONE", "127.0.0.1");
+        cfg.put("username", "geral@diagnostico.ao");
+        cfg.put("password", "••••••••");
+        configurar(cfg);
+
+        JsonNode r = testar();
+        assertThat(r.get("ok").asBoolean()).isFalse();
+        assertThat(r.get("message").asText()).contains("não há nenhuma palavra-passe");
+        assertThat(r.get("hint").asText()).contains("apague");
+    }
+
+    @Test
+    void aFormaDaPalavraPasseAparecePraQuemTemDeADepurar() throws Exception {
+        abrirServidor(47403, (in, out) -> responderSmtp(in, out, null));
+
+        Map<String, Object> cfg = base(47403, "NONE", "127.0.0.1");
+        cfg.put("username", "geral@diagnostico.ao");
+        cfg.put("password", "doze-letras ");
+        configurar(cfg);
+
+        JsonNode r = testar();
+        assertThat(r.get("ok").asBoolean()).isFalse();
+        String detalhe = r.get("detail").asText();
+        assertThat(detalhe).as("o utilizador e a forma da palavra-passe, nunca a palavra-passe")
+                .contains("geral@diagnostico.ao")
+                .contains("caracteres")
+                .doesNotContain("doze-letras");
+    }
+
     // ==== Servidor SMTP de brincar ==========================================
 
     private static final String FIM = "\r\n";
