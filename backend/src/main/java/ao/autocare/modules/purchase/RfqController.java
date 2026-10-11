@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,8 +27,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Pedidos de cotação.
@@ -64,6 +67,50 @@ public class RfqController {
             @AuthenticationPrincipal AuthPrincipal p,
             @RequestParam(required = false) String status) {
         return service.listar(org(p), status);
+    }
+
+    @Operation(summary = "Pedidos em aberto para um fornecedor",
+            description = "Usado pelo correio: quando chega uma mensagem de um fornecedor, "
+                    + "saber se ele tem um pedido à espera é a diferença entre registar a "
+                    + "proposta em dois cliques e procurá-la num mês.")
+    @GetMapping("/open-for/{supplierId}")
+    public List<PedidoView> abertosPara(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String supplierId) {
+        return service.abertosParaFornecedor(org(p), supplierId);
+    }
+
+    @Operation(summary = "Guardar a proposta que o fornecedor mandou")
+    @PostMapping(value = "/{id}/suppliers/{supplierId}/proposal",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public PedidoView guardarProposta(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @PathVariable String id,
+            @PathVariable String supplierId,
+            @RequestPart("ficheiro") MultipartFile ficheiro) {
+        try {
+            return service.guardarProposta(org(p), p.id(), id, supplierId,
+                    ficheiro.getOriginalFilename(), ficheiro.getContentType(),
+                    ficheiro.getBytes());
+        } catch (java.io.IOException e) {
+            throw ApiException.badRequest("Não foi possível ler o ficheiro enviado.");
+        }
+    }
+
+    @Operation(summary = "Guardar a proposta directamente de um anexo do correio",
+            description = "Os bytes vão do servidor de email para o pedido sem passarem pelo "
+                    + "computador de ninguém — que é o passo que se perdia a copiar à mão.")
+    @PostMapping("/{id}/suppliers/{supplierId}/proposal/from-mail")
+    public PedidoView propostaDoCorreio(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @PathVariable String id,
+            @PathVariable String supplierId,
+            @RequestParam(defaultValue = "INBOX") String folder,
+            @RequestParam long uid,
+            @RequestParam String attachmentId) {
+        String orgId = org(p);
+        MailboxService.Ficheiro anexo = mailbox.anexo(orgId, folder, uid, attachmentId);
+        return service.guardarProposta(orgId, p.id(), id, supplierId,
+                anexo.nome(), anexo.tipo(), anexo.bytes());
     }
 
     @Operation(summary = "Um pedido, com a comparação das propostas")

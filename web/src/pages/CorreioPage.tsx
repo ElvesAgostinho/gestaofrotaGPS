@@ -35,6 +35,7 @@ import { Link } from 'react-router-dom';
 import { api, tokens } from '../api/client';
 import { Painel } from '../components/erp';
 import { Escrever } from './correio/Escrever';
+import { PropostaDoFornecedor } from './correio/PropostaDoFornecedor';
 import {
   corDoAvatar,
   COR_ENTIDADE,
@@ -556,6 +557,13 @@ function LeitorDeMensagem({
             {m.cc.length > 0 && ` · Cc: ${m.cc.map((p) => p.nome ?? p.email).join(', ')}`}
           </Text>
         )}
+
+        <PropostaDoFornecedor
+          entidade={m.de?.entidade}
+          pasta={pasta}
+          uid={m.uid}
+          anexos={m.anexos}
+        />
 
         {m.anexos.length > 0 && (
           <Group gap={6} mt="xs">

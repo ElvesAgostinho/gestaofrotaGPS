@@ -285,6 +285,80 @@ class CaixaDeCorreioIntegrationTest extends AbstractIntegrationTest {
         assertThat(recebidas[0].getContent()).isInstanceOf(MimeMultipart.class);
     }
 
+    // ==== Do correio para a cotação =========================================
+
+    @Test
+    void aPropostaQueChegouPorEmailVaiDirectaParaOPedido() throws Exception {
+        // O caso real: pediu-se preço, ele respondeu com um PDF em anexo, e os
+        // preços copiavam-se à mão enquanto o PDF ficava na caixa de entrada.
+        String fornecedorId = fornecedor("Auto Peças de Luanda", "vendas@autopecas.co.ao");
+        String peca = send(post("/api/v1/parts"), Map.of(
+                "name", "Filtro de ar", "category", "FILTER", "unit", "un"), 201)
+                .get("id").asText();
+
+        Map<String, Object> linha = new HashMap<>();
+        linha.put("partId", peca);
+        linha.put("description", "Filtro de ar");
+        linha.put("quantity", 10);
+        String rfqId = send(post("/api/v1/rfqs"), Map.of(
+                "title", "Filtros para os camiões",
+                "supplierIds", java.util.List.of(fornecedorId),
+                "lines", java.util.List.of(linha)), 201).get("id").asText();
+
+        // O correio já sabe que este endereço é deste fornecedor; a partir daí,
+        // os pedidos em aberto dele são uma pergunta directa.
+        JsonNode abertos = send(get("/api/v1/rfqs/open-for/" + fornecedorId), null, 200);
+        assertThat(abertos).hasSize(1);
+        assertThat(abertos.get(0).get("id").asText()).isEqualTo(rfqId);
+
+        // A proposta chega por email, em anexo.
+        byte[] proposta = "%PDF-1.4 proposta 8500".getBytes(StandardCharsets.UTF_8);
+        entregarComAnexo("vendas@autopecas.co.ao", "Proposta de filtros",
+                "proposta-2026-118.pdf", proposta);
+
+        JsonNode pagina = send(get("/api/v1/mailbox/messages?withAttachments=true"), null, 200);
+        long uid = pagina.get("mensagens").get(0).get("uid").asLong();
+        JsonNode mensagem = send(get("/api/v1/mailbox/messages/" + uid), null, 200);
+        String anexoId = mensagem.get("anexos").get(0).get("id").asText();
+
+        // E vai directa para o pedido, sem passar pelo computador de ninguém.
+        JsonNode pedido = send(post("/api/v1/rfqs/" + rfqId + "/suppliers/" + fornecedorId
+                + "/proposal/from-mail?folder=INBOX&uid=" + uid
+                + "&attachmentId=" + anexoId), null, 200);
+
+        JsonNode daEmpresa = pedido.get("propostas").get(0);
+        assertThat(daEmpresa.get("fileName").asText()).isEqualTo("proposta-2026-118.pdf");
+        assertThat(daEmpresa.get("fileId").asText()).isNotBlank();
+    }
+
+    @Test
+    void aRespostaGuardaDeQueMensagemVeio() throws Exception {
+        String fornecedorId = fornecedor("Casa do Camião", "geral@casadocamiao.ao");
+        Map<String, Object> linha = new HashMap<>();
+        linha.put("description", "Pneu 11R22.5");
+        linha.put("quantity", 4);
+        JsonNode rfq = send(post("/api/v1/rfqs"), Map.of(
+                "title", "Pneus",
+                "supplierIds", java.util.List.of(fornecedorId),
+                "lines", java.util.List.of(linha)), 201);
+        String rfqId = rfq.get("id").asText();
+        String lineId = rfq.get("lines").get(0).get("id").asText();
+
+        Map<String, Object> resposta = new HashMap<>();
+        resposta.put("leadTimeDays", 7);
+        resposta.put("sourceFolder", "INBOX");
+        resposta.put("sourceUid", 4242);
+        resposta.put("precos", java.util.List.of(Map.of("lineId", lineId, "unitPrice", 180000)));
+        JsonNode depois = send(post("/api/v1/rfqs/" + rfqId + "/suppliers/" + fornecedorId
+                + "/response"), resposta, 200);
+
+        JsonNode proposta = depois.get("propostas").get(0);
+        // Voltar ao original é o que permite ler o que ele escreveu à volta do
+        // número — «este preço é para pagamento a pronto» muda tudo.
+        assertThat(proposta.get("sourceUid").asLong()).isEqualTo(4242);
+        assertThat(proposta.get("sourceFolder").asText()).isEqualTo("INBOX");
+    }
+
     // ==== Quem pode ler ====================================================
 
     @Test

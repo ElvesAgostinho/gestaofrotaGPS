@@ -42,6 +42,9 @@ public final class RfqDtos {
 
     public record RespostaRequest(
             Integer leadTimeDays,
+            /** A mensagem de onde isto veio, para se poder lá voltar. */
+            @Size(max = 190) String sourceFolder,
+            Long sourceUid,
             LocalDate validUntil,
             @Size(max = 200) String paymentTerms,
             @Size(max = 500) String notes,
@@ -93,6 +96,12 @@ public final class RfqDtos {
             boolean completa,
             boolean maisBarata,
             boolean maisRapida,
+            /** O ficheiro da proposta, quando ficou guardado. */
+            String fileId,
+            String fileName,
+            /** A mensagem do correio de onde a resposta veio. */
+            String sourceFolder,
+            Long sourceUid,
             List<PrecoView> precos) {}
 
     public record PedidoView(

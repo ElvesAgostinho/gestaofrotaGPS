@@ -39,6 +39,10 @@ export interface Proposta {
   completa: boolean;
   maisBarata: boolean;
   maisRapida: boolean;
+  fileId?: string | null;
+  fileName?: string | null;
+  sourceFolder?: string | null;
+  sourceUid?: number | null;
   precos: PrecoProposta[];
 }
 

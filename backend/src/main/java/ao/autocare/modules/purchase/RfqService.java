@@ -76,6 +76,8 @@ public class RfqService {
     private final PurchaseOrderService ordens;
     private final SupplierBookService caderno;
     private final AuditService audit;
+    private final ao.autocare.repo.StoredFileRepository ficheiros;
+    private final ao.autocare.storage.StorageProvider armazenamento;
 
     public RfqService(
             RfqRepository pedidos,
@@ -89,7 +91,9 @@ public class RfqService {
             CounterService counters,
             PurchaseOrderService ordens,
             SupplierBookService caderno,
-            AuditService audit) {
+            AuditService audit,
+            ao.autocare.repo.StoredFileRepository ficheiros,
+            ao.autocare.storage.StorageProvider armazenamento) {
         this.pedidos = pedidos;
         this.convidados = convidados;
         this.precos = precos;
@@ -102,6 +106,8 @@ public class RfqService {
         this.ordens = ordens;
         this.caderno = caderno;
         this.audit = audit;
+        this.ficheiros = ficheiros;
+        this.armazenamento = armazenamento;
     }
 
     // ==== Criar =============================================================
@@ -220,6 +226,10 @@ public class RfqService {
         rs.setValidUntil(req.validUntil());
         rs.setPaymentTerms(limpo(req.paymentTerms()));
         rs.setNotes(limpo(req.notes()));
+        if (req.sourceUid() != null) {
+            rs.setSourceFolder(limpo(req.sourceFolder()));
+            rs.setSourceUid(req.sourceUid());
+        }
 
         if (rs.isDeclined()) {
             precos.deleteAll(precos.findByRfqSupplierId(rs.getId()));
@@ -266,6 +276,57 @@ public class RfqService {
                 .orElseThrow(() -> ApiException.notFound("Este fornecedor não está neste pedido."));
         rs.setSentAt(Instant.now());
         rs.setSentTo(para);
+        return ver(orgId, r);
+    }
+
+    /**
+     * Os pedidos em aberto a que este fornecedor ainda pode responder.
+     *
+     * <p>Serve o correio: quando chega uma mensagem de um fornecedor, saber se
+     * ele tem um pedido à espera é a diferença entre registar a proposta em
+     * dois cliques e procurá-la num mês.
+     */
+    @Transactional(readOnly = true)
+    public List<PedidoView> abertosParaFornecedor(String orgId, String supplierId) {
+        return pedidos.findByEstado(orgId, Rfq.Status.OPEN).stream()
+                .filter(r -> convidados.findByRfqIdAndSupplierId(r.getId(), supplierId).isPresent())
+                .map(r -> ver(orgId, r))
+                .toList();
+    }
+
+    /**
+     * Guarda a proposta tal como ele a mandou.
+     *
+     * <p>Os bytes vêm de fora — de um ficheiro que alguém carrega, ou de um
+     * anexo de uma mensagem do correio. Em qualquer dos casos o que interessa
+     * é o mesmo: daqui a um mês, quando alguém perguntar «mas ele cotou mesmo
+     * esse preço?», a resposta está ao lado do número e não enterrada em
+     * quatrocentas mensagens.
+     */
+    @Transactional
+    public PedidoView guardarProposta(
+            String orgId, String userId, String id, String supplierId,
+            String nome, String tipo, byte[] conteudo) {
+        Rfq r = exigir(orgId, id);
+        RfqSupplier rs = convidados.findByRfqIdAndSupplierId(id, supplierId)
+                .orElseThrow(() -> ApiException.notFound("Este fornecedor não está neste pedido."));
+        if (conteudo == null || conteudo.length == 0) {
+            throw ApiException.badRequest("O ficheiro da proposta está vazio.");
+        }
+
+        String chave = armazenamento.store(conteudo, tipo, nome);
+        ao.autocare.domain.StoredFile registo = new ao.autocare.domain.StoredFile();
+        registo.setOrganization(organizations.getReferenceById(orgId));
+        registo.setStorageKey(chave);
+        registo.setOriginalName(nome);
+        registo.setContentType(tipo);
+        registo.setSizeBytes(conteudo.length);
+        ficheiros.save(registo);
+
+        rs.setFileId(registo.getId());
+        rs.setFileName(nome);
+        audit.record(orgId, userId, "rfq.proposal", "Rfq", r.getId(),
+                r.getNumber() + " · " + rs.getSupplier().getName() + " · " + nome);
         return ver(orgId, r);
     }
 
@@ -482,6 +543,8 @@ public class RfqService {
                     cotadas, cotadas == r.getLines().size(),
                     s.getTotal() != null && s.getTotal().equals(menorTotal),
                     s.getLeadTimeDays() != null && s.getLeadTimeDays().equals(menorPrazo),
+                    s.getFileId(), s.getFileName(),
+                    s.getSourceFolder(), s.getSourceUid(),
                     linhas));
         }
 

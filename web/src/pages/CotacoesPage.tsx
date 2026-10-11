@@ -17,6 +17,7 @@ import { notifications } from '@mantine/notifications';
 import {
   IconInfoCircle,
   IconMailForward,
+  IconPaperclip,
   IconPlus,
   IconTrash,
   IconTrophy,
@@ -28,6 +29,7 @@ import { api, ApiError } from '../api/client';
 import { BotaoBarra, Painel, SeccaoForm, SeparadorBarra } from '../components/erp';
 import { Grelha } from '../components/Grelha';
 import { fmtDate, fmtMoney, fmtNumber } from '../lib/format';
+import { RegistarResposta } from './compras/RegistarResposta';
 import type { Pedido, Proposta } from './compras/tiposCotacao';
 
 /**
@@ -619,6 +621,18 @@ function Comparacao({ id, aoFechar }: { id: string; aoFechar: () => void }) {
                           {f.respondedAt ? 'Alterar resposta' : 'Registar resposta'}
                         </Button>
                       )}
+                      {f.fileName && (
+                        <Tooltip label={f.fileName} withArrow>
+                          <Badge
+                            size="xs"
+                            variant="outline"
+                            color="gray"
+                            leftSection={<IconPaperclip size={9} />}
+                          >
+                            proposta
+                          </Badge>
+                        </Tooltip>
+                      )}
                       {p.status === 'OPEN' && f.respondedAt && !f.declined && (
                         <Tooltip
                           label="Cria a ordem de compra com os preços dele"
@@ -657,153 +671,15 @@ function Comparacao({ id, aoFechar }: { id: string; aoFechar: () => void }) {
 
       {resposta && (
         <RegistarResposta
-          pedido={p}
-          proposta={resposta}
+          pedidoId={p.id}
+          supplierId={resposta.supplierId}
+          supplierName={resposta.supplierName}
           aoFechar={() => {
             setResposta(null);
             recarregar();
           }}
         />
       )}
-    </Modal>
-  );
-}
-
-// ==== Registar a resposta de um fornecedor =================================
-
-function RegistarResposta({
-  pedido,
-  proposta,
-  aoFechar,
-}: {
-  pedido: Pedido;
-  proposta: Proposta;
-  aoFechar: () => void;
-}) {
-  const [precos, setPrecos] = useState<Record<string, string>>(() => {
-    const inicial: Record<string, string> = {};
-    proposta.precos.forEach((q) => {
-      inicial[q.lineId] = q.unitPrice != null ? String(q.unitPrice) : '';
-    });
-    return inicial;
-  });
-  const [semStock, setSemStock] = useState<Record<string, boolean>>(() => {
-    const inicial: Record<string, boolean> = {};
-    proposta.precos.forEach((q) => {
-      inicial[q.lineId] = q.unavailable;
-    });
-    return inicial;
-  });
-  const [prazo, setPrazo] = useState(
-    proposta.leadTimeDays != null ? String(proposta.leadTimeDays) : '',
-  );
-  const [validade, setValidade] = useState(proposta.validUntil ?? '');
-  const [declined, setDeclined] = useState(proposta.declined);
-
-  const guardar = useMutation({
-    mutationFn: () =>
-      api(`/rfqs/${pedido.id}/suppliers/${proposta.supplierId}/response`, {
-        method: 'POST',
-        body: {
-          leadTimeDays: prazo ? Number(prazo) : null,
-          validUntil: validade || null,
-          declined,
-          precos: pedido.lines.map((l) => ({
-            lineId: l.id,
-            unitPrice: precos[l.id] ? Number(precos[l.id]) : null,
-            unavailable: !!semStock[l.id],
-          })),
-        },
-      }),
-    onSuccess: aoFechar,
-    onError: (e: unknown) =>
-      notifications.show({
-        color: 'red',
-        message: e instanceof ApiError ? e.message : 'Não foi possível guardar.',
-      }),
-  });
-
-  return (
-    <Modal opened onClose={aoFechar} title={`Resposta de ${proposta.supplierName}`} size="lg">
-      <Stack gap="sm">
-        <Group grow>
-          <TextInput
-            label="Prazo de entrega (dias)"
-            type="number"
-            value={prazo}
-            onChange={(e) => setPrazo(e.currentTarget.value)}
-          />
-          <TextInput
-            label="Cotação válida até"
-            type="date"
-            value={validade}
-            onChange={(e) => setValidade(e.currentTarget.value)}
-          />
-        </Group>
-
-        <Table withTableBorder>
-          <Table.Thead>
-            <Table.Tr>
-              <Table.Th>Linha</Table.Th>
-              <Table.Th style={{ width: '28%' }}>Preço unitário</Table.Th>
-              <Table.Th style={{ width: '18%' }}>Não tem</Table.Th>
-            </Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>
-            {pedido.lines.map((l) => (
-              <Table.Tr key={l.id}>
-                <Table.Td>
-                  <Text size="sm">{l.description}</Text>
-                  <Text size="xs" c="dimmed">
-                    {fmtNumber(l.quantity)} {l.unit ?? ''}
-                  </Text>
-                </Table.Td>
-                <Table.Td>
-                  <TextInput
-                    size="xs"
-                    type="number"
-                    disabled={!!semStock[l.id] || declined}
-                    value={precos[l.id] ?? ''}
-                    onChange={(e) => {
-                      const v = e.currentTarget.value;
-                      setPrecos((x) => ({ ...x, [l.id]: v }));
-                    }}
-                  />
-                </Table.Td>
-                <Table.Td>
-                  <Button
-                    size="compact-xs"
-                    variant={semStock[l.id] ? 'filled' : 'default'}
-                    color="gray"
-                    disabled={declined}
-                    onClick={() => setSemStock((x) => ({ ...x, [l.id]: !x[l.id] }))}
-                  >
-                    {semStock[l.id] ? 'não tem' : 'tem'}
-                  </Button>
-                </Table.Td>
-              </Table.Tr>
-            ))}
-          </Table.Tbody>
-        </Table>
-
-        <Button
-          size="xs"
-          variant={declined ? 'filled' : 'default'}
-          color="gray"
-          onClick={() => setDeclined((d) => !d)}
-        >
-          {declined ? 'Respondeu que não fornece' : 'Marcar «não fornece»'}
-        </Button>
-
-        <Group justify="flex-end">
-          <Button variant="default" onClick={aoFechar}>
-            Cancelar
-          </Button>
-          <Button loading={guardar.isPending} onClick={() => guardar.mutate()}>
-            Guardar resposta
-          </Button>
-        </Group>
-      </Stack>
     </Modal>
   );
 }

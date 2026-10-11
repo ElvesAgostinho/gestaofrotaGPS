@@ -63,4 +63,24 @@ public class RfqSupplier extends TimestampedEntity {
 
     @Column(nullable = false, length = 3)
     private String currency = "AOA";
+
+    /** O ficheiro da proposta, tal como ele a mandou. */
+    @Column(name = "file_id", length = 36)
+    private String fileId;
+
+    @Column(name = "file_name", length = 300)
+    private String fileName;
+
+    /**
+      * De que mensagem do correio veio esta resposta.
+      *
+      * <p>Nao e decoracao: e o que permite voltar ao original e ler o que ele
+      * escreveu a volta do numero -- «este preco e para pagamento a pronto» e
+      * uma frase que nao cabe num campo de preco e que muda tudo.
+      */
+    @Column(name = "source_folder", length = 190)
+    private String sourceFolder;
+
+    @Column(name = "source_uid")
+    private Long sourceUid;
 }
