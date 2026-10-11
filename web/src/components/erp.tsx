@@ -24,15 +24,40 @@ export function Painel({
   rodape,
   children,
   semPadding,
+  preencher,
 }: {
   titulo: string;
   acoes?: ReactNode;
   rodape?: ReactNode;
   children: ReactNode;
   semPadding?: boolean;
+  /**
+   * Ocupar toda a altura de quem o contém, com o corpo a encolher.
+   *
+   * <p>Para ecrãs que se leem de uma vez — o correio, o mapa — em que o
+   * conteúdo rola por dentro e a moldura fica quieta. Sem isto, a altura do
+   * corpo tinha de ser adivinhada em pixéis, e qualquer barra de ferramentas
+   * que passasse para duas linhas fazia o conteúdo escorrer para fora da
+   * moldura. Aconteceu.
+   */
+  preencher?: boolean;
 }) {
   return (
-    <div className="painel-vidro" style={{ borderRadius: 2 }}>
+    <div
+      className="painel-vidro"
+      style={
+        preencher
+          ? {
+              borderRadius: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              height: '100%',
+              minHeight: 0,
+              overflow: 'hidden',
+            }
+          : { borderRadius: 2 }
+      }
+    >
       <div
         className="painel-vidro-titulo"
         style={{
@@ -66,7 +91,16 @@ export function Painel({
         </div>
       )}
 
-      <div className="painel-corpo" style={{ padding: semPadding ? 0 : 10 }}>
+      <div
+        className="painel-corpo"
+        style={{
+          padding: semPadding ? 0 : 10,
+          // `minHeight: 0` não é um pormenor: sem ele, um filho em flex nunca
+          // encolhe abaixo do seu conteúdo e as áreas de deslocamento lá dentro
+          // deixam de recortar seja o que for.
+          ...(preencher ? { flex: 1, minHeight: 0, overflow: 'hidden' } : {}),
+        }}
+      >
         {children}
       </div>
 

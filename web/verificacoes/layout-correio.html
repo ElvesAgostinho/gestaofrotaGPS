@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Correio — contenção do layout</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #eceff1; }
+  /* O AppShell: cabeçalho 60, rodapé 26, espaçamento 20. */
+  .cabecalho { height: 60px; background: #141416; }
+  .trabalho { padding: 20px; }
+  .rodape { height: 26px; background: #141416; position: fixed; bottom: 0; left: 0; right: 0; }
+
+  /* O que a página do correio faz. */
+  .envolvente { height: calc(100dvh - 126px); min-height: 440px; }
+
+  /* O Painel com `preencher`. */
+  .painel {
+    border: 1px solid #b0bec5; border-radius: 2px; background: #fff;
+    display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden;
+  }
+  .titulo { padding: 6px 10px; background: #141416; color: #fff; font-size: 14px; }
+  .barra { display: flex; gap: 6px; flex-wrap: wrap; padding: 4px 6px; border-bottom: 1px solid #cfd8dc; }
+  .barra > * { height: 26px; border: 1px solid #b0bec5; padding: 0 8px; font-size: 12px; }
+  .corpo { flex: 1; min-height: 0; overflow: hidden; }
+
+  /* As três colunas. */
+  .grelha {
+    display: grid; grid-template-columns: minmax(170px, 200px) minmax(260px, 380px) 1fr;
+    height: 100%; min-height: 0; overflow: hidden;
+  }
+  .coluna { border-right: 1px solid #cfd8dc; min-height: 0; overflow: hidden; }
+  .rolar { height: 100%; overflow: auto; }
+  .linha { padding: 10px 12px; border-bottom: 1px solid #eceff1; font-size: 13px; }
+</style>
+
+<div class="cabecalho"></div>
+<div class="trabalho">
+  <div class="envolvente">
+    <div class="painel" id="painel">
+      <div class="titulo">CORREIO</div>
+      <!-- Barra propositadamente longa: é quando ela passa a duas linhas que
+           a altura adivinhada em pixéis deixava o conteúdo escorrer. -->
+      <div class="barra">
+        <span>Escrever</span><span>Actualizar</span><span>Assunto ou remetente…………………</span>
+        <span>Todas</span><span>Qualquer entidade……………</span><span>geral@topia.solutions</span>
+        <span>mais um botão</span><span>e outro</span><span>e mais outro para forçar a quebra</span>
+      </div>
+      <div class="corpo">
+        <div class="grelha">
+          <div class="coluna"><div class="rolar" id="pastas"></div></div>
+          <div class="coluna"><div class="rolar" id="lista"></div></div>
+          <div class="coluna" style="border-right: 0"><div class="rolar" id="leitor"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="rodape"></div>
+
+<script>
+  const encher = (id, quantas, texto) => {
+    const alvo = document.getElementById(id);
+    for (let i = 1; i <= quantas; i += 1) {
+      const d = document.createElement('div');
+      d.className = 'linha';
+      d.textContent = `${texto} ${i}`;
+      alvo.appendChild(d);
+    }
+  };
+  encher('pastas', 8, 'Pasta');
+  encher('lista', 120, 'Mensagem');
+  encher('leitor', 60, 'Parágrafo');
+</script>

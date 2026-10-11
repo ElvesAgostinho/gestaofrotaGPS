@@ -177,10 +177,13 @@ export function CorreioPage() {
   }
 
   return (
-    <>
+    // A altura disponível é a do ecrã menos o cabeçalho (60), o rodapé (26) e
+    // o espaçamento da área de trabalho (20 em cima e 20 em baixo).
+    <Box style={{ height: 'calc(100dvh - 126px)', minHeight: 440 }}>
       <Painel
         titulo="Correio"
         semPadding
+        preencher
         acoes={
           <Group gap="xs" wrap="nowrap" style={{ width: '100%' }}>
             <Button size="xs" leftSection={<IconPencil size={14} />} onClick={() => setEscrever(true)}>
@@ -236,12 +239,19 @@ export function CorreioPage() {
           style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(170px, 200px) minmax(260px, 380px) 1fr',
-            height: 'calc(100vh - 230px)',
-            minHeight: 460,
+            height: '100%',
+            minHeight: 0,
+            overflow: 'hidden',
           }}
         >
           {/* ---- pastas ---- */}
-          <Box style={{ borderRight: '1px solid var(--mantine-color-default-border)' }}>
+          <Box
+            style={{
+              borderRight: '1px solid var(--mantine-color-default-border)',
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
+          >
             <ScrollArea h="100%" type="hover">
               <Stack gap={2} p={6}>
                 {(pastas ?? []).map((p) => (
@@ -278,7 +288,13 @@ export function CorreioPage() {
           </Box>
 
           {/* ---- lista ---- */}
-          <Box style={{ borderRight: '1px solid var(--mantine-color-default-border)' }}>
+          <Box
+            style={{
+              borderRight: '1px solid var(--mantine-color-default-border)',
+              minHeight: 0,
+              overflow: 'hidden',
+            }}
+          >
             <ScrollArea h="100%" type="auto">
               {lista.isPending ? (
                 <Group justify="center" p="xl">
@@ -380,7 +396,7 @@ export function CorreioPage() {
           </Box>
 
           {/* ---- mensagem ---- */}
-          <Box>
+          <Box style={{ minHeight: 0, overflow: 'hidden' }}>
             {seleccionada == null ? (
               <Group justify="center" align="center" h="100%" p="xl">
                 <Stack align="center" gap={6}>
@@ -421,7 +437,7 @@ export function CorreioPage() {
         paraInicial={responderA?.para}
         assuntoInicial={responderA?.assunto}
       />
-    </>
+    </Box>
   );
 }
 
