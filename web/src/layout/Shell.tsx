@@ -11,6 +11,7 @@ import {
   IconClipboardList,
   IconDisc,
   IconLock,
+  IconMail,
   IconFileInvoice,
   IconFileText,
   IconGasStation,
@@ -101,6 +102,7 @@ const NAV: NavSection[] = [
   {
     title: 'Transporte',
     items: [
+      { to: '/correio', label: 'Correio da empresa', icon: IconMail, permissao: 'MAILBOX_USE' },
       { to: '/guias', label: 'Guias de transporte', icon: IconFileInvoice,
         minRole: 'TECHNICIAN' },
       { to: '/motoristas', label: 'Motoristas', icon: IconUserCheck },

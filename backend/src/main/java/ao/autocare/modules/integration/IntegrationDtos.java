@@ -49,6 +49,16 @@ public final class IntegrationDtos {
      * resolve numa tarde. {@code hint} é o que fazer a seguir, quando o erro
      * é um dos conhecidos.
      */
+    /** O servidor de receção. As credenciais são, quase sempre, as do envio. */
+    public record ImapRequest(
+            @Size(max = 190) String host,
+            Integer port,
+            @Size(max = 20) String security,
+            @Size(max = 190) String username,
+            @Size(max = 300) String password,
+            Boolean useSmtpLogin,
+            @Size(max = 190) String sentFolder) {}
+
     public record TestResult(boolean ok, String message, Instant checkedAt,
                              String detail, String hint,
                              /** O diálogo com o servidor, sem as credenciais. */
@@ -93,6 +103,18 @@ public final class IntegrationDtos {
             Instant smtpCheckedAt,
             String smtpLastError,
 
+            String imapHost,
+            Integer imapPort,
+            String imapSecurity,
+            String imapUsername,
+            boolean imapPasswordSet,
+            boolean imapUseSmtpLogin,
+            String imapSentFolder,
+            boolean imapConfigured,
+            Boolean imapOk,
+            Instant imapCheckedAt,
+            String imapLastError,
+
             String routingUrl,
             boolean routingConfigured,
             Boolean routingOk,
@@ -135,6 +157,18 @@ public final class IntegrationDtos {
                     s.getSmtpOk(),
                     s.getSmtpCheckedAt(),
                     s.getSmtpLastError(),
+
+                    s.getImapHost(),
+                    s.getImapPort(),
+                    s.getImapSecurity(),
+                    s.getImapUsername(),
+                    s.getImapPasswordEnc() != null,
+                    s.isImapUseSmtpLogin(),
+                    s.getImapSentFolder(),
+                    s.hasImap(),
+                    s.getImapOk(),
+                    s.getImapCheckedAt(),
+                    s.getImapLastError(),
 
                     s.getRoutingUrl(),
                     s.hasRouting(),

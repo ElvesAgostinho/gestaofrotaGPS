@@ -72,6 +72,21 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
         </dependency>
+        <!--
+            Servidor de email de teste (SMTP e IMAP a sério, em memória).
+
+            A caixa de correio lê por IMAP, e IMAP não se finge com um socket
+            escrito à mão: são pastas, estados de leitura, anexos e codificações.
+            Sem um servidor verdadeiro nos testes, a funcionalidade ficava por
+            verificar até alguém a abrir em produção.
+        -->
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>2.0.1</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Email: convites e avisos -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

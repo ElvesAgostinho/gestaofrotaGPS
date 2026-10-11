@@ -27,6 +27,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { NovaVersao } from './components/NovaVersao';
 import { ConsumiveisPage } from './pages/ConsumiveisPage';
+import { CorreioPage } from './pages/CorreioPage';
 import { PartsPage } from './pages/PartsPage';
 import { PlataformaPage } from './pages/PlataformaPage';
 import { PlanosPage } from './pages/PlanosPage';
@@ -214,6 +215,7 @@ function Router() {
         <Route path="/preditiva" element={<PredictivePage />} />
         <Route path="/pecas" element={<PartsPage />} />
         <Route path="/consumiveis" element={<ConsumiveisPage />} />
+        <Route path="/correio" element={<CorreioPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/alertas" element={<AlertsPage />} />
         <Route path="/comandos" element={<CommandsPage />} />

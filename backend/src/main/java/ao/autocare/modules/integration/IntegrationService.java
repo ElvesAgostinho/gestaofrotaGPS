@@ -223,6 +223,128 @@ public class IntegrationService {
     }
 
     /**
+     * Guarda o servidor de receção.
+     *
+     * <p>Por omissão reaproveita as credenciais do envio: na esmagadora
+     * maioria dos alojamentos a caixa é a mesma, e obrigar a escrevê-las duas
+     * vezes só cria uma segunda cópia para ficar desactualizada.
+     */
+    @Transactional
+    public IntegrationSettings saveImap(
+            String orgId, String userId, IntegrationDtos.ImapRequest req) {
+
+        IntegrationSettings s = forOrganization(orgId);
+        s.setImapHost(vazioParaNulo(req.host()));
+        s.setImapPort(req.port());
+        s.setImapUsername(vazioParaNulo(req.username()));
+        s.setImapSentFolder(vazioParaNulo(req.sentFolder()));
+        if (req.security() != null && !req.security().isBlank()) {
+            s.setImapSecurity(req.security().trim().toUpperCase());
+        }
+        if (req.useSmtpLogin() != null) {
+            s.setImapUseSmtpLogin(req.useSmtpLogin());
+        }
+        if (req.password() != null && !MASCARA.equals(req.password())) {
+            s.setImapPasswordEnc(cofre.encrypt(semMascara(req.password())));
+        }
+        if (s.getImapHost() != null && s.getImapPort() == null) {
+            s.setImapPort("STARTTLS".equals(s.getImapSecurity()) ? 143 : 993);
+        }
+
+        s.setImapOk(null);
+        s.setImapCheckedAt(null);
+        s.setImapLastError(null);
+
+        audit.record(orgId, userId, "integration.imap", "Organization", orgId,
+                s.hasImap() ? "Receção por " + s.getImapHost() : "Receção desconfigurada");
+        return s;
+    }
+
+    /**
+     * Liga-se mesmo ao servidor de receção e conta o que encontrou.
+     *
+     * <p>Um teste que só confirmasse a ligação diria «está bom» numa caixa onde
+     * não se consegue abrir a entrada. Abre-se a INBOX e conta-se — é o que
+     * prova que a caixa é legível.
+     */
+    @Transactional
+    public IntegrationDtos.TestResult testImap(String orgId, String userId) {
+        IntegrationSettings s = forOrganization(orgId);
+        if (!s.hasImap()) {
+            throw ApiException.badRequest("Indique primeiro o servidor de receção.");
+        }
+        String utilizador = s.mailboxUser();
+        String senha = cofre.decrypt(s.mailboxPasswordEnc());
+        if (utilizador == null || senha == null) {
+            String aviso = "Faltam as credenciais da caixa, ou já não é possível lê-las.";
+            s.setImapOk(false);
+            s.setImapCheckedAt(Instant.now());
+            s.setImapLastError(aviso);
+            return new IntegrationDtos.TestResult(false, aviso, Instant.now(), null,
+                    "Se escolheu usar as credenciais do envio, confirme que o envio tem "
+                            + "utilizador e palavra-passe guardados.", null);
+        }
+
+        int porto = s.getImapPort() != null ? s.getImapPort()
+                : ("STARTTLS".equals(s.getImapSecurity()) ? 143 : 993);
+        String alcance = alcancavel(s.getImapHost(), porto);
+        if (alcance != null) {
+            s.setImapOk(false);
+            s.setImapCheckedAt(Instant.now());
+            s.setImapLastError(alcance);
+            return new IntegrationDtos.TestResult(false, alcance, Instant.now(),
+                    "Não foi possível abrir ligação TCP a " + s.getImapHost() + ":" + porto,
+                    "Confirme o endereço do servidor de receção (costuma ser imap.<domínio> "
+                            + "ou o mesmo nome do envio) e o porto: 993 com SSL, 143 com "
+                            + "STARTTLS.", null);
+        }
+
+        boolean ok = false;
+        String erro = null;
+        String detalhe = null;
+        try {
+            boolean ssl = !"STARTTLS".equals(s.getImapSecurity());
+            String protocolo = ssl ? "imaps" : "imap";
+            java.util.Properties p = new java.util.Properties();
+            p.put("mail.store.protocol", protocolo);
+            p.put("mail." + protocolo + ".connectiontimeout", "15000");
+            p.put("mail." + protocolo + ".timeout", "15000");
+            p.put("mail." + protocolo + ".auth.mechanisms", "PLAIN LOGIN");
+            if (!ssl) {
+                p.put("mail.imap.starttls.enable", "true");
+                p.put("mail.imap.starttls.required", "true");
+            }
+            jakarta.mail.Session sessao = jakarta.mail.Session.getInstance(p);
+            try (jakarta.mail.Store store = sessao.getStore(protocolo)) {
+                store.connect(s.getImapHost(), porto, utilizador, senha);
+                jakarta.mail.Folder entrada = store.getFolder("INBOX");
+                entrada.open(jakarta.mail.Folder.READ_ONLY);
+                detalhe = "INBOX: " + entrada.getMessageCount() + " mensagens, "
+                        + entrada.getUnreadMessageCount() + " por ler";
+                entrada.close(false);
+                ok = true;
+            }
+        } catch (jakarta.mail.AuthenticationFailedException e) {
+            erro = "O servidor de receção recusou o utilizador ou a palavra-passe.";
+            detalhe = cru(e);
+        } catch (Exception e) {
+            log.warn("Teste de receção falhou para a empresa {}: {}", orgId, e.toString());
+            erro = "Não foi possível ler a caixa de correio.";
+            detalhe = cru(e);
+        }
+
+        s.setImapOk(ok);
+        s.setImapCheckedAt(Instant.now());
+        s.setImapLastError(erro == null ? null : (detalhe == null ? erro : erro + " · " + detalhe));
+        audit.record(orgId, userId, "integration.imap_test", "Organization", orgId,
+                ok ? "Caixa de correio legível" : "Teste de receção falhou: " + erro);
+
+        return new IntegrationDtos.TestResult(ok,
+                ok ? "Caixa de correio legível. " + detalhe : erro,
+                Instant.now(), detalhe, null, null);
+    }
+
+    /**
      * Envia mesmo uma mensagem para o endereço indicado.
      *
      * <p>Validar só a ligação diria que está bom em casos em que o envio falha
@@ -726,12 +848,16 @@ public class IntegrationService {
                         + utilizador + "@" + dominioDe(s.getSmtpFrom()) + "». Experimente assim.";
             }
             return "O servidor aceitou a ligação e recusou estas credenciais para «" + utilizador
-                    + "». As três causas, por ordem de frequência: (1) a palavra-passe é a do "
-                    + "painel do alojamento e não a da caixa de correio — são diferentes, e a da "
-                    + "caixa define-se onde se cria a conta de email; (2) a caixa «" + utilizador
-                    + "» ainda não existe no servidor, só o domínio; (3) a palavra-passe foi "
-                    + "mudada depois de ter sido guardada aqui. Reponha a palavra-passe da caixa "
-                    + "no painel do alojamento e escreva-a de novo neste ecrã.";
+                    + "». Antes de mais: se já tentou várias vezes seguidas, espere 15 a 30 "
+                    + "minutos — os servidores de email bloqueiam o endereço de quem falha "
+                    + "repetidamente, e a partir daí recusam até a palavra-passe certa. "
+                    + "Depois disso, as três causas por ordem de frequência: (1) a palavra-passe "
+                    + "é a do painel do alojamento e não a da caixa de correio — são diferentes, "
+                    + "e a da caixa define-se onde se cria a conta de email; (2) a caixa «"
+                    + utilizador + "» ainda não existe no servidor, só o domínio; (3) a "
+                    + "palavra-passe foi mudada depois de ter sido guardada aqui. Para separar "
+                    + "as duas coisas, entre no webmail com este endereço e esta palavra-passe: "
+                    + "se o webmail também recusar, o problema está na conta e não aqui.";
         }
         if (d.contains("relay") || d.contains("sender") || d.contains("553") || d.contains("550")) {
             String utilizador = s.getSmtpUsername() == null ? "o utilizador" : s.getSmtpUsername();

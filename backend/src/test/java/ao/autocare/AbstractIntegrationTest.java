@@ -42,7 +42,8 @@ public abstract class AbstractIntegrationTest {
                 "work_order_tasks", "work_orders", "org_counters",
                 // Peças e stock (V7)
                 "stock_movements", "stock_items", "warehouses",
-                "part_applications", "part_cross_refs", "parts", "budgets",
+                "part_applications", "part_cross_refs", "supplier_prices",
+                "parts", "budgets",
                 // Planos de manutenção (V6)
                 "plan_task_completions", "asset_plan_tasks", "asset_plans",
                 "plan_task_parts", "plan_task_triggers", "plan_tasks", "maintenance_plans",
@@ -63,7 +64,7 @@ public abstract class AbstractIntegrationTest {
                 "gps_positions", "trips", "gps_devices",
                 "asset_photos", "stored_files",
                 "meter_readings", "asset_meters", "asset_criticality", "assets",
-                "suppliers",
+                "supplier_contacts", "supplier_documents", "suppliers",
                 "asset_systems", "asset_types", "locations",
                 // Fase 1
                 "audit_logs", "notification_preferences", "notifications", "payments",

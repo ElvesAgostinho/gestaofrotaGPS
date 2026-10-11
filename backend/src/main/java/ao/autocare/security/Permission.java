@@ -67,6 +67,9 @@ public enum Permission {
     REPORTS_VIEW("Custos", "Relatórios e indicadores",
             MembershipRole.OWNER, MembershipRole.MANAGER),
 
+    MAILBOX_USE("Custos", "Ler e enviar o correio da empresa",
+            MembershipRole.OWNER, MembershipRole.MANAGER),
+
     // ---- transporte --------------------------------------------------------
     TRANSPORT_MANAGE("Transporte", "Emitir e acompanhar guias de transporte",
             MembershipRole.OWNER, MembershipRole.MANAGER, MembershipRole.TECHNICIAN),

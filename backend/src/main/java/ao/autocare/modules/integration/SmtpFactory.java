@@ -23,6 +23,20 @@ public final class SmtpFactory {
 
         Properties p = remetente.getJavaMailProperties();
         p.put("mail.transport.protocol", "smtp");
+
+        /*
+         * O nome com que nos apresentamos no EHLO.
+         *
+         * Sem isto, o JavaMail usa o nome da maquina -- que dentro de um
+         * contentor e algo como "57b5d892cc74". Um cliente de email a
+         * apresentar-se com um identificador de contentor parece o que nao e,
+         * e ha servidores e camadas anti-abuso que o penalizam. Usa-se o
+         * dominio do proprio remetente, que e o que qualquer cliente faz.
+         */
+        String dominio = dominioDe(s.getSmtpFrom());
+        if (dominio != null) {
+            p.put("mail.smtp.localhost", dominio);
+        }
         p.put("mail.smtp.auth", String.valueOf(s.getSmtpUsername() != null));
         /*
          * A ordem dos metodos de autenticacao.
@@ -58,5 +72,14 @@ public final class SmtpFactory {
             p.put("mail.smtp.starttls.required", "true");
         }
         return remetente;
+    }
+
+    /** O dominio de um endereco de email, ou nulo se nao houver. */
+    private static String dominioDe(String endereco) {
+        if (endereco == null || !endereco.contains("@")) {
+            return null;
+        }
+        String d = endereco.substring(endereco.indexOf('@') + 1).trim();
+        return d.isEmpty() ? null : d;
     }
 }

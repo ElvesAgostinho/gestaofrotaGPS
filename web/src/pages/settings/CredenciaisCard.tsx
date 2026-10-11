@@ -54,6 +54,18 @@ interface Settings {
   smtpCheckedAt?: string | null;
   smtpLastError?: string | null;
 
+  imapHost?: string | null;
+  imapPort?: number | null;
+  imapSecurity?: string | null;
+  imapUsername?: string | null;
+  imapPasswordSet: boolean;
+  imapUseSmtpLogin: boolean;
+  imapSentFolder?: string | null;
+  imapConfigured: boolean;
+  imapOk?: boolean | null;
+  imapCheckedAt?: string | null;
+  imapLastError?: string | null;
+
   routingPlatformUrl?: string | null;
   traccarPlatformAvailable?: boolean;
   routingUrl?: string | null;
@@ -96,6 +108,7 @@ export function CredenciaisCard() {
       <TraccarPainel s={data} />
       <MotorRotasPainel s={data} />
       <EmailPainel s={data} />
+      <RececaoPainel s={data} />
     </Stack>
   );
 }
@@ -601,6 +614,183 @@ function DiagnosticoEmail({ resultado }: { resultado: TestResult }) {
         </Text>
       </Stack>
     </Alert>
+  );
+}
+
+// ==== Receção (IMAP) =======================================================
+
+/**
+ * O servidor de receção.
+ *
+ * <p>Existe para o correio da empresa poder ser lido dentro do sistema. Sem
+ * isto, os avisos saem mas a resposta do fornecedor fica numa caixa que o
+ * sistema não conhece — e a conversa parte-se ao meio.
+ *
+ * <p>As credenciais são, quase sempre, as mesmas do envio. Por isso o
+ * interruptor vem ligado: pedir que se escrevam outra vez só criava uma
+ * segunda cópia para ficar desactualizada.
+ */
+function RececaoPainel({ s }: { s: Settings }) {
+  const queryClient = useQueryClient();
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState('');
+  const [security, setSecurity] = useState<string | null>('SSL');
+  const [mesmasCredenciais, setMesmasCredenciais] = useState(true);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [ultimo, setUltimo] = useState<TestResult | null>(null);
+
+  useEffect(() => {
+    setHost(s.imapHost ?? '');
+    setPort(s.imapPort ? String(s.imapPort) : '');
+    setSecurity(s.imapSecurity ?? 'SSL');
+    setMesmasCredenciais(s.imapUseSmtpLogin);
+    setUsername(s.imapUsername ?? '');
+    setPassword(s.imapPasswordSet ? MASCARA : '');
+  }, [
+    s.imapHost,
+    s.imapPort,
+    s.imapSecurity,
+    s.imapUseSmtpLogin,
+    s.imapUsername,
+    s.imapPasswordSet,
+  ]);
+
+  const guardar = useMutation({
+    mutationFn: () =>
+      api<Settings>('/integrations/imap', {
+        method: 'PUT',
+        body: {
+          host,
+          port: port.trim() ? Number(port) : null,
+          security,
+          useSmtpLogin: mesmasCredenciais,
+          username: mesmasCredenciais ? null : username,
+          password: mesmasCredenciais ? null : password,
+        },
+      }),
+    onSuccess: () => {
+      notifications.show({ title: 'Servidor de receção guardado', message: '', color: 'green' });
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    },
+    onError: (e: Error) =>
+      notifications.show({ title: 'Não foi possível guardar', message: e.message, color: 'red' }),
+  });
+
+  const testar = useMutation({
+    mutationFn: () => api<TestResult>('/integrations/imap/test', { method: 'POST' }),
+    onSuccess: (r) => {
+      setUltimo(r);
+      notifications.show({
+        title: r.ok ? 'Caixa de correio legível' : 'Não foi possível ler a caixa',
+        message: r.message,
+        color: r.ok ? 'green' : 'red',
+        autoClose: r.ok ? 6000 : 12000,
+      });
+      queryClient.invalidateQueries({ queryKey: ['integrations'] });
+    },
+    onError: (e: Error) =>
+      notifications.show({ title: 'Não foi possível testar', message: e.message, color: 'red' }),
+  });
+
+  return (
+    <Painel
+      titulo="Receção de email (caixa de correio)"
+      acoes={
+        <>
+          <EstadoLigacao configurado={s.imapConfigured} ok={s.imapOk} quando={s.imapCheckedAt} />
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Button
+              size="xs"
+              variant="default"
+              leftSection={<IconMail size={14} />}
+              onClick={() => testar.mutate()}
+              loading={testar.isPending}
+              disabled={!s.imapConfigured}
+            >
+              Testar leitura
+            </Button>
+            <Button size="xs" onClick={() => guardar.mutate()} loading={guardar.isPending}>
+              Guardar
+            </Button>
+          </div>
+        </>
+      }
+    >
+      <SeccaoForm
+        titulo="Servidor"
+        descricao="Com isto, o correio da empresa passa a ler-se dentro do sistema, já com o nome de quem escreveu — fornecedor, motorista ou equipa."
+      >
+        <Grid gutter="xs">
+          <Grid.Col span={{ base: 12, sm: 6 }}>
+            <TextInput
+              label="Servidor de receção"
+              placeholder="imap.o-seu-dominio.ao"
+              description="Costuma ser «imap.» seguido do domínio"
+              value={host}
+              onChange={(e) => setHost(e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, sm: 3 }}>
+            <TextInput
+              label="Porto"
+              placeholder="993"
+              value={port}
+              onChange={(e) => setPort(e.currentTarget.value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={{ base: 6, sm: 3 }}>
+            <Select
+              label="Segurança"
+              data={[
+                { value: 'SSL', label: 'SSL (993)' },
+                { value: 'STARTTLS', label: 'STARTTLS (143)' },
+                { value: 'NONE', label: 'Sem segurança' },
+              ]}
+              value={security}
+              onChange={setSecurity}
+            />
+          </Grid.Col>
+        </Grid>
+
+        <Switch
+          mt="sm"
+          label="Usar o mesmo utilizador e palavra-passe do envio"
+          description="É o caso quase sempre: a caixa é a mesma"
+          checked={mesmasCredenciais}
+          onChange={(e) => setMesmasCredenciais(e.currentTarget.checked)}
+        />
+
+        {!mesmasCredenciais && (
+          <Grid gutter="xs" mt="xs">
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <TextInput
+                label="Utilizador"
+                placeholder="geral@o-seu-dominio.ao"
+                value={username}
+                onChange={(e) => setUsername(e.currentTarget.value)}
+              />
+            </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6 }}>
+              <PasswordInput
+                label="Palavra-passe"
+                onFocus={() => {
+                  if (password === MASCARA) setPassword('');
+                }}
+                value={password}
+                onChange={(e) => setPassword(e.currentTarget.value)}
+              />
+            </Grid.Col>
+          </Grid>
+        )}
+      </SeccaoForm>
+
+      {ultimo && !ultimo.ok ? (
+        <DiagnosticoEmail resultado={ultimo} />
+      ) : (
+        <ResultadoUltimoTeste ok={s.imapOk} erro={s.imapLastError} quando={s.imapCheckedAt} />
+      )}
+    </Painel>
   );
 }
 

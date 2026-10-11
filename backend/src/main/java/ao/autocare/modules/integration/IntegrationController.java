@@ -119,6 +119,23 @@ public class IntegrationController {
         return service.testSmtp(org(p), p.id(), req.to());
     }
 
+    @Operation(summary = "Guardar o servidor de receção (IMAP)")
+    @RequirePermission(Permission.SETTINGS_MANAGE)
+    @PutMapping("/imap")
+    public SettingsView saveImap(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @Valid @RequestBody IntegrationDtos.ImapRequest req) {
+        return vista(service.saveImap(org(p), p.id(), req));
+    }
+
+    @Operation(summary = "Testar a leitura da caixa de correio",
+            description = "Abre mesmo a caixa de entrada e conta o que lá está.")
+    @RequirePermission(Permission.SETTINGS_MANAGE)
+    @PostMapping("/imap/test")
+    public TestResult testImap(@AuthenticationPrincipal AuthPrincipal p) {
+        return service.testImap(org(p), p.id());
+    }
+
     @Operation(summary = "Guardar o endereco do motor de rotas")
     @RequirePermission(Permission.SETTINGS_MANAGE)
     @PutMapping("/routing")

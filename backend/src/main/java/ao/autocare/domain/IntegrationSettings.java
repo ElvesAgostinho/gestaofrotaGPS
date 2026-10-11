@@ -105,6 +105,43 @@ public class IntegrationSettings extends TimestampedEntity {
     @Column(name = "smtp_last_error", length = 500)
     private String smtpLastError;
 
+    // ---- Receção de email (IMAP) ---------------------------------------
+    //
+    // O servidor de receção raramente é o de envio, e o porto nunca é o mesmo.
+    // As credenciais costumam ser as mesmas -- daí o interruptor, em vez de
+    // obrigar a escrevê-las duas vezes e a mantê-las iguais à mão.
+
+    @Column(name = "imap_host", length = 190)
+    private String imapHost;
+
+    @Column(name = "imap_port")
+    private Integer imapPort;
+
+    @Column(name = "imap_security", length = 20)
+    private String imapSecurity = "SSL";
+
+    @Column(name = "imap_username", length = 190)
+    private String imapUsername;
+
+    @Column(name = "imap_password_enc", length = 1000)
+    private String imapPasswordEnc;
+
+    @Column(name = "imap_use_smtp_login", nullable = false)
+    private boolean imapUseSmtpLogin = true;
+
+    /** «Sent», «INBOX.Sent», «Enviados» — varia com o servidor. */
+    @Column(name = "imap_sent_folder", length = 190)
+    private String imapSentFolder;
+
+    @Column(name = "imap_checked_at")
+    private Instant imapCheckedAt;
+
+    @Column(name = "imap_ok")
+    private Boolean imapOk;
+
+    @Column(name = "imap_last_error", length = 500)
+    private String imapLastError;
+
     // ---- Motor de rotas (OSRM) -----------------------------------------
 
     @Column(name = "routing_url", length = 300)
@@ -133,5 +170,24 @@ public class IntegrationSettings extends TimestampedEntity {
     public boolean hasSmtp() {
         return smtpHost != null && !smtpHost.isBlank()
                 && smtpFrom != null && !smtpFrom.isBlank();
+    }
+
+    /** Há servidor de receção apontado? */
+    public boolean hasImap() {
+        return imapHost != null && !imapHost.isBlank();
+    }
+
+    /** O utilizador da caixa: o do IMAP, ou o do envio quando é o mesmo. */
+    public String mailboxUser() {
+        return imapUseSmtpLogin || imapUsername == null || imapUsername.isBlank()
+                ? smtpUsername
+                : imapUsername;
+    }
+
+    /** O segredo da caixa, cifrado: o do IMAP, ou o do envio quando é o mesmo. */
+    public String mailboxPasswordEnc() {
+        return imapUseSmtpLogin || imapPasswordEnc == null || imapPasswordEnc.isBlank()
+                ? smtpPasswordEnc
+                : imapPasswordEnc;
     }
 }
