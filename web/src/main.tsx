@@ -11,6 +11,7 @@ import './erp.css';
 import { theme } from './theme';
 import { App } from './App';
 import { ErroNoEcra, limparEActualizar } from './components/ErroNoEcra';
+import { ligarActualizacoes } from './lib/actualizacao';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -76,8 +77,16 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      /* sem service worker a app continua a funcionar, só não instala */
-    });
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registo) => {
+        // Registar não basta: sem pedir a actualização, um separador aberto
+        // desde antes de uma publicação fica na versão antiga até alguém se
+        // lembrar de recarregar. Aconteceu, e é o que isto resolve.
+        ligarActualizacoes(registo);
+      })
+      .catch(() => {
+        /* sem service worker a app continua a funcionar, só não instala */
+      });
   });
 }

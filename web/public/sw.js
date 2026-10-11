@@ -9,7 +9,7 @@
  * Sem rede: as páginas já visitadas abrem; a API responde 503 e a app diz
  * «sem ligação» em vez de mostrar dados velhos como se fossem de agora.
  */
-const VERSAO = 'imbondeiro-shell-v3';
+const VERSAO = 'imbondeiro-shell-v4';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

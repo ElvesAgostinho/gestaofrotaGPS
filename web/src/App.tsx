@@ -25,6 +25,7 @@ import { LoginPage } from './pages/LoginPage';
 import { VerificarPage } from './pages/publico/VerificarPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { NovaVersao } from './components/NovaVersao';
 import { ConsumiveisPage } from './pages/ConsumiveisPage';
 import { PartsPage } from './pages/PartsPage';
 import { PlataformaPage } from './pages/PlataformaPage';
@@ -59,6 +60,9 @@ export function App() {
   return (
     <AuthProvider>
       <Router />
+      {/* Fora do Router de propósito: a barra tem de aparecer em qualquer
+          ecrã, incluindo o do motorista e o de sessão expirada. */}
+      <NovaVersao />
     </AuthProvider>
   );
 }
