@@ -6,6 +6,7 @@ import {
   IconAlertTriangle,
   IconBell,
   IconBuildingStore,
+  IconBuildingWarehouse,
   IconCategory,
   IconChartBar,
   IconClipboardList,
@@ -97,6 +98,7 @@ const NAV: NavSection[] = [
       { to: '/planos', label: 'Planos e intervalos', icon: IconCalendarRepeat },
       { to: '/preditiva', label: 'Manutenção preditiva', icon: IconWaveSine },
       { to: '/pecas', label: 'Peças e armazém', icon: IconPackage, minRole: 'TECHNICIAN' },
+      { to: '/fornecedores', label: 'Fornecedores', icon: IconBuildingWarehouse, minRole: 'TECHNICIAN' },
     ],
   },
   {
