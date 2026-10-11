@@ -151,6 +151,7 @@ public class SupplierScorecard {
     private Medida qualidade(List<PurchaseOrder> dele) {
         BigDecimal recebido = BigDecimal.ZERO;
         BigDecimal recusado = BigDecimal.ZERO;
+        BigDecimal porResolver = BigDecimal.ZERO;
         int entregas = 0;
         for (PurchaseOrder o : dele) {
             for (PurchaseReceipt r : receipts.findByOrderIdOrderByReceivedAtAsc(o.getId())) {
@@ -158,6 +159,9 @@ public class SupplierScorecard {
                 for (PurchaseReceiptLine l : r.getLines()) {
                     recebido = recebido.add(l.getQuantity());
                     recusado = recusado.add(l.getRejectedQuantity());
+                    if (l.porResolver()) {
+                        porResolver = porResolver.add(l.getRejectedQuantity());
+                    }
                 }
             }
         }
@@ -168,9 +172,16 @@ public class SupplierScorecard {
         }
         int pct = recebido.multiply(new BigDecimal("100"))
                 .divide(total, 0, RoundingMode.HALF_UP).intValue();
+        // Dizer quantas ficaram por resolver é metade da informação: um
+        // fornecedor que recusa pouco mas nunca credita nada é um problema
+        // diferente de um que recusa mais e resolve à primeira.
         String detalhe = recusado.signum() > 0
                 ? "Devolvidas " + recusado.stripTrailingZeros().toPlainString()
                         + " unidades em " + entregas + " entregas"
+                        + (porResolver.signum() > 0
+                                ? "; " + porResolver.stripTrailingZeros().toPlainString()
+                                        + " ainda por resolver"
+                                : "; todas resolvidas")
                 : "Nenhuma devolução em " + entregas + " entregas";
         return new Medida("Qualidade", pct, detalhe, estado(pct, 98, 90));
     }

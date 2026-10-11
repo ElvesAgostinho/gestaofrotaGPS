@@ -44,16 +44,19 @@ public class ReceiptController {
     private final ReceiptService receipts;
     private final InvoiceService invoices;
     private final SupplierScorecard scorecard;
+    private final ReturnService devolucoes;
     private final OrgContext orgContext;
 
     public ReceiptController(
             ReceiptService receipts,
             InvoiceService invoices,
             SupplierScorecard scorecard,
+            ReturnService devolucoes,
             OrgContext orgContext) {
         this.receipts = receipts;
         this.invoices = invoices;
         this.scorecard = scorecard;
+        this.devolucoes = devolucoes;
         this.orgContext = orgContext;
     }
 
@@ -83,6 +86,40 @@ public class ReceiptController {
     public List<RecepcaoView> entregas(
             @AuthenticationPrincipal AuthPrincipal p, @PathVariable String orderId) {
         return receipts.daOrdem(org(p), orderId);
+    }
+
+    // ==== Devoluções ========================================================
+
+    @Operation(summary = "O que veio mal e ainda não se resolveu",
+            description = "Por omissão só as que estão por resolver, que são as únicas sobre "
+                    + "as quais há alguma coisa a fazer.")
+    @RequirePermission(Permission.FLEET_VIEW)
+    @GetMapping("/api/v1/purchase-returns")
+    public List<ReturnService.Devolucao> devolucoes(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @RequestParam(defaultValue = "true") boolean pendingOnly) {
+        return devolucoes.listar(org(p), pendingOnly);
+    }
+
+    @Operation(summary = "Devoluções de um fornecedor")
+    @RequirePermission(Permission.FLEET_VIEW)
+    @GetMapping("/api/v1/suppliers/{supplierId}/returns")
+    public List<ReturnService.Devolucao> devolucoesDe(
+            @AuthenticationPrincipal AuthPrincipal p, @PathVariable String supplierId) {
+        return devolucoes.doFornecedor(org(p), supplierId);
+    }
+
+    @Operation(summary = "Resolver uma devolução",
+            description = "Devolvida, substituída, creditada, ou aceite assim mesmo — às "
+                    + "vezes não compensa o frete de volta. Obrigar a escolher entre devolver "
+                    + "e não devolver faria metade dos casos ficar por registar.")
+    @RequirePermission(Permission.STOCK_MOVE)
+    @PostMapping("/api/v1/purchase-returns/{id}/resolve")
+    public ReturnService.Devolucao resolver(
+            @AuthenticationPrincipal AuthPrincipal p,
+            @PathVariable String id,
+            @Valid @RequestBody ReturnService.ResolverRequest req) {
+        return devolucoes.resolver(org(p), p.id(), id, req);
     }
 
     // ==== Facturas ==========================================================

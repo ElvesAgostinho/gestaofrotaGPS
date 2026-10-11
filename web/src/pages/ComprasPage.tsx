@@ -7,6 +7,7 @@ import { api } from '../api/client';
 import { BotaoBarra, Painel, SeparadorBarra } from '../components/erp';
 import { Grelha } from '../components/Grelha';
 import { CampoProcura } from '../components/Procura';
+import { Devolucoes } from './compras/Devolucoes';
 import { NovaOrdem } from './compras/NovaOrdem';
 import { COR_ESTADO, type Ordem } from './compras/tipos';
 import { fmtDate, fmtMoney } from '../lib/format';
@@ -42,6 +43,8 @@ export function ComprasPage() {
 
   return (
     <Stack gap="lg">
+      <Devolucoes />
+
       <Painel
         titulo="Ordens de compra"
         semPadding

@@ -35,6 +35,7 @@ import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { BarraEstado, Painel, SeccaoForm } from '../components/erp';
 import { fmtDate, fmtMoney, fmtNumber } from '../lib/format';
+import { Devolucoes } from './compras/Devolucoes';
 import { ClassificacaoFornecedor, Facturas } from './fornecedores/Facturas';
 import { FormularioFornecedor } from './fornecedores/FormularioFornecedor';
 import {
@@ -164,7 +165,10 @@ export function FornecedorDetalhePage() {
           <Facturas supplierId={id} />
         </Tabs.Panel>
         <Tabs.Panel value="desempenho" pt="md">
-          <ClassificacaoFornecedor supplierId={id} />
+          <Stack gap="lg">
+            <ClassificacaoFornecedor supplierId={id} />
+            <Devolucoes supplierId={id} />
+          </Stack>
         </Tabs.Panel>
       </Tabs>
 

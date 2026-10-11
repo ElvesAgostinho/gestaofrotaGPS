@@ -36,6 +36,8 @@ public class MaintenanceScheduler {
     private final DocumentService documents;
     private final ao.autocare.modules.fleet.DriverRecordsService driverRecords;
     private final ao.autocare.modules.budget.BudgetService budgets;
+    private final ao.autocare.modules.purchase.SupplierBookService caderno;
+    private final ao.autocare.modules.purchase.ReturnService devolucoes;
 
     public MaintenanceScheduler(
             AssetPlanTaskRepository planTasks,
@@ -47,7 +49,9 @@ public class MaintenanceScheduler {
             ao.autocare.modules.fleet.DriverRecordsService driverRecords,
             ao.autocare.modules.budget.BudgetService budgets,
             ao.autocare.modules.predictive.FailureForecastService forecasts,
-            ao.autocare.modules.tyre.TyreService tyreService) {
+            ao.autocare.modules.tyre.TyreService tyreService,
+            ao.autocare.modules.purchase.SupplierBookService caderno,
+            ao.autocare.modules.purchase.ReturnService devolucoes) {
         this.planTasks = planTasks;
         this.assetPlans = assetPlans;
         this.workOrders = workOrders;
@@ -58,6 +62,8 @@ public class MaintenanceScheduler {
         this.documents = documents;
         this.driverRecords = driverRecords;
         this.budgets = budgets;
+        this.caderno = caderno;
+        this.devolucoes = devolucoes;
     }
 
     /** De hora a hora: recalcula o vencimento de todas as tarefas de plano ativas. */
@@ -181,6 +187,18 @@ public class MaintenanceScheduler {
             int orcamentos = budgets.notifyOverruns();
             if (orcamentos > 0) {
                 log.info("{} aviso(s) de orçamento a 80 %/100 %", orcamentos);
+            }
+            // Os papéis dos fornecedores caducam como os das viaturas, e
+            // comprar a quem os tem fora de prazo só se descobre meses depois,
+            // na contabilidade.
+            int fornecedores = caderno.notificarDocumentos();
+            if (fornecedores > 0) {
+                log.info("{} aviso(s) de documento de fornecedor a caducar", fornecedores);
+            }
+            // E uma devolução esquecida é dinheiro perdido em silêncio.
+            int devolucoes = this.devolucoes.notificarPendentes();
+            if (devolucoes > 0) {
+                log.info("{} aviso(s) de devolução a arrastar-se", devolucoes);
             }
         } catch (Exception e) {
             log.warn("Falha ao avisar de documentos: {}", e.toString());

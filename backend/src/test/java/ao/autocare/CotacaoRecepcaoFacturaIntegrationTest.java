@@ -423,6 +423,83 @@ class CotacaoRecepcaoFacturaIntegrationTest extends AbstractIntegrationTest {
         assertThat(m.get("detalhe").asText()).contains("0 de 1");
     }
 
+    // ==== O que veio mal ====================================================
+
+    @Test
+    void oQueVeioMalFicaNumaListaAteAlguemOResolver() throws Exception {
+        montar("dev1@teste.ao");
+        String ordemId = ordemDirecta(10, 8500);
+        JsonNode ordem = send(get("/api/v1/purchase-orders/" + ordemId), null, 200);
+        String linhaId = ordem.get("lines").get(0).get("id").asText();
+
+        Map<String, Object> rec = new HashMap<>();
+        rec.put("warehouseId", armazem);
+        rec.put("lines", List.of(Map.of(
+                "orderLineId", linhaId, "quantity", 8,
+                "rejectedQuantity", 2, "rejectionReason", "Caixas molhadas")));
+        send(post("/api/v1/purchase-orders/" + ordemId + "/receipts"), rec, 201);
+
+        // Antes, isto não gerava nada e a caixa ficava a um canto do armazém.
+        JsonNode pendentes = send(get("/api/v1/purchase-returns"), null, 200);
+        assertThat(pendentes).hasSize(1);
+        JsonNode d = pendentes.get(0);
+        assertThat(d.get("description").asText()).contains("Filtro");
+        assertThat(d.get("quantity").decimalValue()).isEqualByComparingTo(new BigDecimal("2"));
+        assertThat(d.get("reason").asText()).isEqualTo("Caixas molhadas");
+        assertThat(d.get("resolutionLabel").asText()).isEqualTo("Por resolver");
+        // Quanto vale, ao preço da encomenda: é o que o fornecedor deve.
+        assertThat(d.get("valor").decimalValue()).isEqualByComparingTo(new BigDecimal("17000"));
+
+        // E a qualidade dele diz que ficou por resolver.
+        JsonNode ficha = send(get("/api/v1/suppliers/" + barato + "/scorecard"), null, 200);
+        assertThat(medida(ficha, "Qualidade").get("detalhe").asText())
+                .contains("2 ainda por resolver");
+
+        // Uma nota de crédito sem número não se concilia com nada.
+        send(post("/api/v1/purchase-returns/" + d.get("id").asText() + "/resolve"),
+                Map.of("resolution", "CREDITED"), 400);
+
+        JsonNode resolvida = send(
+                post("/api/v1/purchase-returns/" + d.get("id").asText() + "/resolve"),
+                Map.of("resolution", "CREDITED", "creditNote", "NC 2026/88",
+                        "creditAmount", 17000), 200);
+        assertThat(resolvida.get("resolutionLabel").asText()).isEqualTo("Creditada");
+        assertThat(resolvida.get("creditNote").asText()).isEqualTo("NC 2026/88");
+
+        // Sai da lista do que há a fazer, mas continua a poder ser consultada.
+        assertThat(send(get("/api/v1/purchase-returns"), null, 200)).isEmpty();
+        assertThat(send(get("/api/v1/purchase-returns?pendingOnly=false"), null, 200)).hasSize(1);
+
+        JsonNode depois = send(get("/api/v1/suppliers/" + barato + "/scorecard"), null, 200);
+        assertThat(medida(depois, "Qualidade").get("detalhe").asText())
+                .contains("todas resolvidas");
+    }
+
+    @Test
+    void haQuatroDesfechosPorqueNemTudoSeDevolve() throws Exception {
+        montar("dev2@teste.ao");
+        String ordemId = ordemDirecta(10, 8500);
+        String linhaId = send(get("/api/v1/purchase-orders/" + ordemId), null, 200)
+                .get("lines").get(0).get("id").asText();
+        Map<String, Object> rec = new HashMap<>();
+        rec.put("warehouseId", armazem);
+        rec.put("lines", List.of(Map.of(
+                "orderLineId", linhaId, "quantity", 9,
+                "rejectedQuantity", 1, "rejectionReason", "Rosca errada")));
+        send(post("/api/v1/purchase-orders/" + ordemId + "/receipts"), rec, 201);
+        String id = send(get("/api/v1/purchase-returns"), null, 200).get(0).get("id").asText();
+
+        // Às vezes não compensa o frete de volta — e isso tem de caber.
+        JsonNode aceite = send(post("/api/v1/purchase-returns/" + id + "/resolve"),
+                Map.of("resolution", "ACCEPTED",
+                        "note", "Uma unidade só; não compensa o transporte de volta."), 200);
+        assertThat(aceite.get("resolutionLabel").asText()).isEqualTo("Aceite assim mesmo");
+        assertThat(aceite.get("resolutionNote").asText()).contains("não compensa");
+
+        send(post("/api/v1/purchase-returns/" + id + "/resolve"),
+                Map.of("resolution", "INVENTADO"), 400);
+    }
+
     // ==== Auxiliares ========================================================
 
     /** Uma ordem aprovada directamente, sem passar por cotação. */
