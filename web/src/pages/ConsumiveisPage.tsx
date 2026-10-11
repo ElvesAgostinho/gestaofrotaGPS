@@ -63,6 +63,8 @@ interface PecaLinha {
   noCatalogo: boolean;
   suficiente: boolean;
   prazoDias?: number | null;
+  veredicto?: string | null;
+  porque?: string | null;
 }
 
 interface PneuLinha {
@@ -137,6 +139,8 @@ interface CompraLinha {
   encomendarAte?: string | null;
   urgente: boolean;
   noCatalogo: boolean;
+  veredicto?: string | null;
+  porque?: string | null;
   equipamentos: string[];
 }
 
@@ -151,6 +155,7 @@ interface Resumo {
   filtrosAVencer: number;
   pecasEmFalta: number;
   encomendasUrgentes: number;
+  pecasIncompativeis: number;
   equipamentosSemPlano: number;
   custoEstimado?: number | null;
   moeda?: string | null;
@@ -262,6 +267,36 @@ function Vida({ pct }: { pct?: number | null }) {
   );
 }
 
+/**
+ * O aviso de compatibilidade de uma peça.
+ *
+ * <p>Só aparece quando há alguma coisa a fazer. «Serve» não se mostra — seria
+ * ruído em cada linha —, mas «não serve» mostra-se sempre, porque é a peça
+ * errada a caminho de um motor; e «por confirmar» mostra-se porque é um dado
+ * que falta e que alguém pode preencher em dez segundos.
+ */
+function Compativel({ veredicto, porque }: { veredicto?: string | null; porque?: string | null }) {
+  if (veredicto === 'NAO_SERVE') {
+    return (
+      <Tooltip label={porque ?? ''} withArrow multiline w={300}>
+        <Badge size="xs" color="red" variant="filled">
+          não serve este equipamento
+        </Badge>
+      </Tooltip>
+    );
+  }
+  if (veredicto === 'INCERTO') {
+    return (
+      <Tooltip label={porque ?? ''} withArrow multiline w={300}>
+        <Badge size="xs" color="yellow" variant="light">
+          compatibilidade por confirmar
+        </Badge>
+      </Tooltip>
+    );
+  }
+  return null;
+}
+
 /** As peças de um serviço, com o armazém ao lado de cada uma. */
 function Pecas({ pecas }: { pecas: PecaLinha[] }) {
   if (pecas.length === 0) {
@@ -283,6 +318,7 @@ function Pecas({ pecas }: { pecas: PecaLinha[] }) {
               {p.especificacao}
             </Badge>
           )}
+          <Compativel veredicto={p.veredicto} porque={p.porque} />
           {!p.noCatalogo ? (
             <Tooltip label="Esta peça não existe no armazém — não é possível saber se há stock" withArrow>
               <Badge size="xs" color="gray" variant="light">
@@ -532,6 +568,30 @@ export function ConsumiveisPage() {
           />
         </Group>
 
+        {(r?.pecasIncompativeis ?? 0) > 0 && (
+          <Group
+            gap={8}
+            mt="xs"
+            p="xs"
+            wrap="nowrap"
+            style={{
+              border: '1px solid var(--mantine-color-red-5)',
+              background: 'var(--mantine-color-red-light)',
+              borderRadius: 2,
+            }}
+          >
+            <IconAlertTriangle size={16} color="var(--mantine-color-red-7)" />
+            <Text size="xs">
+              <b>
+                {r?.pecasIncompativeis} peça(s) do plano não servem o equipamento a que estão
+                atribuídas
+              </b>{' '}
+              — veja o aviso vermelho na linha. Acontece quando se aplica a um equipamento o plano
+              de outra família, ou quando o armazém tem um só artigo com o nome de dois.
+            </Text>
+          </Group>
+        )}
+
         {((r?.pneusSemMedicao ?? 0) > 0 || (r?.equipamentosSemPlano ?? 0) > 0) && (
           <Group
             gap={8}
@@ -778,6 +838,7 @@ export function ConsumiveisPage() {
                                 não está no armazém
                               </Badge>
                             )}
+                            <Compativel veredicto={c.veredicto} porque={c.porque} />
                           </Group>
                         </Table.Td>
                         <Table.Td>

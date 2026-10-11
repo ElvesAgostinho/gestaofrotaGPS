@@ -67,6 +67,7 @@ public class ImportService {
     private static final String[] COL_LOCATION = {"local", "localizacao", "obra", "location"};
     private static final String[] COL_MANUFACTURER = {"fabricante", "marca", "manufacturer"};
     private static final String[] COL_MODEL = {"modelo", "model"};
+    private static final String[] COL_ENGINE = {"motor", "engine", "cilindrada"};
     private static final String[] COL_SERIAL =
             {"no serie", "numero de serie", "numero serie", "serie", "serial"};
     private static final String[] COL_YEAR = {"ano", "ano de fabrico", "ano de fabricacao", "year"};
@@ -151,6 +152,12 @@ public class ImportService {
     }
 
     // ==== Ativos ========================================================
+    /*
+     * Este continua com transacao: ao contrario das pecas, a actualizacao de um
+     * ativo altera a entidade que o indice ja trazia, e sem a transacao a
+     * envolver o ciclo essa alteracao nunca chegava a ser gravada -- a segunda
+     * folha corrigia o nome e o nome ficava como estava.
+     */
     @Transactional
     public ImportReport importAssets(String orgId, String userId, String content, boolean dryRun) {
         Csv.Sheet sheet = read(content);
@@ -202,6 +209,7 @@ public class ImportService {
                             location != null ? location.getId() : null,
                             null, // responsibleUserId: a folha traz o nome, não o utilizador
                             row.getAny(COL_MANUFACTURER), row.getAny(COL_MODEL),
+                            row.getAny(COL_ENGINE),
                             row.getAny(COL_SERIAL), integer(row.getAny(COL_YEAR)),
                             row.getAny(COL_PLATE), row.getAny(COL_RESPONSIBLE),
                             // aquisição (data, valor, moeda), foto e objetivo não vêm na folha
@@ -231,7 +239,18 @@ public class ImportService {
     }
 
     // ==== Peças =========================================================
-    @Transactional
+    /*
+     * Sem @Transactional, pela mesma razao que o importador de abastecimentos.
+     *
+     * O StockService.createPart() tem transacao propria. Quando uma linha e
+     * recusada -- um lubrificante sem especificacao, por exemplo -- essa
+     * transacao interna marca a de fora para reversao, e apanhar a excecao no
+     * ciclo nao desfaz a marca: o lote seguia ate ao fim e rebentava no commit,
+     * deitando fora as linhas boas e devolvendo 500 em vez da lista de erros.
+     *
+     * Sem transacao a envolver tudo, cada linha grava ou falha por si -- que e
+     * exatamente o que um relatorio "2 criadas, 1 erro" promete.
+     */
     public ImportReport importParts(String orgId, String userId, String content, boolean dryRun) {
         Csv.Sheet sheet = read(content);
         Map<String, Part> byName = index(
@@ -482,9 +501,10 @@ public class ImportService {
 
     public String partTemplate() {
         return """
-                nome;numero de peca;sistema;categoria;unidade;stock minimo;custo medio;moeda
-                Filtro de óleo do motor;1R-0716;ENGINE;FILTER;un;10;8500;AOA
-                Óleo hidráulico 20L;HYD-20L;HYDRAULIC;LUBRICANT;un;5;42000;AOA
+                nome;numero de peca;sistema;categoria;unidade;especificacao;prazo de entrega;stock minimo;custo medio;moeda
+                Filtro de óleo do motor;1R-0716;ENGINE;FILTER;un;;21;10;8500;AOA
+                Óleo hidráulico 20L;HYD-20L;HYDRAULIC;LUBRICANT;un;ISO VG 46;30;5;42000;AOA
+                Óleo do motor 15W-40;OIL-1540;ENGINE;LUBRICANT;L;15W-40 API CJ-4;30;200;1800;AOA
                 """;
     }
 

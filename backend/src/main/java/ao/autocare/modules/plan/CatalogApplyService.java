@@ -41,6 +41,7 @@ public class CatalogApplyService {
     private final ao.autocare.modules.asset.AssetService assetService;
     private final ao.autocare.repo.AssetRepository assets;
     private final ao.autocare.modules.consumables.ConsumablesService consumables;
+    private final ao.autocare.modules.part.FitmentService fitment;
 
     public CatalogApplyService(
             PlanService plans,
@@ -50,7 +51,8 @@ public class CatalogApplyService {
             StockService stock,
             ao.autocare.modules.asset.AssetService assetService,
             ao.autocare.repo.AssetRepository assets,
-            ao.autocare.modules.consumables.ConsumablesService consumables) {
+            ao.autocare.modules.consumables.ConsumablesService consumables,
+            ao.autocare.modules.part.FitmentService fitment) {
         this.plans = plans;
         this.assetPlans = assetPlans;
         this.checklists = checklists;
@@ -59,6 +61,7 @@ public class CatalogApplyService {
         this.assetService = assetService;
         this.assets = assets;
         this.consumables = consumables;
+        this.fitment = fitment;
     }
 
     /** O que foi criado, para o ecrã poder dizê-lo sem adivinhar. */
@@ -181,6 +184,16 @@ public class CatalogApplyService {
                 consumables.ligarAoArmazem(orgId);
             } catch (RuntimeException e) {
                 log.debug("Peças do plano não ligadas ao armazém: {}", e.getMessage());
+            }
+            // E ficam marcadas como sendo desta família. É assim que a
+            // compatibilidade nasce preenchida: no dia em que este filtro de
+            // camião aparecer na lista de uma pick-up, o sistema avisa em vez
+            // de deixar comprar.
+            try {
+                fitment.declararFamilia(orgId, userId, code,
+                        PlanCatalog.spareParts(code).stream().map(SavePartRequest::name).toList());
+            } catch (RuntimeException e) {
+                log.debug("Famílias das peças não declaradas: {}", e.getMessage());
             }
         }
 

@@ -52,6 +52,7 @@ public final class ConsumableDtos {
             int filtrosAVencer,
             int pecasEmFalta,
             int encomendasUrgentes,
+            int pecasIncompativeis,
             int equipamentosSemPlano,
             BigDecimal custoEstimado,
             String moeda) {}
@@ -123,7 +124,10 @@ public final class ConsumableDtos {
             BigDecimal stock,
             boolean noCatalogo,
             boolean suficiente,
-            Integer prazoDias) {}
+            Integer prazoDias,
+            /** SERVE, NAO_SERVE, INCERTO ou SEM_INFORMACAO para este equipamento. */
+            String veredicto,
+            String porque) {}
 
     /** Uma linha da lista de compras: o somatório de tudo o que vence. */
     public record CompraLinha(
@@ -143,5 +147,7 @@ public final class ConsumableDtos {
             LocalDate encomendarAte,
             boolean urgente,
             boolean noCatalogo,
+            String veredicto,
+            String porque,
             List<String> equipamentos) {}
 }

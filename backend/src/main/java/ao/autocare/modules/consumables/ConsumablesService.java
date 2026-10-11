@@ -4,6 +4,7 @@ import ao.autocare.domain.Asset;
 import ao.autocare.domain.AssetMeter;
 import ao.autocare.domain.AssetPlanTask;
 import ao.autocare.domain.Part;
+import ao.autocare.domain.PartApplication;
 import ao.autocare.domain.PlanTaskPart;
 import ao.autocare.domain.Tyre;
 import ao.autocare.domain.TyreReading;
@@ -16,6 +17,7 @@ import ao.autocare.modules.consumables.dto.ConsumableDtos.PecaLinha;
 import ao.autocare.modules.consumables.dto.ConsumableDtos.PneuLinha;
 import ao.autocare.modules.consumables.dto.ConsumableDtos.Resumo;
 import ao.autocare.modules.consumables.dto.ConsumableDtos.ServicoLinha;
+import ao.autocare.modules.part.FitmentService;
 import ao.autocare.repo.AssetMeterRepository;
 import ao.autocare.repo.AssetPlanTaskRepository;
 import ao.autocare.repo.AssetRepository;
@@ -112,6 +114,7 @@ public class ConsumablesService {
     private final FluidTopUpRepository fluids;
     private final AssetRepository assets;
     private final ao.autocare.repo.AssetPlanRepository assetPlans;
+    private final ao.autocare.repo.PartApplicationRepository partApplications;
 
     public ConsumablesService(
             TyreRepository tyres,
@@ -123,7 +126,8 @@ public class ConsumablesService {
             StockItemRepository stock,
             FluidTopUpRepository fluids,
             AssetRepository assets,
-            ao.autocare.repo.AssetPlanRepository assetPlans) {
+            ao.autocare.repo.AssetPlanRepository assetPlans,
+            ao.autocare.repo.PartApplicationRepository partApplications) {
         this.tyres = tyres;
         this.readings = readings;
         this.planTasks = planTasks;
@@ -134,6 +138,7 @@ public class ConsumablesService {
         this.fluids = fluids;
         this.assets = assets;
         this.assetPlans = assetPlans;
+        this.partApplications = partApplications;
     }
 
     // ==== O painel ==========================================================
@@ -165,15 +170,31 @@ public class ConsumablesService {
             porNome.putIfAbsent(chave(p.getName()), p);
         }
 
+        // O equipamento reduzido ao que decide uma peca, e as compatibilidades
+        // declaradas no armazem. Com estas duas coisas o painel deixa de dizer
+        // apenas que falta um filtro e passa a poder dizer que aquele filtro
+        // nao e deste camiao -- a diferenca entre um inventario e um catalogo.
+        List<Asset> frota = assets.findByOrganizationId(orgId);
+        Map<String, FitmentService.Alvo> alvos = new HashMap<>();
+        for (Asset a : frota) {
+            alvos.put(a.getId(), FitmentService.Alvo.de(a));
+        }
+        Map<String, List<PartApplication>> aplicacoes = new HashMap<>();
+        for (PartApplication a : partApplications.findAllForOrg(orgId)) {
+            aplicacoes.computeIfAbsent(a.getPart().getId(), k -> new ArrayList<>()).add(a);
+        }
+
         List<PneuLinha> pneus = pneus(orgId, contadores, horizonte, hoje, custos);
         List<ServicoLinha> oleos = new ArrayList<>();
         List<ServicoLinha> filtros = new ArrayList<>();
-        servicos(orgId, contadores, stockPorPeca, porNome, horizonte, hoje, oleos, filtros);
+        servicos(orgId, contadores, stockPorPeca, porNome, alvos, aplicacoes,
+                horizonte, hoje, oleos, filtros);
 
         List<CompraLinha> compras =
                 compras(oleos, filtros, pneus, catalogo, stockPorPeca, porNome, hoje, custos);
 
-        return new Painel(horizonte, resumo(pneus, oleos, filtros, compras, orgId, custos),
+        return new Painel(horizonte,
+                resumo(pneus, oleos, filtros, compras, frota, orgId, custos),
                 pneus, oleos, filtros, compras);
     }
 
@@ -409,6 +430,8 @@ public class ConsumablesService {
             Map<String, AssetMeter> contadores,
             Map<String, BigDecimal> stockPorPeca,
             Map<String, Part> porNome,
+            Map<String, FitmentService.Alvo> alvos,
+            Map<String, List<PartApplication>> aplicacoes,
             int horizonte,
             LocalDate hoje,
             List<ServicoLinha> oleos,
@@ -451,13 +474,14 @@ public class ConsumablesService {
                 continue;
             }
 
+            FitmentService.Alvo alvo = alvos.get(a.getId());
             if (ehOleo) {
-                oleos.add(linhaDeServico(t, a, m, pecas, stockPorPeca, porNome, projetados, hoje,
-                        estado, tipoDeOleo(texto), consumoDeOleo.get(a.getId())));
+                oleos.add(linhaDeServico(t, a, m, pecas, stockPorPeca, porNome, alvo, aplicacoes,
+                        projetados, hoje, estado, tipoDeOleo(texto), consumoDeOleo.get(a.getId())));
             }
             if (ehFiltro) {
-                filtros.add(linhaDeServico(t, a, m, pecas, stockPorPeca, porNome, projetados, hoje,
-                        estado, tipoDeFiltro(texto), null));
+                filtros.add(linhaDeServico(t, a, m, pecas, stockPorPeca, porNome, alvo, aplicacoes,
+                        projetados, hoje, estado, tipoDeFiltro(texto), null));
             }
         }
         oleos.sort(ordemDosServicos());
@@ -480,6 +504,8 @@ public class ConsumablesService {
             List<PlanTaskPart> pecas,
             Map<String, BigDecimal> stockPorPeca,
             Map<String, Part> porNome,
+            FitmentService.Alvo alvo,
+            Map<String, List<PartApplication>> aplicacoes,
             Integer projetados,
             LocalDate hoje,
             String estado,
@@ -496,6 +522,16 @@ public class ConsumablesService {
             if (emLitros(p.getUnit())) {
                 litros = litros.add(pedida);
             }
+            // A peca serve este equipamento? So se pergunta quando a peca
+            // existe no armazem e o equipamento esta identificado -- de outra
+            // forma a resposta seria inventada.
+            String veredicto = null;
+            String porque = null;
+            if (catalogada != null && alvo != null) {
+                var c = FitmentService.avaliar(aplicacoes.get(catalogada.getId()), alvo);
+                veredicto = c.veredicto();
+                porque = c.motivo();
+            }
             linhas.add(new PecaLinha(
                     catalogada == null ? null : catalogada.getId(),
                     p.getPartName(),
@@ -507,7 +543,9 @@ public class ConsumablesService {
                     existe,
                     catalogada != null,
                     catalogada != null && existe.compareTo(pedida) >= 0,
-                    catalogada == null ? null : catalogada.getLeadTimeDays()));
+                    catalogada == null ? null : catalogada.getLeadTimeDays(),
+                    veredicto,
+                    porque));
         }
 
         LocalDate prevista = dataPrevista(t, projetados, hoje);
@@ -665,7 +703,7 @@ public class ConsumablesService {
             boolean custos) {
         /** Acumulador por artigo. */
         record Acc(List<BigDecimal> quantidades, Set<String> equipamentos,
-                   List<LocalDate> datas, PecaLinha exemplo) {}
+                   List<LocalDate> datas, List<PecaLinha> contributos, PecaLinha exemplo) {}
 
         Map<String, Acc> porArtigo = new LinkedHashMap<>();
         Set<String> tarefasJaContadas = new HashSet<>();
@@ -677,9 +715,10 @@ public class ConsumablesService {
             }
             for (PecaLinha p : s.pecas()) {
                 String chave = p.partId() != null ? "id:" + p.partId() : "nome:" + chave(p.nome());
-                Acc acc = porArtigo.computeIfAbsent(chave,
-                        k -> new Acc(new ArrayList<>(), new HashSet<>(), new ArrayList<>(), p));
+                Acc acc = porArtigo.computeIfAbsent(chave, k -> new Acc(
+                        new ArrayList<>(), new HashSet<>(), new ArrayList<>(), new ArrayList<>(), p));
                 acc.quantidades().add(p.quantidade() == null ? BigDecimal.ONE : p.quantidade());
+                acc.contributos().add(p);
                 if (s.assetTag() != null) {
                     acc.equipamentos().add(s.assetTag());
                 }
@@ -713,6 +752,12 @@ public class ConsumablesService {
             if (custos && catalogada != null && catalogada.getAverageCost() != null) {
                 custo = catalogada.getAverageCost().multiply(comprar).setScale(2, RoundingMode.HALF_UP);
             }
+            // Se o mesmo artigo e pedido para cinco equipamentos e nao serve
+            // num deles, e isso que tem de aparecer na lista de compras: nao se
+            // compra um artigo para onde ele nao serve.
+            PecaLinha incompativel = acc.contributos().stream()
+                    .filter(x -> "NAO_SERVE".equals(x.veredicto()))
+                    .findFirst().orElse(null);
             linhas.add(new CompraLinha(
                     catalogada == null ? null : catalogada.getId(),
                     p.nome(),
@@ -725,6 +770,8 @@ public class ConsumablesService {
                     prazo, precisaEm, encomendarAte,
                     comprar.signum() > 0 && encomendarAte != null && !encomendarAte.isAfter(hoje),
                     catalogada != null,
+                    incompativel == null ? null : "NAO_SERVE",
+                    incompativel == null ? null : incompativel.porque(),
                     acc.equipamentos().stream().sorted().limit(12).toList()));
         }
 
@@ -787,6 +834,7 @@ public class ConsumablesService {
                     prazo, precisaEm, encomendarAte,
                     comprar.signum() > 0 && encomendarAte != null && !encomendarAte.isAfter(hoje),
                     catalogada != null,
+                    null, null,
                     grupo.stream().map(PneuLinha::assetTag).filter(Objects::nonNull)
                             .distinct().sorted().limit(12).toList()));
         }
@@ -806,6 +854,7 @@ public class ConsumablesService {
             List<ServicoLinha> oleos,
             List<ServicoLinha> filtros,
             List<CompraLinha> compras,
+            List<Asset> frota,
             String orgId,
             boolean custos) {
         int pneusCriticos = (int) pneus.stream().filter(p -> "CRITICO".equals(p.estado())).count();
@@ -815,6 +864,10 @@ public class ConsumablesService {
         int filtrosVencidos = (int) filtros.stream().filter(s -> "CRITICO".equals(s.estado())).count();
         int emFalta = (int) compras.stream().filter(c -> c.aComprar().signum() > 0).count();
         int urgentes = (int) compras.stream().filter(CompraLinha::urgente).count();
+        int incompativeis = (int) juntar(oleos, filtros).stream()
+                .flatMap(s -> s.pecas().stream())
+                .filter(x -> "NAO_SERVE".equals(x.veredicto()))
+                .count();
 
         // Equipamento sem plano é equipamento sem controlo nenhum de óleos e
         // filtros: não aparece no painel porque não há nada a vencer, e é
@@ -823,7 +876,7 @@ public class ConsumablesService {
         // esquecida.
         Set<String> comPlano = new HashSet<>(assetPlans.findAssetIdsWithActivePlan(orgId));
         int semPlano = 0;
-        for (Asset a : assets.findByOrganizationId(orgId)) {
+        for (Asset a : frota) {
             if (!a.isArchived() && a.getStatus() != AssetStatus.RETIRED && !comPlano.contains(a.getId())) {
                 semPlano++;
             }
@@ -840,7 +893,7 @@ public class ConsumablesService {
                 pneusCriticos, pneusAviso, pneus.size(), semMedicao,
                 oleosVencidos, oleos.size() - oleosVencidos,
                 filtrosVencidos, filtros.size() - filtrosVencidos,
-                emFalta, urgentes, semPlano, custo, "AOA");
+                emFalta, urgentes, incompativeis, semPlano, custo, "AOA");
     }
 
     // ==== Classificação =====================================================

@@ -69,6 +69,8 @@ export function NovaPecaForm({ opened, onClose }: { opened: boolean; onClose: ()
   const [unit, setUnit] = useState('un');
   const [minQuantity, setMinQuantity] = useState<number | string>('');
   const [averageCost, setAverageCost] = useState<number | string>('');
+  const [specification, setSpecification] = useState('');
+  const [leadTimeDays, setLeadTimeDays] = useState<number | string>('');
   const [notes, setNotes] = useState('');
 
   const create = useMutation({
@@ -82,6 +84,8 @@ export function NovaPecaForm({ opened, onClose }: { opened: boolean; onClose: ()
           unit: unit.trim() || null,
           minQuantity: minQuantity === '' ? null : Number(minQuantity),
           averageCost: averageCost === '' ? null : Number(averageCost),
+          specification: specification.trim() || null,
+          leadTimeDays: leadTimeDays === '' ? null : Number(leadTimeDays),
           notes: notes.trim() || null,
         },
       }),
@@ -94,6 +98,8 @@ export function NovaPecaForm({ opened, onClose }: { opened: boolean; onClose: ()
       setUnit('un');
       setMinQuantity('');
       setAverageCost('');
+      setSpecification('');
+      setLeadTimeDays('');
       setNotes('');
       onClose();
     },
@@ -118,6 +124,26 @@ export function NovaPecaForm({ opened, onClose }: { opened: boolean; onClose: ()
             onChange={(e) => setPartNumber(e.currentTarget.value)}
           />
           <Select label="Categoria" data={CATEGORIAS_PECA} value={category} onChange={setCategory} />
+        </Group>
+        <Group grow>
+          <TextInput
+            label="Especificação"
+            placeholder="15W-40 API CJ-4, DOT 4, 11R22.5…"
+            description={
+              category === 'LUBRICANT'
+                ? 'Obrigatória num lubrificante: é ela que distingue o óleo certo do errado'
+                : 'A norma técnica, quando existe'
+            }
+            value={specification}
+            onChange={(e) => setSpecification(e.currentTarget.value)}
+          />
+          <NumberInput
+            label="Prazo de entrega (dias)"
+            description="Quantos dias o fornecedor demora — decide quando encomendar"
+            value={leadTimeDays}
+            onChange={setLeadTimeDays}
+            min={0}
+          />
         </Group>
         <Group grow>
           <TextInput

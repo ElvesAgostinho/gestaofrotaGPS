@@ -92,6 +92,7 @@ export interface AssetView {
   responsibleUserId: string | null;
   responsibleLabel: string | null;
   manufacturer: string | null;
+  engine: string | null;
   model: string | null;
   serialNumber: string | null;
   modelYear: number | null;

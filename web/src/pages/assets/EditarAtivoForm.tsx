@@ -57,6 +57,7 @@ export function EditarAtivoForm({
           assetTypeId: v.assetTypeId || null,
           locationId: v.locationId ?? '',
           manufacturer: v.manufacturer.trim() || null,
+          engine: v.engine.trim() || null,
           model: v.model.trim() || null,
           modelYear: v.modelYear === '' ? null : Number(v.modelYear),
           serialNumber: v.serialNumber.trim() || null,
@@ -137,6 +138,14 @@ export function EditarAtivoForm({
             <NumberInput label="Ano" min={1950} max={2100} {...campo('modelYear')} />
           </Group>
           <Group grow>
+            <TextInput
+              label="Motor"
+              placeholder="2.4 D-4D, Cummins 6BT…"
+              description="Decide a peça certa: dois modelos iguais com motores diferentes levam filtros diferentes"
+              {...campo('engine')}
+            />
+          </Group>
+          <Group grow>
             <TextInput label="Nº de série" {...campo('serialNumber')} />
             <TextInput label="Matrícula" {...campo('plate')} />
             <TextInput label="Responsável" {...campo('responsibleLabel')} />
@@ -189,6 +198,7 @@ interface Valores {
   status: string;
   manufacturer: string;
   model: string;
+  engine: string;
   modelYear: number | string;
   serialNumber: string;
   plate: string;
@@ -209,6 +219,7 @@ function valores(a: AssetView & { downtimeCostPerHour?: number | null; tankCapac
     status: a.status,
     manufacturer: a.manufacturer ?? '',
     model: a.model ?? '',
+    engine: a.engine ?? '',
     modelYear: a.modelYear ?? '',
     serialNumber: a.serialNumber ?? '',
     plate: a.plate ?? '',

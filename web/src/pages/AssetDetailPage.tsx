@@ -30,6 +30,7 @@ import {
   IconPencil,
   IconPrinter,
   IconDroplet,
+  IconSitemap,
   IconWheel,
   IconChecklist,
   IconFileText,
@@ -53,6 +54,7 @@ import { IconeAtivo } from '../components/Equipamento';
 import { FotografiasPorParte, type Foto } from './assets/FotografiasPorParte';
 import { PontosDeServico } from './assets/PontosDeServico';
 import { EditarAtivoForm } from './assets/EditarAtivoForm';
+import { PecasCompativeis } from './assets/PecasCompativeis';
 import { PneusTab } from './assets/PneusTab';
 import { InspecoesTab } from './assets/InspecoesTab';
 import { AbaterAtivoModal, ReverterAbate } from './assets/AbaterAtivo';
@@ -336,6 +338,9 @@ export function AssetDetailPage() {
           <Tabs.Tab value="pneus" leftSection={<IconWheel size={16} />}>
             Pneus
           </Tabs.Tab>
+          <Tabs.Tab value="pecas" leftSection={<IconSitemap size={16} />}>
+            Peças
+          </Tabs.Tab>
           <Tabs.Tab value="inspecoes" leftSection={<IconChecklist size={16} />}>
             Inspeções
           </Tabs.Tab>
@@ -375,6 +380,9 @@ export function AssetDetailPage() {
         </Tabs.Panel>
         <Tabs.Panel value="pneus" pt="md">
           <PneusTab assetId={id} unidade={meter?.kind === 'HOURMETER' ? 'h' : 'km'} />
+        </Tabs.Panel>
+        <Tabs.Panel value="pecas" pt="md">
+          <PecasCompativeis assetId={id} />
         </Tabs.Panel>
         <Tabs.Panel value="inspecoes" pt="md">
           <InspecoesTab assetId={id} />

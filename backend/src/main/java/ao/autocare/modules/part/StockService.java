@@ -1,6 +1,7 @@
 package ao.autocare.modules.part;
 
 import ao.autocare.common.ApiException;
+import ao.autocare.domain.enums.Enums.PartCategory;
 import ao.autocare.common.PagedResponse;
 import ao.autocare.domain.Part;
 import ao.autocare.domain.StockItem;
@@ -325,9 +326,28 @@ public class StockService {
             p.setCurrency(req.currency().trim().toUpperCase());
         }
         p.setNotes(blankToNull(req.notes()));
-        p.setSpecification(blankToNull(req.specification()));
         if (req.leadTimeDays() != null) {
             p.setLeadTimeDays(req.leadTimeDays() < 0 ? null : req.leadTimeDays());
+        }
+
+        // A especificação quase sempre já está escrita no nome («Óleo do motor
+        // 15W-40»): tira-se de lá em vez de obrigar a repeti-la. Só se pede
+        // quando não está em sítio nenhum.
+        String espec = blankToNull(req.specification());
+        if (espec == null) {
+            espec = Normas.extrair(p.getName());
+        }
+        p.setSpecification(espec);
+
+        // Num lubrificante, a especificação é a peça. «Óleo do motor» não é
+        // artigo nenhum: há dez óleos de motor e nove deles estragam este
+        // motor. É a única categoria em que o sistema se recusa a avançar sem
+        // ela — e recusa-se de propósito.
+        if (p.getCategory() == PartCategory.LUBRICANT && p.getSpecification() == null) {
+            throw ApiException.badRequest(
+                    "Indique a especificação do lubrificante (por exemplo «15W-40 API CJ-4», "
+                            + "«SAE 80W-90», «ATF Dexron III» ou «DOT 4»). Num óleo, a "
+                            + "especificação é o que distingue a peça certa da peça errada.");
         }
     }
 

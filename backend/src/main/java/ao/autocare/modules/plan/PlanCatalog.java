@@ -1695,35 +1695,9 @@ public final class PlanCatalog {
     private static SavePartRequest parte(
             String nome, String sistema, String unidade, String minimo) {
         return new SavePartRequest(nome, null, sistema, null, unidade,
-                new BigDecimal(minimo), null, "AOA", null, norma(nome), null);
+                new BigDecimal(minimo), null, "AOA", null,
+                ao.autocare.modules.part.Normas.extrair(nome), null);
     }
-
-    /**
-     * A norma escondida no nome do artigo.
-     *
-     * <p>«Óleo do motor 15W-40» não é «óleo do motor»: quem vai comprar precisa
-     * da viscosidade e da especificação API, e quem recebe precisa de conferir.
-     * O catálogo já escreve a norma no nome, portanto tira-se de lá para o
-     * campo próprio em vez de a repetir à mão em cada linha — assim aparece na
-     * lista de compras como aquilo que é, uma exigência técnica.
-     */
-    private static String norma(String nome) {
-        if (nome == null) {
-            return null;
-        }
-        java.util.regex.Matcher m = NORMA.matcher(nome);
-        return m.find() ? m.group().trim() : null;
-    }
-
-    private static final java.util.regex.Pattern NORMA = java.util.regex.Pattern.compile(
-            "(SAE ?)?[0-9]{1,2}W-?[0-9]{2,3}"
-                    + "|SAE ?[0-9]{2,3}"
-                    + "|API ?[A-Z]{2}-?[0-9]?"
-                    + "|DOT ?[0-9]"
-                    + "|ATF ?[A-Z0-9-]+"
-                    + "|EP ?[0-9]"
-                    + "|ISO ?VG ?[0-9]{2,3}",
-            java.util.regex.Pattern.CASE_INSENSITIVE);
 
     // ==== Criticidade ======================================================
 

@@ -128,7 +128,7 @@ public class AssetService {
         a.setName(req.name().trim());
         applyCommon(a, orgId,
                 req.locationId(), req.responsibleUserId(), req.manufacturer(), req.model(),
-                req.serialNumber(), req.modelYear(), req.plate(), req.responsibleLabel(),
+                req.engine(), req.serialNumber(), req.modelYear(), req.plate(), req.responsibleLabel(),
                 req.acquisitionDate(), req.acquisitionValue(), req.currency(), req.photoUrl(),
                 req.objective(), req.notes(), req.status());
         applyPosition(a, req.latitude(), req.longitude());
@@ -165,7 +165,7 @@ public class AssetService {
         }
         applyCommon(a, orgId,
                 req.locationId(), req.responsibleUserId(), req.manufacturer(), req.model(),
-                req.serialNumber(), req.modelYear(), req.plate(), req.responsibleLabel(),
+                req.engine(), req.serialNumber(), req.modelYear(), req.plate(), req.responsibleLabel(),
                 req.acquisitionDate(), req.acquisitionValue(), req.currency(), req.photoUrl(),
                 req.objective(), req.notes(), req.status());
         applyPosition(a, req.latitude(), req.longitude());
@@ -276,7 +276,7 @@ public class AssetService {
 
     private void applyCommon(
             Asset a, String orgId, String locationId, String responsibleUserId,
-            String manufacturer, String model, String serialNumber, Integer modelYear,
+            String manufacturer, String model, String engine, String serialNumber, Integer modelYear,
             String plate, String responsibleLabel, Instant acquisitionDate,
             BigDecimal acquisitionValue, String currency, String photoUrl,
             String objective, String notes, AssetStatus status) {
@@ -289,6 +289,7 @@ public class AssetService {
         }
         if (manufacturer != null) a.setManufacturer(blankToNull(manufacturer));
         if (model != null) a.setModel(blankToNull(model));
+        if (engine != null) a.setEngine(blankToNull(engine));
         if (serialNumber != null) a.setSerialNumber(blankToNull(serialNumber));
         if (modelYear != null) a.setModelYear(modelYear);
         if (plate != null) a.setPlate(blankToNull(plate));

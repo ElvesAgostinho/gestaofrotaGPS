@@ -56,6 +56,7 @@ export function AssetsPage() {
       assetTypeId: '',
       locationId: '',
       manufacturer: '',
+      engine: '',
       model: '',
       serialNumber: '',
       modelYear: '' as number | '',
@@ -330,6 +331,15 @@ export function AssetsPage() {
             <Group grow>
               <TextInput label="Fabricante" {...form.getInputProps('manufacturer')} />
               <TextInput label="Modelo" {...form.getInputProps('model')} />
+            </Group>
+
+            <Group grow>
+              <TextInput
+                label="Motor"
+                placeholder="2.4 D-4D, Cummins 6BT…"
+                description="É o motor que decide a peça: dois Hilux do mesmo ano levam filtros diferentes"
+                {...form.getInputProps('engine')}
+              />
             </Group>
 
             <Group grow>

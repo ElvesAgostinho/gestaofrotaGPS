@@ -57,6 +57,16 @@ public class Asset extends VersionedEntity {
     @Column(name = "model_year")
     private Integer modelYear;
 
+    /**
+      * O motor: «2.4 D-4D», «2GD-FTV», «Cummins 6BT».
+      *
+      * <p>É o que decide a peça. Dois Hilux do mesmo ano levam filtros
+      * diferentes se os motores são diferentes, e é por aqui que o sistema
+      * consegue dizer «este filtro não é para este carro».
+      */
+    @Column(length = 120)
+    private String engine;
+
     @Column(length = 20)
     private String plate;
 
