@@ -27,6 +27,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { Painel } from '../components/erp';
+import { NovaOrdem } from './compras/NovaOrdem';
 import { fmtDate, fmtMoney, fmtNumber } from '../lib/format';
 
 /**
@@ -131,6 +132,7 @@ interface CompraLinha {
   unidade?: string | null;
   necessario: number;
   stock: number;
+  jaEncomendado?: number | null;
   aComprar: number;
   custoEstimado?: number | null;
   moeda?: string | null;
@@ -154,6 +156,7 @@ interface Resumo {
   filtrosVencidos: number;
   filtrosAVencer: number;
   pecasEmFalta: number;
+  jaEncomendadas: number;
   encomendasUrgentes: number;
   pecasIncompativeis: number;
   equipamentosSemPlano: number;
@@ -452,6 +455,7 @@ function TabelaDeServicos({ linhas, vazio }: { linhas: ServicoLinha[]; vazio: st
 
 export function ConsumiveisPage() {
   const [dias, setDias] = useState('30');
+  const [aEncomendar, setAEncomendar] = useState<CompraLinha[] | null>(null);
   const { has } = useAuth();
   const custos = has('COSTS_VIEW');
   const qc = useQueryClient();
@@ -565,6 +569,13 @@ export function ConsumiveisPage() {
             nota="o prazo de entrega já não chega"
             cor={(r?.encomendasUrgentes ?? 0) > 0 ? 'red' : 'green'}
             icone={IconAlertTriangle}
+          />
+          <Ficha
+            valor={r?.jaEncomendadas ?? 0}
+            rotulo="Já a caminho"
+            nota="artigos com encomenda em curso"
+            cor="blue"
+            icone={IconShoppingCart}
           />
         </Group>
 
@@ -792,6 +803,24 @@ export function ConsumiveisPage() {
           </Tabs.Panel>
 
           <Tabs.Panel value="compras">
+            {(data?.compras.length ?? 0) > 0 && (
+              <Group justify="space-between" p="xs">
+                <Text size="xs" c="dimmed">
+                  O que falta comprar já desconta o que está em armazém e o que foi encomendado.
+                </Text>
+                <Button
+                  size="xs"
+                  leftSection={<IconShoppingCart size={14} />}
+                  onClick={() =>
+                    setAEncomendar(
+                      (data?.compras ?? []).filter((c) => c.aComprar > 0 && c.noCatalogo),
+                    )
+                  }
+                >
+                  Criar ordem de compra
+                </Button>
+              </Group>
+            )}
             {(data?.compras.length ?? 0) === 0 ? (
               <Group gap={8} p="md">
                 <IconCircleCheck size={18} color="var(--mantine-color-green-6)" />
@@ -807,6 +836,7 @@ export function ConsumiveisPage() {
                       <Table.Th>Artigo</Table.Th>
                       <Table.Th>Necessário</Table.Th>
                       <Table.Th>Em armazém</Table.Th>
+                      <Table.Th>Encomendado</Table.Th>
                       <Table.Th>A comprar</Table.Th>
                       {custos && <Table.Th>Estimativa</Table.Th>}
                       <Table.Th>Prazo</Table.Th>
@@ -850,6 +880,24 @@ export function ConsumiveisPage() {
                           <Text size="sm" c={c.stock > 0 ? undefined : 'dimmed'}>
                             {fmtNumber(c.stock)}
                           </Text>
+                        </Table.Td>
+                        <Table.Td>
+                          {c.jaEncomendado ? (
+                            <Tooltip
+                              label="Já foi encomendado e ainda não chegou — por isso não entra no que há a comprar"
+                              withArrow
+                              multiline
+                              w={240}
+                            >
+                              <Badge size="sm" color="blue" variant="light">
+                                {fmtNumber(c.jaEncomendado)} a caminho
+                              </Badge>
+                            </Tooltip>
+                          ) : (
+                            <Text size="xs" c="dimmed">
+                              —
+                            </Text>
+                          )}
                         </Table.Td>
                         <Table.Td>
                           <Text size="sm" fw={700} c={c.aComprar > 0 ? 'red.7' : 'green.7'}>
@@ -902,6 +950,21 @@ export function ConsumiveisPage() {
           </Tabs.Panel>
         </Tabs>
       </Painel>
+
+      {/* As linhas da lista de compras entram na ordem já preenchidas: é o
+          passo que faltava para o painel deixar de ser uma lista para copiar
+          à mão para outro lado. */}
+      <NovaOrdem
+        aberta={!!aEncomendar}
+        aoFechar={() => setAEncomendar(null)}
+        linhasIniciais={(aEncomendar ?? []).map((c) => ({
+          partId: c.partId ?? null,
+          description: c.nome,
+          specification: c.especificacao ?? '',
+          quantity: String(c.aComprar),
+          unit: c.unidade ?? '',
+        }))}
+      />
     </Stack>
   );
 }

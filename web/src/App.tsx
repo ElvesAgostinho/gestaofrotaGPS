@@ -28,6 +28,8 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { NovaVersao } from './components/NovaVersao';
 import { ConsumiveisPage } from './pages/ConsumiveisPage';
 import { CorreioPage } from './pages/CorreioPage';
+import { ComprasPage } from './pages/ComprasPage';
+import { OrdemDeCompraPage } from './pages/OrdemDeCompraPage';
 import { FornecedoresPage } from './pages/FornecedoresPage';
 import { FornecedorDetalhePage } from './pages/FornecedorDetalhePage';
 import { PartsPage } from './pages/PartsPage';
@@ -220,6 +222,8 @@ function Router() {
         <Route path="/correio" element={<CorreioPage />} />
         <Route path="/fornecedores" element={<FornecedoresPage />} />
         <Route path="/fornecedores/:id" element={<FornecedorDetalhePage />} />
+        <Route path="/compras" element={<ComprasPage />} />
+        <Route path="/compras/:id" element={<OrdemDeCompraPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/alertas" element={<AlertsPage />} />
         <Route path="/comandos" element={<CommandsPage />} />

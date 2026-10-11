@@ -23,6 +23,7 @@ import {
   IconPackage,
   IconRoute,
   IconSettings,
+  IconShoppingCart,
   IconShieldLock,
   IconBuildingSkyscraper,
   IconSteeringWheel,
@@ -99,6 +100,7 @@ const NAV: NavSection[] = [
       { to: '/preditiva', label: 'Manutenção preditiva', icon: IconWaveSine },
       { to: '/pecas', label: 'Peças e armazém', icon: IconPackage, minRole: 'TECHNICIAN' },
       { to: '/fornecedores', label: 'Fornecedores', icon: IconBuildingWarehouse, minRole: 'TECHNICIAN' },
+      { to: '/compras', label: 'Ordens de compra', icon: IconShoppingCart, permissao: 'COSTS_VIEW' },
     ],
   },
   {

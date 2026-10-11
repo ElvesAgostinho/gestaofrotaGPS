@@ -380,6 +380,51 @@ public class MailboxService {
         }
     }
 
+    /**
+     * Envia um documento que o sistema acabou de gerar.
+     *
+     * <p>É o caminho da ordem de compra: o PDF nasce aqui dentro e não passa
+     * pelo computador de ninguém. Fica a cópia em «Enviados», como qualquer
+     * mensagem escrita à mão — senão a conversa com o fornecedor parte-se ao
+     * meio, com metade na caixa e metade só no sistema.
+     */
+    @Transactional
+    public void enviarDocumento(
+            String orgId, String userId, String para, String cc, String assunto, String corpoHtml,
+            String nomeDoFicheiro, byte[] ficheiro, String tipo) {
+        IntegrationSettings s = integrations.forOrganization(orgId);
+        if (!s.hasSmtp()) {
+            throw ApiException.conflict(
+                    "Não há servidor de envio configurado. Configure-o em Configurações.");
+        }
+        try {
+            JavaMailSenderImpl remetente = integrations.build(s);
+            MimeMessage msg = remetente.createMimeMessage();
+            MimeMessageHelper h = new MimeMessageHelper(msg, true, "UTF-8");
+            h.setFrom(s.getSmtpFrom(),
+                    s.getSmtpFromName() != null ? s.getSmtpFromName() : "IMBONDEIRO OS");
+            h.setTo(enderecos(para));
+            if (preenchido(cc)) {
+                h.setCc(enderecos(cc));
+            }
+            h.setSubject(assunto);
+            h.setText(corpoHtml == null ? "" : corpoHtml, true);
+            if (ficheiro != null && ficheiro.length > 0) {
+                h.addAttachment(nomeSeguro(nomeDoFicheiro),
+                        new org.springframework.core.io.ByteArrayResource(ficheiro),
+                        tipo != null ? tipo : "application/octet-stream");
+            }
+            remetente.send(msg);
+            audit.record(orgId, userId, "mailbox.send_document", "Organization", orgId,
+                    assunto + " → " + para);
+            guardarNosEnviados(orgId, msg);
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw ApiException.badRequest("Não foi possível enviar: " + e.getMessage());
+        }
+    }
+
     /** A cópia em «Enviados». Falhar aqui não desfaz o envio — já saiu. */
     private void guardarNosEnviados(String orgId, MimeMessage msg) {
         IntegrationSettings s = integrations.forOrganization(orgId);

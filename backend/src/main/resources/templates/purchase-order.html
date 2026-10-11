@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${o.number}">Ordem de compra</title>
+  <style>
+    /* Documento que vai para fora da empresa: é por ele que o fornecedor
+       prepara a encomenda e que o financeiro paga. Preto e branco, tipos
+       claros, e os números alinhados à direita como em qualquer factura. */
+    @page { size: A4; margin: 14mm 12mm; }
+    body { font-family: sans-serif; font-size: 9pt; color: #18181b; }
+    h2 { font-size: 9.5pt; margin: 12px 0 5px; padding-bottom: 3px;
+         border-bottom: 1.2px solid #18181b; text-transform: uppercase; letter-spacing: 0.4pt; }
+    table { width: 100%; border-collapse: collapse; }
+    .grid td { padding: 2.5px 6px 2.5px 0; vertical-align: top; }
+    .grid .lbl { width: 20%; color: #71717a; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt; }
+    .lines th { text-align: left; font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.3pt;
+                color: #71717a; border-bottom: 1px solid #d4d4d8; padding: 3px 4px; }
+    .lines td { border-bottom: 1px solid #ececef; padding: 3.5px 4px; vertical-align: top; }
+    .num { text-align: right; white-space: nowrap; }
+    .totais td { padding: 2.5px 4px; }
+    .totais .rot { text-align: right; color: #52525b; }
+    .totais .fecho td { border-top: 1.2px solid #18181b; font-weight: bold; padding-top: 5px; }
+    .box { border: 1px solid #d4d4d8; padding: 6px 8px; margin-top: 6px; }
+    .sign { margin-top: 24px; }
+    .sign td { width: 50%; padding-right: 14px; vertical-align: bottom; }
+    .sign .line { border-top: 1px solid #18181b; margin-top: 32px; padding-top: 3px;
+                  font-size: 7.5pt; color: #71717a; }
+    .estado { display: inline-block; border: 1px solid #18181b; padding: 1px 6px; font-size: 7.5pt;
+              text-transform: uppercase; letter-spacing: 0.4pt; }
+    .ref { font-family: monospace; font-size: 8pt; }
+    .nota { font-size: 7.5pt; color: #52525b; }
+    .en { color: #a1a1aa; font-weight: normal; text-transform: none; letter-spacing: 0; font-size: 6.5pt; }
+  </style>
+</head>
+<body>
+
+<div th:replace="~{timbre :: cabecalho(${timbre}, ${o.number}, 'Ordem de compra / Purchase order')}"></div>
+
+<table class="grid">
+  <tr>
+    <td class="lbl">Estado <span class="en">Status</span></td>
+    <td><span class="estado" th:text="${o.statusLabel}">Aprovada</span></td>
+    <td class="lbl">Data <span class="en">Date</span></td>
+    <td th:text="${o.data} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Entrega até <span class="en">Required by</span></td>
+    <td th:text="${o.expectedAt} ?: '—'"></td>
+    <td class="lbl">Condições <span class="en">Payment</span></td>
+    <td th:text="${o.paymentTerms} ?: '—'"></td>
+  </tr>
+</table>
+
+<h2>Fornecedor <span class="en">Supplier</span></h2>
+<table class="grid">
+  <tr>
+    <td class="lbl">Nome</td><td th:text="${o.supplierName}"></td>
+    <td class="lbl">NIF</td><td th:text="${o.supplierTaxId} ?: '—'"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Email</td><td th:text="${o.supplierEmail} ?: '—'"></td>
+    <td class="lbl">IBAN</td><td th:text="${o.supplierIban} ?: '—'"></td>
+  </tr>
+  <tr th:if="${o.supplierBank}">
+    <td class="lbl">Banco</td><td th:text="${o.supplierBank}"></td>
+    <td class="lbl"></td><td></td>
+  </tr>
+</table>
+
+<h2>Entregar em <span class="en">Deliver to</span></h2>
+<div th:text="${o.deliveryAddress} ?: 'A combinar'"></div>
+
+<h2>Artigos <span class="en">Items</span></h2>
+<table class="lines">
+  <thead>
+    <tr>
+      <th style="width: 4%">#</th>
+      <th>Designação <span class="en">Description</span></th>
+      <th style="width: 14%">Referência</th>
+      <th style="width: 10%" class="num">Qtd.</th>
+      <th style="width: 14%" class="num">Preço unit.</th>
+      <th style="width: 16%" class="num">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr th:each="l, i : ${o.lines}">
+      <td th:text="${i.count}"></td>
+      <td>
+        <div th:text="${l.description}"></div>
+        <div class="nota" th:if="${l.specification}" th:text="${l.specification}"></div>
+        <div class="nota" th:if="${l.assetTag}">Para: <span th:text="${l.assetTag}"></span></div>
+      </td>
+      <td class="ref" th:text="${l.supplierPartNumber} ?: '—'"></td>
+      <td class="num">
+        <span th:text="${l.quantity}"></span> <span th:text="${l.unit} ?: ''"></span>
+      </td>
+      <td class="num" th:text="${l.unitPrice}"></td>
+      <td class="num" th:text="${l.lineTotal}"></td>
+    </tr>
+  </tbody>
+</table>
+
+<table class="totais" style="width: 50%; margin-left: auto; margin-top: 8px;">
+  <tr><td class="rot">Subtotal</td><td class="num" th:text="${o.subtotal}"></td></tr>
+  <tr th:if="${o.temDesconto}">
+    <td class="rot">Desconto</td><td class="num" th:text="${o.discountAmount}"></td>
+  </tr>
+  <tr th:if="${o.temImposto}">
+    <td class="rot">IVA</td><td class="num" th:text="${o.taxAmount}"></td>
+  </tr>
+  <tr class="fecho">
+    <td class="rot">Total <span class="en">Total</span></td>
+    <td class="num"><span th:text="${o.total}"></span> <span th:text="${o.currency}"></span></td>
+  </tr>
+  <tr th:if="${o.temRetencao}">
+    <td class="rot">Retenção na fonte</td><td class="num" th:text="${'-' + o.withholdingAmount}"></td>
+  </tr>
+  <tr th:if="${o.temRetencao}" class="fecho">
+    <td class="rot">A transferir <span class="en">Net payable</span></td>
+    <td class="num"><span th:text="${o.payable}"></span> <span th:text="${o.currency}"></span></td>
+  </tr>
+</table>
+
+<div class="box" th:if="${o.notes}">
+  <b>Observações</b>
+  <div th:text="${o.notes}"></div>
+</div>
+
+<div class="box" th:if="${o.terms}">
+  <b>Condições gerais de compra</b>
+  <div th:text="${o.terms}"></div>
+</div>
+
+<table class="sign">
+  <tr>
+    <td>
+      <div class="line">
+        Emitida por <span th:text="${o.createdByLabel}"></span>
+      </div>
+    </td>
+    <td>
+      <div class="line">
+        Aprovada por <span th:text="${o.approvedByLabel} ?: '—'"></span>
+        <span th:if="${o.approvedAt}" th:text="${' em ' + o.approvedAt}"></span>
+      </div>
+    </td>
+  </tr>
+</table>
+
+<div th:replace="~{timbre :: rodape(${geradoEm})}"></div>
+
+</body>
+</html>

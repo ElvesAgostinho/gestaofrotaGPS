@@ -51,6 +51,7 @@ public final class ConsumableDtos {
             int filtrosVencidos,
             int filtrosAVencer,
             int pecasEmFalta,
+            int jaEncomendadas,
             int encomendasUrgentes,
             int pecasIncompativeis,
             int equipamentosSemPlano,
@@ -139,6 +140,8 @@ public final class ConsumableDtos {
             String unidade,
             BigDecimal necessario,
             BigDecimal stock,
+            /** O que já está encomendado e ainda não chegou. */
+            BigDecimal jaEncomendado,
             BigDecimal aComprar,
             BigDecimal custoEstimado,
             String moeda,

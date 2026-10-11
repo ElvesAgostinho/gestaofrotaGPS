@@ -64,6 +64,8 @@ public abstract class AbstractIntegrationTest {
                 "gps_positions", "trips", "gps_devices",
                 "asset_photos", "stored_files",
                 "meter_readings", "asset_meters", "asset_criticality", "assets",
+                "purchase_order_events", "purchase_order_lines", "purchase_orders",
+                "purchase_settings",
                 "supplier_contacts", "supplier_documents", "suppliers",
                 "asset_systems", "asset_types", "locations",
                 // Fase 1

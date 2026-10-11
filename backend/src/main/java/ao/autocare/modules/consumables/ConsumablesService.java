@@ -115,6 +115,7 @@ public class ConsumablesService {
     private final AssetRepository assets;
     private final ao.autocare.repo.AssetPlanRepository assetPlans;
     private final ao.autocare.repo.PartApplicationRepository partApplications;
+    private final ao.autocare.modules.purchase.PurchaseOrderService compras;
 
     public ConsumablesService(
             TyreRepository tyres,
@@ -127,7 +128,8 @@ public class ConsumablesService {
             FluidTopUpRepository fluids,
             AssetRepository assets,
             ao.autocare.repo.AssetPlanRepository assetPlans,
-            ao.autocare.repo.PartApplicationRepository partApplications) {
+            ao.autocare.repo.PartApplicationRepository partApplications,
+            ao.autocare.modules.purchase.PurchaseOrderService compras) {
         this.tyres = tyres;
         this.readings = readings;
         this.planTasks = planTasks;
@@ -139,6 +141,7 @@ public class ConsumablesService {
         this.assets = assets;
         this.assetPlans = assetPlans;
         this.partApplications = partApplications;
+        this.compras = compras;
     }
 
     // ==== O painel ==========================================================
@@ -190,12 +193,17 @@ public class ConsumablesService {
         servicos(orgId, contadores, stockPorPeca, porNome, alvos, aplicacoes,
                 horizonte, hoje, oleos, filtros);
 
-        List<CompraLinha> compras =
-                compras(oleos, filtros, pneus, catalogo, stockPorPeca, porNome, hoje, custos);
+        // O que já vai a caminho. Sem isto, o painel manda comprar outra vez o
+        // que já foi encomendado — e paga-se duas vezes: nas peças a dobrar e
+        // no espaço que elas ocupam no armazém durante um ano.
+        Map<String, BigDecimal> encomendado = compras.porReceberPorPeca(orgId);
+
+        List<CompraLinha> listaDeCompras = compras(
+                oleos, filtros, pneus, catalogo, stockPorPeca, porNome, encomendado, hoje, custos);
 
         return new Painel(horizonte,
-                resumo(pneus, oleos, filtros, compras, frota, orgId, custos),
-                pneus, oleos, filtros, compras);
+                resumo(pneus, oleos, filtros, listaDeCompras, frota, orgId, custos),
+                pneus, oleos, filtros, listaDeCompras);
     }
 
     /**
@@ -699,6 +707,7 @@ public class ConsumablesService {
             List<Part> catalogo,
             Map<String, BigDecimal> stockPorPeca,
             Map<String, Part> porNome,
+            Map<String, BigDecimal> encomendado,
             LocalDate hoje,
             boolean custos) {
         /** Acumulador por artigo. */
@@ -739,7 +748,10 @@ public class ConsumablesService {
             BigDecimal existe = catalogada == null
                     ? BigDecimal.ZERO
                     : stockPorPeca.getOrDefault(catalogada.getId(), BigDecimal.ZERO);
-            BigDecimal comprar = necessario.subtract(existe);
+            BigDecimal aCaminho = catalogada == null
+                    ? BigDecimal.ZERO
+                    : encomendado.getOrDefault(catalogada.getId(), BigDecimal.ZERO);
+            BigDecimal comprar = necessario.subtract(existe).subtract(aCaminho);
             if (comprar.signum() <= 0) {
                 comprar = BigDecimal.ZERO;
             }
@@ -765,7 +777,7 @@ public class ConsumablesService {
                     catalogada == null ? null : catalogada.getSpecification(),
                     catalogada == null ? null : catalogada.getCategory().name(),
                     p.unidade(),
-                    necessario, existe, comprar, custo,
+                    necessario, existe, aCaminho, comprar, custo,
                     catalogada == null ? "AOA" : catalogada.getCurrency(),
                     prazo, precisaEm, encomendarAte,
                     comprar.signum() > 0 && encomendarAte != null && !encomendarAte.isAfter(hoje),
@@ -829,7 +841,7 @@ public class ConsumablesService {
                     catalogada == null ? null : catalogada.getPartNumber(),
                     catalogada == null ? null : catalogada.getSpecification(),
                     "TIRE", "un",
-                    necessario, existe, comprar, custo,
+                    necessario, existe, BigDecimal.ZERO, comprar, custo,
                     catalogada == null ? "AOA" : catalogada.getCurrency(),
                     prazo, precisaEm, encomendarAte,
                     comprar.signum() > 0 && encomendarAte != null && !encomendarAte.isAfter(hoje),
@@ -863,6 +875,9 @@ public class ConsumablesService {
         int oleosVencidos = (int) oleos.stream().filter(s -> "CRITICO".equals(s.estado())).count();
         int filtrosVencidos = (int) filtros.stream().filter(s -> "CRITICO".equals(s.estado())).count();
         int emFalta = (int) compras.stream().filter(c -> c.aComprar().signum() > 0).count();
+        int aCaminho = (int) compras.stream()
+                .filter(c -> c.jaEncomendado() != null && c.jaEncomendado().signum() > 0)
+                .count();
         int urgentes = (int) compras.stream().filter(CompraLinha::urgente).count();
         int incompativeis = (int) juntar(oleos, filtros).stream()
                 .flatMap(s -> s.pecas().stream())
@@ -893,7 +908,7 @@ public class ConsumablesService {
                 pneusCriticos, pneusAviso, pneus.size(), semMedicao,
                 oleosVencidos, oleos.size() - oleosVencidos,
                 filtrosVencidos, filtros.size() - filtrosVencidos,
-                emFalta, urgentes, incompativeis, semPlano, custo, "AOA");
+                emFalta, aCaminho, urgentes, incompativeis, semPlano, custo, "AOA");
     }
 
     // ==== Classificação =====================================================
