@@ -278,6 +278,12 @@ public class PurchaseOrderService {
         return String.format("OC-%d-%04d", ano, n);
     }
 
+    /** Liga a ordem ao pedido de cotação de que nasceu. */
+    @Transactional
+    public void ligarAoPedido(String orgId, String orderId, String rfqId) {
+        exigir(orgId, orderId).setRfqId(rfqId);
+    }
+
     // ==== O percurso ========================================================
 
     @Transactional

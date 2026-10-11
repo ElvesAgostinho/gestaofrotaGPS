@@ -191,6 +191,10 @@ public class PurchaseOrder extends TimestampedEntity {
     @Column(name = "closed_at")
     private Instant closedAt;
 
+    /** O pedido de cotação de que esta ordem nasceu, quando houve um. */
+    @Column(name = "rfq_id", length = 36)
+    private String rfqId;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder asc")
     private List<PurchaseOrderLine> lines = new ArrayList<>();

@@ -18,9 +18,11 @@ import { notifications } from '@mantine/notifications';
 import {
   IconAlertTriangle,
   IconArrowLeft,
+  IconChartBar,
   IconCoin,
   IconFileText,
   IconPencil,
+  IconReceipt,
   IconPlus,
   IconShip,
   IconTrash,
@@ -33,6 +35,7 @@ import { api, ApiError } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { BarraEstado, Painel, SeccaoForm } from '../components/erp';
 import { fmtDate, fmtMoney, fmtNumber } from '../lib/format';
+import { ClassificacaoFornecedor, Facturas } from './fornecedores/Facturas';
 import { FormularioFornecedor } from './fornecedores/FormularioFornecedor';
 import {
   COR_ESTADO_DOC,
@@ -136,6 +139,16 @@ export function FornecedorDetalhePage() {
               Preços
             </Tabs.Tab>
           )}
+          {podeEditar && (
+            <Tabs.Tab value="facturas" leftSection={<IconReceipt size={15} />}>
+              Facturas
+            </Tabs.Tab>
+          )}
+          {podeEditar && (
+            <Tabs.Tab value="desempenho" leftSection={<IconChartBar size={15} />}>
+              Desempenho
+            </Tabs.Tab>
+          )}
         </Tabs.List>
 
         <Tabs.Panel value="contactos" pt="md">
@@ -146,6 +159,12 @@ export function FornecedorDetalhePage() {
         </Tabs.Panel>
         <Tabs.Panel value="precos" pt="md">
           <Precos supplierId={id} />
+        </Tabs.Panel>
+        <Tabs.Panel value="facturas" pt="md">
+          <Facturas supplierId={id} />
+        </Tabs.Panel>
+        <Tabs.Panel value="desempenho" pt="md">
+          <ClassificacaoFornecedor supplierId={id} />
         </Tabs.Panel>
       </Tabs>
 

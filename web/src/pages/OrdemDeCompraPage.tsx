@@ -19,6 +19,7 @@ import {
   IconCheck,
   IconInfoCircle,
   IconMailForward,
+  IconPackageImport,
   IconPrinter,
   IconSend,
   IconThumbUp,
@@ -30,7 +31,9 @@ import { Link, useParams } from 'react-router-dom';
 import { api, ApiError, tokens } from '../api/client';
 import { BarraEstado, Painel, SeccaoForm } from '../components/erp';
 import { fmtDate, fmtDateTime, fmtMoney, fmtNumber } from '../lib/format';
+import { Receber } from './compras/Receber';
 import { COR_ESTADO, type Ordem } from './compras/tipos';
+import type { Recepcao } from './compras/tiposCotacao';
 
 /**
  * A ficha de uma ordem de compra.
@@ -47,11 +50,17 @@ export function OrdemDeCompraPage() {
   const [motivo, setMotivo] = useState('');
   const [aRejeitar, setARejeitar] = useState(false);
   const [aEnviar, setAEnviar] = useState(false);
+  const [aReceber, setAReceber] = useState(false);
   const [paraEnvio, setParaEnvio] = useState('');
 
   const { data: o } = useQuery({
     queryKey: ['compras', 'ordem', id],
     queryFn: () => api<Ordem>(`/purchase-orders/${id}`),
+  });
+
+  const { data: entregas } = useQuery({
+    queryKey: ['compras', 'ordem', id, 'entregas'],
+    queryFn: () => api<Recepcao[]>(`/purchase-orders/${id}/receipts`),
   });
 
   const recarregar = () => {
@@ -195,6 +204,19 @@ export function OrdemDeCompraPage() {
                 }}
               >
                 Enviar ao fornecedor
+              </Button>
+            )}
+            {(o.status === 'APPROVED' ||
+              o.status === 'SENT' ||
+              o.status === 'CONFIRMED' ||
+              o.status === 'PARTIALLY_RECEIVED') && (
+              <Button
+                size="xs"
+                color="lime"
+                leftSection={<IconPackageImport size={14} />}
+                onClick={() => setAReceber(true)}
+              >
+                Receber
               </Button>
             )}
             {o.podem.confirmar && (
@@ -343,6 +365,67 @@ export function OrdemDeCompraPage() {
         </Stack>
       </Painel>
 
+      {(entregas?.length ?? 0) > 0 && (
+        <Painel titulo="Entregas recebidas" semPadding>
+          <Table.ScrollContainer minWidth={720}>
+            <Table>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Guia</Table.Th>
+                  <Table.Th>Quando</Table.Th>
+                  <Table.Th>Armazém</Table.Th>
+                  <Table.Th>Quem recebeu</Table.Th>
+                  <Table.Th>O que chegou</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {entregas?.map((e) => (
+                  <Table.Tr key={e.id}>
+                    <Table.Td>
+                      <Text size="sm" fw={600} ff="monospace">
+                        {e.number}
+                      </Text>
+                      {e.deliveryNote && (
+                        <Text size="xs" c="dimmed">
+                          remessa {e.deliveryNote}
+                        </Text>
+                      )}
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{fmtDateTime(e.receivedAt)}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{e.warehouseName ?? '—'}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Text size="sm">{e.receivedByLabel ?? '—'}</Text>
+                    </Table.Td>
+                    <Table.Td>
+                      <Stack gap={2}>
+                        {e.lines.map((l) => (
+                          <Group key={l.orderLineId} gap={6} wrap="nowrap">
+                            <Text size="xs">
+                              {fmtNumber(l.quantity)} × {l.description}
+                            </Text>
+                            {l.rejectedQuantity > 0 && (
+                              <Tooltip label={l.rejectionReason ?? ''} withArrow>
+                                <Badge size="xs" color="red" variant="light">
+                                  {fmtNumber(l.rejectedQuantity)} devolvidas
+                                </Badge>
+                              </Tooltip>
+                            )}
+                          </Group>
+                        ))}
+                      </Stack>
+                    </Table.Td>
+                  </Table.Tr>
+                ))}
+              </Table.Tbody>
+            </Table>
+          </Table.ScrollContainer>
+        </Painel>
+      )}
+
       <Painel titulo="Histórico">
         <Timeline active={o.eventos.length} bulletSize={16} lineWidth={2}>
           {o.eventos.map((e, i) => (
@@ -356,6 +439,15 @@ export function OrdemDeCompraPage() {
           ))}
         </Timeline>
       </Painel>
+
+      <Receber
+        ordem={o}
+        aberto={aReceber}
+        aoFechar={() => {
+          setAReceber(false);
+          recarregar();
+        }}
+      />
 
       <Modal opened={aRejeitar} onClose={() => setARejeitar(false)} title="Rejeitar a ordem">
         <Stack gap="sm">
