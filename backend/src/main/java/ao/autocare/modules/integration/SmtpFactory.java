@@ -24,6 +24,28 @@ public final class SmtpFactory {
         Properties p = remetente.getJavaMailProperties();
         p.put("mail.transport.protocol", "smtp");
         p.put("mail.smtp.auth", String.valueOf(s.getSmtpUsername() != null));
+        /*
+         * A ordem dos metodos de autenticacao.
+         *
+         * Por omissao o JavaMail tenta LOGIN primeiro; o Nodemailer e o
+         * PHPMailer -- com que a maior parte dos fornecedores e testada --
+         * usam PLAIN. Ha servidores que anunciam os dois e so aceitam PLAIN na
+         * pratica, e nesses o mesmo utilizador e a mesma palavra-passe
+         * funcionavam noutras aplicacoes e eram recusados aqui, sem nada que o
+         * explicasse. Pedir PLAIN primeiro poe-nos a falar como toda a gente;
+         * LOGIN fica a seguir, para os servidores que so tem esse.
+         */
+        p.put("mail.smtp.auth.mechanisms", "PLAIN LOGIN");
+
+        /*
+         * Deixa o registo de depuracao mostrar o passo da autenticacao.
+         *
+         * So tem efeito quando a depuracao esta ligada, e isso so acontece no
+         * botao de testar -- onde o dialogo e capturado para memoria, limpo
+         * das credenciais e devolvido ao ecra. Nunca vai para ficheiro nenhum.
+         */
+        p.put("mail.debug.auth", "true");
+
         p.put("mail.smtp.connectiontimeout", "12000");
         p.put("mail.smtp.timeout", "12000");
         p.put("mail.smtp.writetimeout", "12000");

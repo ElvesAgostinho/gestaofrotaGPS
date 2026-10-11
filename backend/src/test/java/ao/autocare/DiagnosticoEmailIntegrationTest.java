@@ -250,6 +250,51 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
                 .doesNotContain("doze-letras");
     }
 
+    @Test
+    void aConversaComOServidorApareceSemAsCredenciais() throws Exception {
+        java.util.List<String> pedidos = new CopyOnWriteArrayList<>();
+        abrirServidor(47404, (in, out) -> responderSmtp(in, out, pedidos));
+
+        Map<String, Object> cfg = base(47404, "NONE", "127.0.0.1");
+        cfg.put("username", "geral@diagnostico.ao");
+        cfg.put("password", "palavra-passe-secreta");
+        configurar(cfg);
+
+        JsonNode r = testar();
+        assertThat(r.get("ok").asBoolean()).isFalse();
+        String dialogo = r.get("dialog").asText();
+
+        // O que interessa ver: o que o servidor ofereceu e onde recusou.
+        // O que interessa ver: que mecanismos o servidor ofereceu, qual foi
+        // escolhido, e onde recusou.
+        assertThat(dialogo).as("diálogo: [" + dialogo + "]")
+                .contains("535")
+                .contains("AUTH")
+                .contains("PLAIN");
+        // O que nunca pode aparecer: as credenciais, nem em base64.
+        assertThat(dialogo).doesNotContain("palavra-passe-secreta");
+        String emBase64 = java.util.Base64.getEncoder().encodeToString(
+                "palavra-passe-secreta".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        assertThat(dialogo).doesNotContain(emBase64);
+        assertThat(dialogo).contains("credenciais ocultas");
+    }
+
+    @Test
+    void umEspacoNoFimDaPalavraPasseJaNaoEDeitadoFora() throws Exception {
+        java.util.List<String> pedidos = new CopyOnWriteArrayList<>();
+        abrirServidor(47405, (in, out) -> responderSmtp(in, out, pedidos));
+
+        // Há palavras-passe que acabam em espaço. Cortá-lo é inventar outra
+        // palavra-passe e depois culpar quem a escreveu.
+        Map<String, Object> cfg = base(47405, "NONE", "127.0.0.1");
+        cfg.put("username", "geral@diagnostico.ao");
+        cfg.put("password", "com-espaco-no-fim ");
+        configurar(cfg);
+        testar();
+
+        assertThat(decodificar(pedidos)).contains("com-espaco-no-fim ");
+    }
+
     // ==== Servidor SMTP de brincar ==========================================
 
     private static final String FIM = "\r\n";

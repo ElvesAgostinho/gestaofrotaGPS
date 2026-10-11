@@ -15,6 +15,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -255,7 +256,7 @@ public class IntegrationService {
                     "utilizador: " + s.getSmtpUsername() + " | palavra-passe guardada: nenhuma",
                     "Escreva a palavra-passe no campo e guarde. Se o campo mostra pontos, "
                             + "apague-os primeiro: enquanto lá estiverem tal como vieram, o "
-                            + "sistema entende que não a quer mudar.");
+                            + "sistema entende que não a quer mudar.", null);
         }
 
         // A palavra-passe está guardada cifrada. Se a chave de cifra mudou, o
@@ -274,7 +275,7 @@ public class IntegrationService {
                     "A decifragem do segredo guardado falhou.",
                     "Escreva a palavra-passe outra vez neste ecrã e guarde. "
                             + "Acontece quando a chave de cifra do servidor muda: os segredos "
-                            + "antigos deixam de ser legíveis, de propósito.");
+                            + "antigos deixam de ser legíveis, de propósito.", null);
         }
 
         // Primeiro o que se sabe sem rede nenhuma. O porto e a segurança têm de
@@ -289,7 +290,7 @@ public class IntegrationService {
                     "Teste de email falhou: " + incoerente);
             return new IntegrationDtos.TestResult(false,
                     "A configuração não é coerente, e o envio falharia sempre.",
-                    Instant.now(), null, incoerente);
+                    Instant.now(), null, incoerente, null);
         }
 
         // Antes de falar SMTP, ver se se chega lá. É a falha mais comum e a
@@ -308,16 +309,25 @@ public class IntegrationService {
                     "Não foi possível abrir ligação TCP a " + s.getSmtpHost() + ":" + s.getSmtpPort(),
                     "Quase sempre é o alojamento a bloquear a saída de email. Peça ao suporte "
                             + "para libertar os portos 587 e 465, ou experimente o porto 465 "
-                            + "com segurança SSL.");
+                            + "com segurança SSL.", null);
         }
 
         String erro = null;
         String detalhe = null;
         String sugestao = null;
+        String dialogo = null;
         boolean ok = false;
 
+        java.io.ByteArrayOutputStream conversa = new java.io.ByteArrayOutputStream();
         try {
             JavaMailSenderImpl remetente = build(s);
+            // Guardar o diálogo com o servidor. É a única forma de ver qual o
+            // método de autenticação escolhido e o que o servidor respondeu a
+            // cada passo — e, sem isso, um «535» é um beco sem saída.
+            jakarta.mail.Session sessao = remetente.getSession();
+            sessao.setDebug(true);
+            sessao.setDebugOut(new java.io.PrintStream(
+                    conversa, true, java.nio.charset.StandardCharsets.UTF_8));
             MimeMessage msg = remetente.createMimeMessage();
             MimeMessageHelper h = new MimeMessageHelper(msg, false, "UTF-8");
             h.setFrom(s.getSmtpFrom(),
@@ -347,6 +357,7 @@ public class IntegrationService {
             if (forma != null) {
                 detalhe = detalhe + " | " + forma;
             }
+            dialogo = redigir(conversa.toString(java.nio.charset.StandardCharsets.UTF_8));
         }
 
         s.setSmtpOk(ok);
@@ -362,7 +373,7 @@ public class IntegrationService {
         return new IntegrationDtos.TestResult(ok,
                 ok ? "Mensagem entregue ao servidor. Verifique a caixa de " + destino + "."
                         : erro,
-                Instant.now(), detalhe, sugestao);
+                Instant.now(), detalhe, sugestao, dialogo);
     }
 
     /** Constrói o remetente a partir do que a empresa configurou. */
@@ -476,7 +487,61 @@ public class IntegrationService {
         return IntegrationDtos.TestResult.of(ok, ok ? detalhe : erro);
     }
 
-    /** Traduz a falha para algo que o utilizador possa corrigir. */
+    /**
+     * O diálogo com o servidor, sem as credenciais lá dentro.
+     *
+     * <p>O registo do JavaMail traz o que foi enviado e o que foi respondido,
+     * linha a linha — incluindo a linha com o utilizador e a palavra-passe em
+     * base64, que é trivial de desfazer. Essa é substituída; tudo o resto fica,
+     * porque é tudo o que interessa: que método de autenticação o servidor
+     * ofereceu, qual foi escolhido, e em que passo recusou.
+     */
+    private static String redigir(String registo) {
+        if (registo == null || registo.isBlank()) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String linha : registo.split("\n")) {
+            String limpa = linha.strip();
+            if (limpa.isEmpty()) {
+                continue;
+            }
+            String maiusculas = limpa.toUpperCase(Locale.ROOT);
+
+            // «AUTH PLAIN <base64>» leva as credenciais na própria linha.
+            if (maiusculas.startsWith("AUTH PLAIN ") || maiusculas.startsWith("AUTH LOGIN ")) {
+                String[] partes = limpa.split(" ");
+                sb.append(partes[0]).append(' ').append(partes[1])
+                        .append(" <credenciais ocultas>\n");
+                continue;
+            }
+            // E o AUTH LOGIN manda-as nas linhas seguintes, uma em cada.
+            if (pareceBase64(limpa)) {
+                sb.append("<credenciais ocultas>\n");
+                continue;
+            }
+            sb.append(limpa).append('\n');
+        }
+        String texto = sb.toString();
+        return texto.length() > 4000 ? texto.substring(texto.length() - 4000) : texto;
+    }
+
+    /** Uma linha que só tem caracteres de base64 e é comprida. */
+    private static boolean pareceBase64(String linha) {
+        if (linha.length() < 8) {
+            return false;
+        }
+        for (int i = 0; i < linha.length(); i++) {
+            char c = linha.charAt(i);
+            boolean valido = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')
+                    || (c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=';
+            if (!valido) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /**
      * A forma das credenciais enviadas, sem revelar nenhuma.
      *
@@ -524,7 +589,11 @@ public class IntegrationService {
         while (v.startsWith("•")) {
             v = v.substring(1);
         }
-        return vazioParaNulo(v);
+        // Não se corta mais nada. Um segredo guarda-se tal e qual foi escrito:
+        // há palavras-passe que acabam em espaço, e cortá-lo é inventar uma
+        // palavra-passe diferente da que o utilizador tem — que depois é
+        // recusada sem ninguém perceber porquê.
+        return v.isEmpty() ? null : v;
     }
 
     /** O domínio do endereço remetente, para sugerir o utilizador completo. */

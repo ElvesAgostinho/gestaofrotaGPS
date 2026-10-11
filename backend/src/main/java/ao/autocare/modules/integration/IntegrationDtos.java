@@ -50,10 +50,12 @@ public final class IntegrationDtos {
      * é um dos conhecidos.
      */
     public record TestResult(boolean ok, String message, Instant checkedAt,
-                             String detail, String hint) {
+                             String detail, String hint,
+                             /** O diálogo com o servidor, sem as credenciais. */
+                             String dialog) {
 
         public static TestResult of(boolean ok, String message) {
-            return new TestResult(ok, message, Instant.now(), null, null);
+            return new TestResult(ok, message, Instant.now(), null, null, null);
         }
     }
 

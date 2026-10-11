@@ -71,6 +71,8 @@ interface TestResult {
   detail?: string | null;
   /** O que fazer a seguir, quando o erro é um dos conhecidos. */
   hint?: string | null;
+  /** A conversa com o servidor, sem as credenciais lá dentro. */
+  dialog?: string | null;
 }
 
 export function CredenciaisCard() {
@@ -574,6 +576,20 @@ function DiagnosticoEmail({ resultado }: { resultado: TestResult }) {
               style={{ fontSize: 11, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
             >
               {resultado.detail}
+            </Code>
+          </div>
+        )}
+
+        {resultado.dialog && (
+          <div>
+            <Text size="xs" c="dimmed" mb={2}>
+              Conversa com o servidor — as credenciais vão ocultas:
+            </Text>
+            <Code
+              block
+              style={{ fontSize: 10.5, maxHeight: 260, overflow: 'auto', whiteSpace: 'pre-wrap' }}
+            >
+              {resultado.dialog}
             </Code>
           </div>
         )}
