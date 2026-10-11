@@ -239,6 +239,12 @@ function TraccarPainel({ s }: { s: Settings }) {
                 aparecia no campo errado. */}
             <PasswordInput
               label="Palavra-passe"
+              onFocus={() => {
+                // Com a máscara no campo, escrever a seguir mandava
+                // «••••••••a-minha-senha»: diferente da máscara, portanto era
+                // guardada com os pontos à frente. Limpar ao tocar resolve.
+                if (password === MASCARA) setPassword('');
+              }}
               placeholder="A palavra-passe desse utilizador"
               description={s.traccarPasswordSet ? 'Já guardada. Deixe como está para a manter.' : undefined}
               autoComplete="new-password"
@@ -463,6 +469,12 @@ function EmailPainel({ s }: { s: Settings }) {
           <Grid.Col span={{ base: 12, sm: 6 }}>
             <PasswordInput
               label="Palavra-passe"
+              onFocus={() => {
+                // Com a máscara no campo, escrever a seguir mandava
+                // «••••••••a-minha-senha»: diferente da máscara, portanto era
+                // guardada com os pontos à frente. Limpar ao tocar resolve.
+                if (password === MASCARA) setPassword('');
+              }}
               description={
                 s.smtpPasswordSet
                   ? 'Já guardada. Deixe como está para a manter.'

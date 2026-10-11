@@ -200,7 +200,7 @@ public class IntegrationService {
             s.setSmtpSecurity(req.security().trim().toUpperCase());
         }
         if (req.password() != null && !MASCARA.equals(req.password())) {
-            s.setSmtpPasswordEnc(cofre.encrypt(vazioParaNulo(req.password())));
+            s.setSmtpPasswordEnc(cofre.encrypt(semMascara(req.password())));
         }
 
         if (s.getSmtpHost() != null && s.getSmtpFrom() == null) {
@@ -432,6 +432,34 @@ public class IntegrationService {
 
     /** Traduz a falha para algo que o utilizador possa corrigir. */
     /**
+     * Tira a máscara que o ecrã mostra, quando ela vem colada ao que foi escrito.
+     *
+     * <p>O campo da palavra-passe mostra pontos quando já há uma guardada. Quem
+     * clica no meio e escreve a seguir manda «••••••••palavra-passe» — que não
+     * é igual à máscara, portanto passava e era guardada com os pontos à frente.
+     * Resultado: autenticação recusada para sempre, com a palavra-passe certa
+     * escrita no ecrã. Não é erro de quem escreve; é do campo.
+     */
+    private static String semMascara(String valor) {
+        if (valor == null) {
+            return null;
+        }
+        String v = valor;
+        while (v.startsWith("•")) {
+            v = v.substring(1);
+        }
+        return vazioParaNulo(v);
+    }
+
+    /** O domínio do endereço remetente, para sugerir o utilizador completo. */
+    private static String dominioDe(String endereco) {
+        if (endereco == null || !endereco.contains("@")) {
+            return "o-seu-dominio.ao";
+        }
+        return endereco.substring(endereco.indexOf('@') + 1);
+    }
+
+    /**
      * Incoerências que se apanham sem sair da aplicação.
      *
      * <p>São as duas que custam mais tempo a quem configura, porque o erro que
@@ -541,8 +569,24 @@ public class IntegrationService {
                         + "se a conta tiver verificação em dois passos, usar uma palavra-passe "
                         + "de aplicação.";
             }
-            return "O utilizador ou a palavra-passe não foram aceites. Confirme que o utilizador "
-                    + "é o endereço completo e que a palavra-passe não tem espaços no fim.";
+            String utilizador = s.getSmtpUsername();
+            if (utilizador == null || utilizador.isBlank()) {
+                return "Está a enviar sem utilizador e o servidor exige autenticação. "
+                        + "Preencha o utilizador (normalmente o endereço de email completo) "
+                        + "e a palavra-passe da caixa de correio.";
+            }
+            if (!utilizador.contains("@")) {
+                return "O utilizador está como «" + utilizador + "» e a maior parte dos "
+                        + "servidores exige o endereço completo — por exemplo «"
+                        + utilizador + "@" + dominioDe(s.getSmtpFrom()) + "». Experimente assim.";
+            }
+            return "O servidor aceitou a ligação e recusou estas credenciais para «" + utilizador
+                    + "». As três causas, por ordem de frequência: (1) a palavra-passe é a do "
+                    + "painel do alojamento e não a da caixa de correio — são diferentes, e a da "
+                    + "caixa define-se onde se cria a conta de email; (2) a caixa «" + utilizador
+                    + "» ainda não existe no servidor, só o domínio; (3) a palavra-passe foi "
+                    + "mudada depois de ter sido guardada aqui. Reponha a palavra-passe da caixa "
+                    + "no painel do alojamento e escreva-a de novo neste ecrã.";
         }
         if (d.contains("relay") || d.contains("sender") || d.contains("553") || d.contains("550")) {
             String utilizador = s.getSmtpUsername() == null ? "o utilizador" : s.getSmtpUsername();

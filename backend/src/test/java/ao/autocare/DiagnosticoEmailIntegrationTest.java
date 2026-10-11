@@ -1,16 +1,24 @@
 package ao.autocare;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,10 +35,11 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
  * aponta para nada e manda procurar em três sítios ao mesmo tempo. Com uma
  * mensagem assim, nem quem escreveu o programa consegue ajudar.
  *
- * <p>O que se protege aqui são as três respostas que resolvem o problema: a
+ * <p>O que se protege aqui são as quatro respostas que resolvem o problema: a
  * incoerência que se apanha sem rede (porto e segurança trocados), a ligação
- * que não abre (quase sempre o alojamento a bloquear a saída) e a resposta do
- * servidor em cru, que é o que permite pedir ajuda a alguém.
+ * que não abre (quase sempre o alojamento a bloquear a saída), a resposta do
+ * servidor em cru — que é o que permite pedir ajuda a alguém — e a máscara do
+ * campo da palavra-passe, que ia dentro da palavra-passe e garantia a recusa.
  */
 class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
 
@@ -59,15 +68,27 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
-    private JsonNode configurarETestar(int porto, String seguranca, String host) throws Exception {
+    private void configurar(Map<String, Object> cfg) throws Exception {
+        send(put("/api/v1/integrations/email"), cfg, 200);
+    }
+
+    private Map<String, Object> base(int porto, String seguranca, String host) {
         Map<String, Object> cfg = new HashMap<>();
         cfg.put("host", host);
         cfg.put("port", porto);
         cfg.put("from", "avisos@diagnostico.ao");
         cfg.put("security", seguranca);
-        send(put("/api/v1/integrations/email"), cfg, 200);
+        return cfg;
+    }
+
+    private JsonNode testar() throws Exception {
         return send(post("/api/v1/integrations/email/test"),
                 Map.of("to", "gestor@diagnostico.ao"), 200);
+    }
+
+    private JsonNode configurarETestar(int porto, String seguranca, String host) throws Exception {
+        configurar(base(porto, seguranca, host));
+        return testar();
     }
 
     // ==== O que se apanha sem rede nenhuma ==================================
@@ -106,8 +127,7 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void umNomeDeServidorQueNaoExisteDizSeQueENome() throws Exception {
-        JsonNode r = configurarETestar(587, "STARTTLS",
-                "servidor-que-nao-existe.invalid");
+        JsonNode r = configurarETestar(587, "STARTTLS", "servidor-que-nao-existe.invalid");
         assertThat(r.get("ok").asBoolean()).isFalse();
         assertThat(r.get("message").asText()).contains("não existe");
     }
@@ -119,20 +139,10 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
         // Um servidor que atende e recusa logo. É o caso em que a configuração
         // está certa e o problema é do outro lado — e a única coisa que ajuda
         // é ver o que ele respondeu.
-        smtp = new ServerSocket(47397, 5, java.net.InetAddress.getByName("127.0.0.1"));
-        Thread t = new Thread(() -> {
-            while (!smtp.isClosed()) {
-                try (Socket s = smtp.accept()) {
-                    PrintWriter out = new PrintWriter(s.getOutputStream(), true);
-                    out.print("421 4.7.0 Try again later, closing connection\r\n");
-                    out.flush();
-                } catch (Exception ignorado) {
-                    // fechado
-                }
-            }
+        abrirServidor(47397, (in, out) -> {
+            out.print("421 4.7.0 Try again later, closing connection" + FIM);
+            out.flush();
         });
-        t.setDaemon(true);
-        t.start();
 
         JsonNode r = configurarETestar(47397, "NONE", "127.0.0.1");
         assertThat(r.get("ok").asBoolean()).isFalse();
@@ -141,10 +151,164 @@ class DiagnosticoEmailIntegrationTest extends AbstractIntegrationTest {
                 .contains("421");
 
         // E fica guardado, para quem voltar ao ecrã dias depois ainda o ler.
-        JsonNode estado = send(
-                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-                        .get("/api/v1/integrations"), null, 200);
+        JsonNode estado = send(get("/api/v1/integrations"), null, 200);
         assertThat(estado.get("smtpOk").asBoolean()).isFalse();
         assertThat(estado.get("smtpLastError").asText()).contains("421");
+    }
+
+    @Test
+    void aAutenticacaoRecusadaNomeiaOUtilizadorQueFoiTentado() throws Exception {
+        abrirServidor(47400, (in, out) -> responderSmtp(in, out, null));
+
+        Map<String, Object> cfg = base(47400, "NONE", "127.0.0.1");
+        cfg.put("username", "avisos@diagnostico.ao");
+        cfg.put("password", "errada");
+        configurar(cfg);
+
+        JsonNode r = testar();
+        assertThat(r.get("ok").asBoolean()).isFalse();
+        assertThat(r.get("hint").asText())
+                .as("quem lê tem de ver que credenciais foram tentadas")
+                .contains("avisos@diagnostico.ao")
+                .contains("caixa de correio");
+    }
+
+    @Test
+    void umUtilizadorSemArrobaRecebeASugestaoDoEnderecoCompleto() throws Exception {
+        abrirServidor(47401, (in, out) -> responderSmtp(in, out, null));
+
+        Map<String, Object> cfg = base(47401, "NONE", "127.0.0.1");
+        cfg.put("username", "avisos");
+        cfg.put("password", "errada");
+        configurar(cfg);
+
+        JsonNode r = testar();
+        assertThat(r.get("hint").asText())
+                .contains("avisos@diagnostico.ao")
+                .contains("endereço completo");
+    }
+
+    // ==== A máscara do campo, que ia dentro da palavra-passe ================
+
+    @Test
+    void aMascaraDoCampoNaoVaiParaDentroDaPalavraPasse() throws Exception {
+        // A armadilha: o campo mostra pontos quando já há palavra-passe
+        // guardada, e quem clica e escreve a seguir manda «••••••••senha». Não
+        // sendo igual à máscara, passava e era guardada com os pontos à frente
+        // — autenticação recusada para sempre, com a palavra-passe certa
+        // escrita no ecrã. Não é erro de quem escreve; era do campo.
+        List<String> pedidos = new CopyOnWriteArrayList<>();
+        abrirServidor(47398, (in, out) -> responderSmtp(in, out, pedidos));
+
+        Map<String, Object> cfg = base(47398, "NONE", "127.0.0.1");
+        cfg.put("username", "avisos@diagnostico.ao");
+        cfg.put("password", "••••••••segredo-real");
+        configurar(cfg);
+        testar();
+
+        assertThat(pedidos).as("o servidor recebeu um pedido de autenticação").isNotEmpty();
+        String credenciais = decodificar(pedidos);
+        assertThat(credenciais).as("a palavra-passe segue sem os pontos da máscara")
+                .contains("segredo-real")
+                .doesNotContain("•");
+    }
+
+    // ==== Servidor SMTP de brincar ==========================================
+
+    private static final String FIM = "\r\n";
+
+    /** O que um atendimento faz com a ligação. */
+    private interface Atendimento {
+        void atender(BufferedReader in, PrintWriter out) throws Exception;
+    }
+
+    private void abrirServidor(int porto, Atendimento atendimento) throws Exception {
+        smtp = new ServerSocket(porto, 5, InetAddress.getByName("127.0.0.1"));
+        Thread t = new Thread(() -> {
+            while (!smtp.isClosed()) {
+                try (Socket s = smtp.accept()) {
+                    BufferedReader in = new BufferedReader(
+                            new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
+                    PrintWriter out = new PrintWriter(s.getOutputStream(), true);
+                    atendimento.atender(in, out);
+                } catch (Exception ignorado) {
+                    // fechado
+                }
+            }
+        });
+        t.setDaemon(true);
+        t.start();
+    }
+
+    /**
+     * Anuncia AUTH e recusa-a, guardando tudo o que o cliente enviou.
+     *
+     * <p>Guarda-se cada linha e não só a do AUTH: o JavaMail pode escolher
+     * PLAIN — que leva as credenciais na própria linha — ou LOGIN, que as manda
+     * nas duas linhas seguintes, em resposta aos avisos 334. O teste tem de
+     * valer nos dois casos, senão passa a depender de um detalhe da biblioteca.
+     */
+    private static void responderSmtp(BufferedReader in, PrintWriter out, List<String> pedidos)
+            throws Exception {
+        out.print("220 teste ESMTP" + FIM);
+        out.flush();
+        String linha;
+        boolean aAutenticar = false;
+        int avisos = 0;
+        while ((linha = in.readLine()) != null) {
+            if (pedidos != null) {
+                pedidos.add(linha);
+            }
+            String maiusculas = linha.toUpperCase();
+            if (maiusculas.startsWith("EHLO") || maiusculas.startsWith("HELO")) {
+                out.print("250-teste" + FIM + "250 AUTH PLAIN LOGIN" + FIM);
+            } else if (maiusculas.startsWith("AUTH LOGIN")) {
+                // VXNlcm5hbWU6 = «Username:»
+                aAutenticar = true;
+                avisos = 0;
+                out.print("334 VXNlcm5hbWU6" + FIM);
+            } else if (aAutenticar && avisos == 0) {
+                // UGFzc3dvcmQ6 = «Password:»
+                avisos = 1;
+                out.print("334 UGFzc3dvcmQ6" + FIM);
+            } else if (aAutenticar) {
+                aAutenticar = false;
+                out.print("535 5.7.8 Error: authentication failed" + FIM);
+            } else if (maiusculas.startsWith("AUTH")) {
+                out.print("535 5.7.8 Error: authentication failed" + FIM);
+            } else if (maiusculas.startsWith("QUIT")) {
+                out.print("221 adeus" + FIM);
+                out.flush();
+                return;
+            } else {
+                out.print("250 OK" + FIM);
+            }
+            out.flush();
+        }
+    }
+
+    /**
+     * Tudo o que veio em base64, descodificado e junto.
+     *
+     * <p>Serve para PLAIN (as credenciais na linha do AUTH) e para LOGIN (uma
+     * linha para o utilizador, outra para a palavra-passe). Tenta descodificar
+     * cada pedaço e ignora o que não for base64 — os comandos em claro.
+     */
+    private static String decodificar(List<String> pedidos) {
+        StringBuilder sb = new StringBuilder();
+        for (String pedido : pedidos) {
+            for (String pedaco : pedido.trim().split("\\s+")) {
+                if (pedaco.length() < 4) {
+                    continue;
+                }
+                try {
+                    byte[] cru = Base64.getDecoder().decode(pedaco);
+                    sb.append(new String(cru, StandardCharsets.UTF_8)).append(' ');
+                } catch (IllegalArgumentException ignorado) {
+                    // não era base64: é um comando em claro
+                }
+            }
+        }
+        return sb.toString();
     }
 }
