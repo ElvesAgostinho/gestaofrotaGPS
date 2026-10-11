@@ -12,6 +12,12 @@ public interface AssetMeterRepository extends JpaRepository<AssetMeter, String> 
 
     Optional<AssetMeter> findByAssetIdAndKind(String assetId, MeterKind kind);
 
+    /** O contador principal de cada ativo da empresa, por inteiro. */
+    @org.springframework.data.jpa.repository.Query(
+            "select m from AssetMeter m "
+                    + "where m.asset.organization.id = :orgId and m.primary = true")
+    List<AssetMeter> findPrimaryForOrg(String orgId);
+
     /** O contador principal de cada ativo da empresa: id do ativo e tipo de contador. */
     @org.springframework.data.jpa.repository.Query(
             "select m.asset.id, m.kind from AssetMeter m "

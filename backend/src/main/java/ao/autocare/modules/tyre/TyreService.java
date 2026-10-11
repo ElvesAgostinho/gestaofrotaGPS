@@ -280,6 +280,9 @@ public class TyreService {
         if (req.currency() != null && !req.currency().isBlank()) t.setCurrency(req.currency().trim().toUpperCase(Locale.ROOT));
         if (req.targetPressure() != null) t.setTargetPressure(req.targetPressure());
         if (req.minTreadMm() != null && req.minTreadMm().signum() > 0) t.setMinTreadMm(req.minTreadMm());
+        if (req.expectedLifeKm() != null) {
+            t.setExpectedLifeKm(req.expectedLifeKm().signum() > 0 ? req.expectedLifeKm() : null);
+        }
         if (req.notes() != null) t.setNotes(blankToNull(req.notes()));
     }
 

@@ -15,6 +15,7 @@ import { IconAlertTriangle, IconChevronRight, IconCircleCheck } from '@tabler/ic
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client';
+import { ConsumiveisBloco } from '../components/ConsumiveisBloco';
 import { fmtNumber } from '../lib/format';
 
 interface Metric {
@@ -100,6 +101,8 @@ export function DashboardPage() {
       </div>
 
       <HojeBloco hoje={data.today} />
+
+      <ConsumiveisBloco />
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }}>
         <Stat label="Ativos" value={data.assetsTotal} to="/ativos" />

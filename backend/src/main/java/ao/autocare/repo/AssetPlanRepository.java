@@ -16,4 +16,10 @@ public interface AssetPlanRepository extends JpaRepository<AssetPlan, String> {
     Optional<AssetPlan> findByAssetIdAndPlanId(String assetId, String planId);
 
     long countByPlanId(String planId);
+
+    /** Os ativos da empresa que já têm um plano activo atribuído. */
+    @org.springframework.data.jpa.repository.Query(
+            "select distinct ap.asset.id from AssetPlan ap "
+                    + "where ap.organization.id = :orgId and ap.active = true")
+    List<String> findAssetIdsWithActivePlan(String orgId);
 }

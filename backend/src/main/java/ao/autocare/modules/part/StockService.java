@@ -325,6 +325,10 @@ public class StockService {
             p.setCurrency(req.currency().trim().toUpperCase());
         }
         p.setNotes(blankToNull(req.notes()));
+        p.setSpecification(blankToNull(req.specification()));
+        if (req.leadTimeDays() != null) {
+            p.setLeadTimeDays(req.leadTimeDays() < 0 ? null : req.leadTimeDays());
+        }
     }
 
     private Part requirePart(String orgId, String id) {

@@ -9,6 +9,7 @@ import {
   IconCategory,
   IconChartBar,
   IconClipboardList,
+  IconDisc,
   IconLock,
   IconFileInvoice,
   IconFileText,
@@ -90,6 +91,7 @@ const NAV: NavSection[] = [
   {
     title: 'Manutenção',
     items: [
+      { to: '/consumiveis', label: 'Pneus, óleos e filtros', icon: IconDisc },
       { to: '/ordens', label: 'Ordens de serviço', icon: IconClipboardList },
       { to: '/planos', label: 'Planos e intervalos', icon: IconCalendarRepeat },
       { to: '/preditiva', label: 'Manutenção preditiva', icon: IconWaveSine },

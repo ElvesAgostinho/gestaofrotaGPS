@@ -25,6 +25,7 @@ import { LoginPage } from './pages/LoginPage';
 import { VerificarPage } from './pages/publico/VerificarPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { ConsumiveisPage } from './pages/ConsumiveisPage';
 import { PartsPage } from './pages/PartsPage';
 import { PlataformaPage } from './pages/PlataformaPage';
 import { PlanosPage } from './pages/PlanosPage';
@@ -208,6 +209,7 @@ function Router() {
         <Route path="/planos" element={<PlanosPage />} />
         <Route path="/preditiva" element={<PredictivePage />} />
         <Route path="/pecas" element={<PartsPage />} />
+        <Route path="/consumiveis" element={<ConsumiveisPage />} />
         <Route path="/documentos" element={<DocumentsPage />} />
         <Route path="/alertas" element={<AlertsPage />} />
         <Route path="/comandos" element={<CommandsPage />} />

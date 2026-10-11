@@ -101,6 +101,10 @@ public class Tyre extends TimestampedEntity {
     @Column(name = "min_tread_mm", nullable = false, precision = 5, scale = 2)
     private BigDecimal minTreadMm = new BigDecimal("3.0");
 
+    /** Vida declarada pelo fabricante, em km. Referência enquanto não há medições. */
+    @Column(name = "expected_life_km", precision = 12, scale = 2)
+    private BigDecimal expectedLifeKm;
+
     @Column(name = "last_measured_at")
     private Instant lastMeasuredAt;
 

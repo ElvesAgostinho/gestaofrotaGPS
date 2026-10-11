@@ -41,6 +41,19 @@ public class Part extends VersionedEntity {
     @Column(nullable = false, length = 20)
     private String unit = "un";
 
+    /**
+      * A especificação técnica: «15W-40 API CJ-4», «sulco 14 mm», «12 V 180 Ah».
+      *
+      * <p>É o que distingue comprar o óleo certo de comprar óleo. Vivia dentro
+      * do texto da tarefa, onde ninguém a lia na hora de encomendar.
+      */
+    @Column(length = 300)
+    private String specification;
+
+    /** Quantos dias o fornecedor demora. É isto que decide quando se encomenda. */
+    @Column(name = "lead_time_days")
+    private Integer leadTimeDays;
+
     @Column(name = "min_quantity", nullable = false, precision = 12, scale = 2)
     private BigDecimal minQuantity = BigDecimal.ZERO;
 

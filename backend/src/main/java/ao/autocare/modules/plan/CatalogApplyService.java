@@ -40,6 +40,7 @@ public class CatalogApplyService {
     private final StockService stock;
     private final ao.autocare.modules.asset.AssetService assetService;
     private final ao.autocare.repo.AssetRepository assets;
+    private final ao.autocare.modules.consumables.ConsumablesService consumables;
 
     public CatalogApplyService(
             PlanService plans,
@@ -48,7 +49,8 @@ public class CatalogApplyService {
             PredictiveService predictive,
             StockService stock,
             ao.autocare.modules.asset.AssetService assetService,
-            ao.autocare.repo.AssetRepository assets) {
+            ao.autocare.repo.AssetRepository assets,
+            ao.autocare.modules.consumables.ConsumablesService consumables) {
         this.plans = plans;
         this.assetPlans = assetPlans;
         this.checklists = checklists;
@@ -56,6 +58,7 @@ public class CatalogApplyService {
         this.stock = stock;
         this.assetService = assetService;
         this.assets = assets;
+        this.consumables = consumables;
     }
 
     /** O que foi criado, para o ecrã poder dizê-lo sem adivinhar. */
@@ -169,6 +172,15 @@ public class CatalogApplyService {
                     // segunda máquina igual: não é erro, é o armazém já ter.
                     log.debug("Peça '{}' não criada: {}", p.name(), e.getMessage());
                 }
+            }
+            // O plano acabou de escrever «Filtro de óleo do motor» nas tarefas e
+            // de criar o artigo com o mesmo nome no armazém. Ligar os dois aqui
+            // é o que faz o painel de consumíveis poder responder «tenho-o?» —
+            // de outra forma o utilizador teria de o fazer peça a peça.
+            try {
+                consumables.ligarAoArmazem(orgId);
+            } catch (RuntimeException e) {
+                log.debug("Peças do plano não ligadas ao armazém: {}", e.getMessage());
             }
         }
 

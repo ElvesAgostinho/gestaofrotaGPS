@@ -28,7 +28,9 @@ public final class PartDtos {
             BigDecimal minQuantity,
             BigDecimal averageCost,
             @Size(max = 3) String currency,
-            @Size(max = 4000) String notes) {}
+            @Size(max = 4000) String notes,
+            @Size(max = 300) String specification,
+            Integer leadTimeDays) {}
 
     public record StockLine(String warehouseId, String warehouseName, BigDecimal quantity,
                             BigDecimal minQuantity) {
@@ -42,7 +44,7 @@ public final class PartDtos {
     public record PartView(
             String id, String name, String partNumber, String systemCode, String category,
             String unit, BigDecimal minQuantity, BigDecimal averageCost, String currency,
-            String notes, boolean active,
+            String notes, boolean active, String specification, Integer leadTimeDays,
             BigDecimal totalQuantity, boolean lowStock, List<StockLine> stock) {
 
         public static PartView of(Part p, BigDecimal total, List<StockItem> items) {
@@ -54,6 +56,7 @@ public final class PartDtos {
                     p.getId(), p.getName(), p.getPartNumber(), p.getSystemCode(),
                     p.getCategory().name(), p.getUnit(), p.getMinQuantity(), p.getAverageCost(),
                     p.getCurrency(), p.getNotes(), p.isActive(),
+                    p.getSpecification(), p.getLeadTimeDays(),
                     totalQ, low, items.stream().map(StockLine::of).toList());
         }
 

@@ -18,6 +18,11 @@ public interface StockItemRepository extends JpaRepository<StockItem, String> {
     @Query("select coalesce(sum(s.quantity), 0) from StockItem s where s.part.id = :partId")
     BigDecimal totalQuantityForPart(String partId);
 
+    /** Quanto existe de cada artigo, somando todos os armazéns. */
+    @Query("select s.part.id, sum(s.quantity) from StockItem s "
+            + "where s.part.organization.id = :orgId group by s.part.id")
+    List<Object[]> totalsByPartForOrg(String orgId);
+
     /** Todo o stock da empresa, com peça e armazém carregados (para exportar). */
     @Query("""
             select s from StockItem s

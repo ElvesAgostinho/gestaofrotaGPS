@@ -32,6 +32,17 @@ public interface AssetPlanTaskRepository extends JpaRepository<AssetPlanTask, St
             + "where t.assetPlan.active = true and t.status = :status")
     List<String> findAssetIdsWithTaskStatus(PlanTaskStatus status);
 
+    /**
+     * Todas as tarefas vivas da empresa, com o ativo e a tarefa do plano
+     * carregados. É a base do painel de consumíveis: é aqui que estão os óleos
+     * e os filtros a vencer, e sem o ativo à mão não se diz em que viatura.
+     */
+    @Query("select t from AssetPlanTask t "
+            + "join fetch t.assetPlan ap join fetch ap.asset a "
+            + "left join fetch t.task "
+            + "where ap.organization.id = :orgId and ap.active = true and a.archived = false")
+    List<AssetPlanTask> findActiveForOrg(@Param("orgId") String orgId);
+
     /** Tarefas num determinado estado, com o ativo carregado (para avisar). */
     @Query("select t from AssetPlanTask t join fetch t.assetPlan ap join fetch ap.asset a "
             + "where t.status = :status and a.archived = false")

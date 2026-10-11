@@ -80,6 +80,10 @@ public class ImportService {
     private static final String[] COL_TANK =
             {"capacidade do deposito", "capacidade deposito", "deposito litros", "tanque"};
     private static final String[] COL_NOTES = {"observacoes", "notas", "notes"};
+    private static final String[] COL_SPEC =
+            {"especificacao", "especificacoes", "norma", "viscosidade", "specification"};
+    private static final String[] COL_LEAD_TIME =
+            {"prazo de entrega", "prazo entrega", "prazo", "lead time", "dias de entrega"};
 
     private static final String[] COL_FUEL_ASSET =
             {"ativo", "viatura", "tag", "etiqueta", "matricula", "asset"};
@@ -252,7 +256,9 @@ public class ImportService {
                         decimal(row.getAny(COL_MIN_QTY)),
                         decimal(row.getAny(COL_COST)),
                         row.getAny(COL_CURRENCY),
-                        row.getAny(COL_NOTES));
+                        row.getAny(COL_NOTES),
+                        row.getAny(COL_SPEC),
+                        integer(row.getAny(COL_LEAD_TIME)));
 
                 Part existing = byName.get(key(name));
                 if (existing != null) {

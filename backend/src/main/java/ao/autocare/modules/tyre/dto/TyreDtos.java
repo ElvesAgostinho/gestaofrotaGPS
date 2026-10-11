@@ -26,6 +26,8 @@ public final class TyreDtos {
             BigDecimal targetPressure,
             BigDecimal minTreadMm,
             BigDecimal lastTreadMm,
+            /** Vida declarada pelo fabricante, em km — a referência até haver medições. */
+            BigDecimal expectedLifeKm,
             @Size(max = 1000) String notes) {}
 
     public record ReadingRequest(
@@ -61,7 +63,8 @@ public final class TyreDtos {
             String size, String serialNumber, String status, BigDecimal cost, String currency,
             Instant installedAt, BigDecimal installedMeter, Instant removedAt, BigDecimal removedMeter,
             String removalReason, BigDecimal targetPressure, BigDecimal lastPressure,
-            BigDecimal lastTreadMm, BigDecimal minTreadMm, Instant lastMeasuredAt, String notes,
+            BigDecimal lastTreadMm, BigDecimal minTreadMm, BigDecimal expectedLifeKm,
+            Instant lastMeasuredAt, String notes,
             /** Km/h percorridos nesta montagem, com o contador atual do ativo. */
             BigDecimal distanceRun,
             /** Custo por km/h (nulo sem custo ou sem distância). */
@@ -80,7 +83,7 @@ public final class TyreDtos {
                     t.getInstalledAt(), t.getInstalledMeter(), t.getRemovedAt(), t.getRemovedMeter(),
                     t.getRemovalReason() != null ? t.getRemovalReason().name() : null,
                     t.getTargetPressure(), t.getLastPressure(), t.getLastTreadMm(), t.getMinTreadMm(),
-                    t.getLastMeasuredAt(), t.getNotes(),
+                    t.getExpectedLifeKm(), t.getLastMeasuredAt(), t.getNotes(),
                     t.distanceRun(currentMeter),
                     showMoney ? t.costPerUnit(currentMeter) : null,
                     t.alerta());
